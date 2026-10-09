@@ -1,0 +1,15 @@
+{
+  "name": "cloudcli-plugin-starter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "typescript": "7.0.2",
+    "@types/node": "^20.0.0"
+  },
+  "packageManager": "pnpm@12.3.4"
+}

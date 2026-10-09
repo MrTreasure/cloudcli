@@ -10,6 +10,7 @@ import type { ServerEvent,
   ProjectSession,IsSessionProcessing } from '@/shared/types';
 import { mergeProjectSelectionMetadata } from '@/modules/project-workspace/utils/projectSelectionMetadata';
 import { readSelectedProvider } from '@/shared/selectedProvider';
+import { ENABLED_AGENT_PROVIDERS } from '@/shared/constants';
 
 type UseProjectsStateArgs = {
   sessionId?: string;
@@ -439,6 +440,8 @@ export function useProjectsState({
    * on every refresh.
    */
   const mountFetchStartedRef = useRef(false);
+  // Cancel a pending project lookup when the user picks another session or starts a new one.
+  const projectSelectionRequestRef = useRef(0);
   /**
    * Ref mirrors for state the websocket subscription handler needs.
    *
@@ -1021,19 +1024,56 @@ export function useProjectsState({
 
   const handleProjectSelect = useCallback(
     (project: Project) => {
+      const requestId = ++projectSelectionRequestRef.current;
       setSelectedProject(project);
-      setSelectedSession(null);
-      navigate('/');
+      setActiveTab('chat');
+      if (isMobile) setSidebarOpen(false);
 
-      if (isMobile) {
-        setSidebarOpen(false);
+      const openLatest = (sessions: ProjectSession[]) => {
+        if (projectSelectionRequestRef.current !== requestId) return;
+        const latest = sessions
+          .filter((session) => !session.__provider || ENABLED_AGENT_PROVIDERS.includes(session.__provider))
+          .reduce<ProjectSession | null>((current, session) => {
+            const activity = Date.parse(session.lastActivity || session.createdAt || '') || 0;
+            const previous = Date.parse(current?.lastActivity || current?.createdAt || '') || 0;
+            return !current || activity > previous ? session : current;
+          }, null);
+        if (latest) {
+          clearSessionAttention(latest.id);
+          setSelectedSession({ ...latest, __projectId: project.projectId });
+          navigate(`/session/${latest.id}`);
+        } else {
+          setSelectedSession(null);
+          navigate('/');
+        }
+      };
+
+      const cached = getProjectSessions(project);
+      if (cached.length) {
+        openLatest(cached);
+        return;
       }
+      setSelectedSession(null);
+      void (async () => {
+        try {
+          const response = await api.projectSessions(project.projectId, { limit: 20, offset: 0 });
+          if (!response.ok) throw new Error('Could not load project sessions');
+          const page = await response.json() as ProjectSessionPage;
+          if (projectSelectionRequestRef.current !== requestId) return;
+          setProjects((previous) => previous.map((candidate) => candidate.projectId === project.projectId
+            ? mergeProjectSessionPage(candidate, page) : candidate));
+          openLatest(page.sessions ?? []);
+        } catch {
+          openLatest([]);
+        }
+      })();
     },
-    [isMobile, navigate],
+    [clearSessionAttention, isMobile, navigate],
   );
 
   const handleSessionSelect = useCallback(
     (session: ProjectSession) => {
+      projectSelectionRequestRef.current += 1;
       clearSessionAttention(session.id);
       setSelectedSession(session);
 
@@ -1061,6 +1101,7 @@ export function useProjectsState({
 
   const handleNewSession = useCallback(
     (project: Project) => {
+      projectSelectionRequestRef.current += 1;
       setSelectedProject(project);
       setSelectedSession(null);
       setActiveTab('chat');

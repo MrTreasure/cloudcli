@@ -1,3 +1,4 @@
+import { ENABLED_AGENT_PROVIDERS } from '@/shared/constants';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api } from '@/shared/api';
@@ -35,7 +36,7 @@ const FALLBACK_DEFAULT_MODEL: Record<LLMProvider, string> = {
   opencode: 'anthropic/claude-sonnet-4-5',
 };
 
-const PROVIDERS: LLMProvider[] = ['claude', 'cursor', 'codex', 'opencode'];
+const PROVIDERS = ENABLED_AGENT_PROVIDERS;
 
 /** localStorage key holding the user's default model for one provider. */
 const providerModelStorageKey = (provider: LLMProvider): string => `${provider}-model`;
@@ -423,7 +424,7 @@ export function useChatProviderState({ selectedSession, selectedProject: _select
   }, [selectedSession?.id, provider, getDefaultPermissionModeForProvider, getPermissionModesForProvider]);
 
   useEffect(() => {
-    if (!selectedSession?.__provider || selectedSession.__provider === provider) {
+    if (!selectedSession?.__provider || !ENABLED_AGENT_PROVIDERS.includes(selectedSession.__provider) || selectedSession.__provider === provider) {
       return;
     }
 

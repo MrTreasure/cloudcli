@@ -598,7 +598,7 @@ export function createTaskmasterRouter(dependencies: TaskmasterRouterDependencie
             }
 
             // Run taskmaster init command
-            const initProcess = runTaskmasterProcess('npx', ['task-master', 'init'], {
+            const initProcess = runTaskmasterProcess('task-master', ['init'], {
                 cwd: projectPath,
                 stdio: ['pipe', 'pipe', 'pipe']
             }, ({ code, error, stdout, stderr }) => {
@@ -681,7 +681,7 @@ export function createTaskmasterRouter(dependencies: TaskmasterRouterDependencie
             }
 
             // Run task-master add-task command
-            const addTaskProcess = runTaskmasterProcess('npx', args, {
+            const addTaskProcess = runTaskmasterProcess('task-master', args.slice(1), {
                 cwd: projectPath,
                 stdio: ['pipe', 'pipe', 'pipe']
             }, ({ code, error, stdout, stderr }) => {
@@ -741,7 +741,7 @@ export function createTaskmasterRouter(dependencies: TaskmasterRouterDependencie
 
             // If only updating status, use set-status command
             if (status && Object.keys(req.body).length === 1) {
-                const setStatusProcess = runTaskmasterProcess('npx', ['task-master-ai', 'set-status', `--id=${taskId}`, `--status=${status}`], {
+                const setStatusProcess = runTaskmasterProcess('task-master', [ 'set-status', `--id=${taskId}`, `--status=${status}`], {
                     cwd: projectPath,
                     stdio: ['pipe', 'pipe', 'pipe']
                 }, ({ code, error, stdout, stderr }) => {
@@ -778,7 +778,7 @@ export function createTaskmasterRouter(dependencies: TaskmasterRouterDependencie
 
                 const prompt = `Update task with the following changes: ${updates.join(', ')}`;
 
-                const updateProcess = runTaskmasterProcess('npx', ['task-master-ai', 'update-task', `--id=${taskId}`, `--prompt=${prompt}`], {
+                const updateProcess = runTaskmasterProcess('task-master', [ 'update-task', `--id=${taskId}`, `--prompt=${prompt}`], {
                     cwd: projectPath,
                     stdio: ['pipe', 'pipe', 'pipe']
                 }, ({ code, error, stdout, stderr }) => {
@@ -859,7 +859,7 @@ export function createTaskmasterRouter(dependencies: TaskmasterRouterDependencie
             args.push('--research'); // Use research for better PRD parsing
 
             // Run task-master parse-prd command
-            const parsePRDProcess = runTaskmasterProcess('npx', args, {
+            const parsePRDProcess = runTaskmasterProcess('task-master', args.slice(1), {
                 cwd: projectPath,
                 stdio: ['pipe', 'pipe', 'pipe']
             }, ({ code, error, stdout, stderr }) => {

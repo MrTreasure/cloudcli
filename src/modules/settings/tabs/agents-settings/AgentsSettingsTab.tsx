@@ -1,3 +1,4 @@
+import { ENABLED_AGENT_PROVIDERS } from '@/shared/constants';
 import { useEffect, useMemo, useState } from 'react';
 
 import type { AgentCategory, AgentContextByProvider, AgentProvider, AgentSettingsProject, ClaudePermissionsState, CodexPermissionMode, CursorPermissionsState, ProviderAuthStatus } from '@/shared/types';
@@ -40,7 +41,7 @@ export default function AgentsSettingsTab({
   ), [selectedAgent]);
 
   const visibleAgents = useMemo<AgentProvider[]>(() => {
-    return ['claude', 'cursor', 'codex', 'opencode'];
+    return ENABLED_AGENT_PROVIDERS;
   }, []);
 
   const agentContextById = useMemo<AgentContextByProvider>(() => ({

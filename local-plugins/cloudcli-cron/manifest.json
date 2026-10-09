@@ -1,0 +1,13 @@
+{
+  "name": "workspace-scheduled-prompts",
+  "displayName": "定时提示词",
+  "version": "0.2.0",
+  "description": "为项目安排提示词执行计划并查看运行记录。",
+  "author": "OpenAI Codex",
+  "icon": "icon.svg",
+  "type": "module",
+  "slot": "tab",
+  "entry": "dist/index.js",
+  "server": "dist/server.js",
+  "permissions": []
+}

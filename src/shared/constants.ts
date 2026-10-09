@@ -112,6 +112,13 @@ export const FILE_STATUS_GROUPS: GitStatusGroupEntry[] = [
 
 // ---------------------------
 
+//----------------- ENABLED AGENT PROVIDERS ------------
+
+/** Agents available in this NAS deployment; use for selectors and provider loading. */
+export const ENABLED_AGENT_PROVIDERS: LLMProvider[] = ['claude', 'codex'];
+
+// ---------------------------
+
 //----------------- MCP SERVER CAPABILITIES ------------
 
 /** Display name for each provider that can host MCP servers, used in headings and buttons. */

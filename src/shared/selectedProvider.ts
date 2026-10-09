@@ -1,3 +1,4 @@
+import { ENABLED_AGENT_PROVIDERS } from '@/shared/constants';
 import type { LLMProvider } from '@/shared/types';
 import { readUserPreference, writeUserPreference } from '@/shared/userSettings';
 
@@ -16,7 +17,7 @@ import { readUserPreference, writeUserPreference } from '@/shared/userSettings';
  * choice both reaches every reader at once and follows the user between devices.
  */
 
-const PROVIDERS: LLMProvider[] = ['claude', 'cursor', 'codex', 'opencode'];
+const PROVIDERS = ENABLED_AGENT_PROVIDERS;
 
 const DEFAULT_PROVIDER: LLMProvider = 'claude';
 

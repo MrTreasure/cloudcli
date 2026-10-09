@@ -1,0 +1,12 @@
+[Unit]
+Description=CloudCLI Task Queue MCP
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /vol1/1000/deploy/data/MrTreasure/cloudcli/deploy/run-taskqueue.py
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target

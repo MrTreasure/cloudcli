@@ -28,6 +28,8 @@ environment.update({
     'CODEX_HOME': str(home / '.codex'),
     'PASSWORD_BOOK': str(book_path),
     'WORKSPACES_ROOT': '/',
+    'TASK_QUEUE_API': 'http://127.0.0.1:8485',
+    'CLOUDCLI_ORIGIN': 'https://agent.mrtreasure.cc',
     'PLAYWRIGHT_BROWSERS_PATH': '/vol1/cache/ms-playwright',
     'PLAYWRIGHT_DOWNLOAD_HOST': 'https://registry.npmmirror.com/-/binary/playwright',
     'PATH': str(root / 'node_modules/.bin') + os.pathsep + environment.get('PATH', os.defpath),

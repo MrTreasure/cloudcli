@@ -57,3 +57,18 @@ CDN 配置在 `deploy/static-cdn.json`，R2 凭据从密码本 `cloudflare.r2_ad
 使用类型检查、构建和服务探测：登录、未认证 API 401、项目和历史读取、模型目录、CORS、WebSocket、终端、Task Queue 实际构建、前端静态文件与 CF 缓存。界面与交互由用户手动验收，不运行浏览器自动化。
 
 上游：https://github.com/siteboon/claudecodeui 。遵循原项目 AGPL-3.0-or-later。
+
+### 已维护的三个中文插件
+
+`local-plugins/` 保存项目统计、任务队列、定时提示词的完整源码，独立使用 pnpm 12.3.4 和 TypeScript 7.0.2 构建。执行 `python3 deploy/publish-plugins.py` 发布编译产物和中文 manifest，然后重启 `cloudcli-backend.service`。上游插件更新会覆盖运行目录的汉化，更新后需合并源码并重新发布。
+
+### Task Queue MCP
+
+- 源码：`../task-queue-mcp`，版本 0.13.0。Python 虚拟环境：`/vol1/1000/appdata/cloudcli/taskqueue-venv`；依赖快照：`deploy/taskqueue-requirements.lock`。
+- `taskqueue-mcp.service` 为 Treasure 用户服务，监听 `127.0.0.1:8485`，不公开网络端口；任务数据位于 `~/.claude/task-queue`。
+- 密码本唯一持久来源：`services.task_queue.{cloudcli_token,codex_token,claude_token}`。启动时生成临时目录 `/run/user/1000/cloudcli-taskqueue/token`，以 600 权限供插件读取；`~/.config/cloudcli-plugin-task-queue` 指向该临时目录。HTTP 服务仅持有 WebUI token 的摘要，代理 token 分别绑定 Codex 和 Claude 身份。
+- 两个 Agent 的用户级 MCP 配置通过本机 stdio 桥接脚本 `deploy/taskqueue-mcp-client.py` 接入，配置中不保存 token。现有会话需重开才能加载新增 MCP。
+- 安装服务：复制 `deploy/taskqueue-mcp.service` 到 `~/.config/systemd/user/`，执行 `systemctl --user daemon-reload` 和 `systemctl --user enable --now taskqueue-mcp.service`。
+- 已接通队列查询、审批等控制 API 及 MCP 工具。插件上游的自动任务启动依赖 Forge 的 `~/scripts/agent-launch.yml` 和 Agent 启动配置；当前未部署 Forge 调度器，不把队列 MCP 等同于自动调度系统。
+
+TaskMaster 是需求拆解、任务依赖与进度管理工具；Task Queue 是 Agent 之间的任务投递和状态队列。TaskMaster 初始化及后端命令统一调用已安装的 `task-master`，无需 npx 临时安装或启动。

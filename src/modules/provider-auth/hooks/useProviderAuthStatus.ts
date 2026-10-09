@@ -1,3 +1,4 @@
+import { ENABLED_AGENT_PROVIDERS } from '@/shared/constants';
 import { useCallback, useState } from 'react';
 
 import { api } from '@/shared/api';
@@ -8,7 +9,7 @@ import type {
   ProviderAuthSubscriptionOverride,
 } from '@/shared/types';
 
-const CLI_PROVIDERS: LLMProvider[] = ['claude', 'cursor', 'codex', 'opencode'];
+const CLI_PROVIDERS = ENABLED_AGENT_PROVIDERS;
 
 const createInitialProviderAuthStatusMap = (loading = true): ProviderAuthStatusMap => ({
   claude: { authenticated: false, email: null, method: null, error: null, loading },

@@ -1,0 +1,16 @@
+{
+  "name": "task-queue",
+  "displayName": "任务队列",
+  "version": "0.12.0",
+  "description": "查看、筛选和管理 Agent 任务队列。",
+  "author": "TadMSTR",
+  "icon": "icon.svg",
+  "type": "module",
+  "slot": "tab",
+  "entry": "dist/index.js",
+  "server": "dist/server.js",
+  "permissions": [
+    "env:TASK_QUEUE_API",
+    "env:CLOUDCLI_ORIGIN"
+  ]
+}

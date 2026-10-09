@@ -1,0 +1,13 @@
+{
+  "name": "project-stats",
+  "displayName": "项目统计",
+  "version": "1.0.0",
+  "description": "查看当前项目的文件、代码与语言统计。",
+  "author": "CloudCLI UI",
+  "icon": "icon.svg",
+  "type": "module",
+  "slot": "tab",
+  "entry": "dist/index.js",
+  "server": "dist/server.js",
+  "permissions": []
+}
