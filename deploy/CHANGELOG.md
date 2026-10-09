@@ -59,3 +59,9 @@
 
 - 补充宿主机 .secrets 和 .claude/skills 的只读挂载，设置 PASSWORD_BOOK；修复 Codex 凭据技能符号链接在容器中失效的问题。
 - 容器内以运行用户验证密码本可读、YAML 有效、凭据技能可读，两处挂载均为只读；未输出凭据内容。
+
+## 完整共享 Treasure 家目录
+
+- 完整读写挂载 /home/Treasure，移除原有遮盖宿主机 .claude 的运行目录挂载。密码本目录继续只读。
+- .cloudcli 和 .claude-code-ui 创建宿主机符号链接至现有 appdata，账号和插件继续使用已有数据。
+- 宿主机与容器家目录 60 个顶层项一致，运行用户读写检查通过；已有账号登录、插件与 Chromium 状态接口正常。

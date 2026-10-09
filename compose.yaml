@@ -29,12 +29,8 @@ services:
       PLAYWRIGHT_BROWSERS_PATH: /opt/playwright
       PLAYWRIGHT_DOWNLOAD_HOST: https://registry.npmmirror.com/-/binary/playwright
     volumes:
-      - /vol1/1000/appdata/cloudcli/cloudcli:/home/Treasure/.cloudcli
-      - /vol1/1000/appdata/cloudcli/plugins:/home/Treasure/.claude-code-ui
-      - /vol1/1000/appdata/cloudcli/claude:/home/Treasure/.claude
-      - /home/Treasure/.codex:/home/Treasure/.codex
+      - /home/Treasure:/home/Treasure
       - /home/Treasure/.secrets:/home/Treasure/.secrets:ro
-      - /home/Treasure/.claude/skills:/home/Treasure/.claude/skills:ro
       - /vol1:/vol1
       - /vol2:/vol2
       - /vol00:/vol00
