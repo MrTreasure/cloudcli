@@ -8,6 +8,7 @@ import { getConnectableHost, normalizeLoopbackHost } from './shared/networkHosts
 // version the server process is actually running. Reading package.json here and
 // injecting it keeps the frontend free of imports that reach outside src/.
 const pkg = createRequire(import.meta.url)('./package.json')
+const staticCdn = createRequire(import.meta.url)('./deploy/static-cdn.json')
 
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
@@ -25,7 +26,17 @@ export default defineConfig(({ mode }) => {
   const serverPort = env.SERVER_PORT || env.PORT || 3001
 
   return {
-    plugins: [react()],
+    base: mode === 'production' ? staticCdn.base : '/',
+    plugins: [react(), {
+      name: 'keep-pwa-manifest-on-app-origin',
+      transformIndexHtml: {
+        order: 'post',
+        handler(html) {
+          // PWA start_url and service worker scope must remain on the app origin.
+          return html.replaceAll(`${staticCdn.base}manifest.json`, '/manifest.json');
+        }
+      }
+    }],
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version)
     },

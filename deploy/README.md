@@ -2,7 +2,9 @@
 
 - 前端：`https://agent.mrtreasure.cc`，CF Tunnel → 宿主机现有静态 Nginx `127.0.0.1:17843`。宿主机使用 pnpm 构建；前端不放入 Docker。
 - 后端：`https://agent-api-nas.mrtreasure.cc:15432`，DNS only → IPv6 HTTPS Nginx → Docker 后端 `127.0.0.1:18803`。聊天、终端、插件 WebSocket、API、SSE、上传均使用这个地址。
-- `/assets/*` 缓存一年，HTML 必须重新验证。发布保留上一版哈希资源，避免打开中的页面缺少资源。
+- 静态 JS、CSS、字体、图标和图片发布到 R2 CDN `https://assets.mrtreasure.cc/cloudcli/v1/`。哈希资源缓存一年，固定名称图片缓存一小时；Google 在线字体已改为本地依赖打包到 CDN。
+- HTML 在浏览器要求重新验证，首页在 CF 边缘缓存 30 秒。发布后仅清理首页缓存，保留旧哈希资源，避免打开中的页面缺少资源。
+- PWA manifest 和 service worker 使用应用域名；manifest 图标来自 CDN，启动地址与安装范围仍为应用域名。
 - 后端镜像只运行编译产物；源码在宿主机项目目录维护。镜像包含运行依赖、插件构建所需工具和 pnpm 12.3.4。
 - TypeScript 7.0.2 用于类型检查和后端编译。`typescript-ast` 是微软的 TypeScript 6 API 兼容包，仅供汉化维护脚本解析 AST；项目编译命令使用原生 TypeScript 7。
 - Codex CLI / SDK 固定 0.160.0。默认 GPT-6.1 Sol，保留 5.6 及以上目录。Claude 仅列出 DeepSeek V4 Pro / Flash，使用 DeepSeek 官方 Anthropic 兼容接口。
@@ -23,7 +25,9 @@ python3 deploy/bootstrap-user.py
 python3 deploy/compose.py ps
 ```
 
-前端发布到 `/vol1/1000/nginx/public/cloudcli`，无需重建或重启后端。`deploy/frontend.conf` 安装到现有静态 Nginx 的 sites 目录。
+前端发布时先上传静态资源并校验 HTTP、MIME、解压后 SHA256 和跨域 CORS，再原子更新 `/vol1/1000/nginx/public/cloudcli/index.html`，无需重建或重启后端。
+
+CDN 配置在 `deploy/static-cdn.json`，R2 凭据从密码本 `cloudflare.r2_admin` 读取；仅操作公开 bucket 的 `cloudcli/v1/` 前缀，保留其他应用 CORS 规则。现有不可变对象必须内容一致，固定文件使用 ETag 条件更新。`deploy/frontend.conf` 安装到现有静态 Nginx 的 sites 目录。
 
 `deploy/agent-api.conf` 放在 HTTPS proxy 的 http 块内。使用现有证书与 IPv6 15432；访问日志不记录查询字符串，以免持久保存 WS/SSE 的 JWT。
 

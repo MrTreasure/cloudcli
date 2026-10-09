@@ -5,6 +5,9 @@ import { scan } from 'react-scan'
 import App from '@/App'
 import '@/index.css'
 import 'katex/dist/katex.min.css'
+import '@fontsource-variable/encode-sans/index.css'
+import '@fontsource-variable/merriweather/index.css'
+import '@fontsource-variable/merriweather/wght-italic.css'
 
 // Initialize i18n
 import '@/modules/i18n'
