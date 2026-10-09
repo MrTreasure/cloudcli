@@ -1335,3 +1335,13 @@ export function findApplicationRoot(startDirectory: string): string {
     ? path.dirname(parentDirectory)
     : parentDirectory;
 }
+
+/**
+ * Providers use the same system Codex launcher as interactive terminals.
+ * Deployments may set CODEX_CLI_PATH to an absolute launcher path; otherwise
+ * the executable is resolved through PATH. Always pass this explicitly to the
+ * SDK so it cannot fall back to a separately bundled CLI installation.
+ */
+export function resolveCodexExecutable(): string {
+  return process.env.CODEX_CLI_PATH?.trim() || 'codex';
+}

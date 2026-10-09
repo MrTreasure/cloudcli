@@ -7,7 +7,7 @@
 - PWA manifest 和 service worker 使用应用域名；manifest 图标来自 CDN，启动地址与安装范围仍为应用域名。
 - 后端由 Treasure 用户的 `cloudcli-backend.service` 托管，直接运行 `dist-server/server/index.js` 编译产物；源码在宿主机项目目录维护。用户服务已启用开机启动，Treasure 已启用 linger。
 - TypeScript 7.0.2 用于类型检查和后端编译。`typescript-ast` 是微软的 TypeScript 6 API 兼容包，仅供汉化维护脚本解析 AST；项目编译命令使用原生 TypeScript 7。
-- Codex CLI / SDK 固定 0.160.0。默认 GPT-6.1 Sol，保留 5.6 及以上目录。Claude 仅列出 DeepSeek V4 Pro / Flash，使用 DeepSeek 官方 Anthropic 兼容接口。
+- Codex SDK 固定 0.162.0，CLI 使用 NAS 的 pnpm 全局安装。默认 GPT-6.1 Sol，保留 5.6 及以上目录。Claude 仅列出 DeepSeek V4 Pro / Flash，使用 DeepSeek 官方 Anthropic 兼容接口。
 - 后端直接使用 Treasure 的家目录、数据卷和已有 docker/Administrators 组权限，工作区范围设为 `/`。使用 `/home/Treasure/.codex` 和 NAS CLI 同一份历史；无需容器目录或 Docker socket 挂载。
 - TaskMaster CLI 使用 `task-master-ai@0.43.1`，NAS 全局安装与后端运行依赖均通过 pnpm 安装，后端 PATH 包含应用命令目录。
 - `PLAYWRIGHT_BROWSERS_PATH` 指向 NAS 缓存 `/vol1/cache/ms-playwright`。匹配的 Chromium 和本机系统库已验证；后续下载使用淘宝镜像 `https://registry.npmmirror.com/-/binary/playwright`。使用 `pnpm exec playwright install chromium` 安装，不运行浏览器自动化验收。
@@ -72,3 +72,11 @@ CDN 配置在 `deploy/static-cdn.json`，R2 凭据从密码本 `cloudflare.r2_ad
 - 已接通队列查询、审批等控制 API 及 MCP 工具。插件上游的自动任务启动依赖 Forge 的 `~/scripts/agent-launch.yml` 和 Agent 启动配置；当前未部署 Forge 调度器，不把队列 MCP 等同于自动调度系统。
 
 TaskMaster 是需求拆解、任务依赖与进度管理工具；Task Queue 是 Agent 之间的任务投递和状态队列。TaskMaster 初始化及后端命令统一调用已安装的 `task-master`，无需 npx 临时安装或启动。
+
+## NAS Codex 单一安装
+
+- Codex CLI 只通过 NAS 的 pnpm 全局安装维护，入口为 `/vol1/pnpm/bin/codex`。
+- 后端设置 `CODEX_CLI_PATH=/vol1/pnpm/bin/codex`，SDK 与 app-server 共用该入口；网页终端通过 PATH 使用相同全局入口。
+- 项目仅依赖 Codex SDK。`pnpm-workspace.yaml` 的 `overrides` 中 `@openai/codex: "-"` 排除 SDK 与其他依赖携带的 CLI，避免项目安装再生成重复二进制。
+- 更新 CLI 使用 `pnpm add -g @openai/codex@<版本>`，随后重启使用旧进程的服务；版本检查使用 `codex --version`。
+- NAS daemon 的 `~/.codex/packages/app-server-daemon/current` 链接到全局 CLI 的原生 vendor 目录，共用二进制和配套资源。更新全局 CLI 后需同步该链接，再执行 `codex app-server daemon restart`；不要另行安装 daemon 包生成副本。

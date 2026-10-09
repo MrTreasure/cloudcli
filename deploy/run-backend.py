@@ -26,6 +26,7 @@ environment.update({
     'ANTHROPIC_DEFAULT_HAIKU_MODEL': 'deepseek-flash',
     'DATABASE_PATH': str(home / '.cloudcli/auth.db'),
     'CODEX_HOME': str(home / '.codex'),
+    'CODEX_CLI_PATH': '/vol1/pnpm/bin/codex',
     'PASSWORD_BOOK': str(book_path),
     'WORKSPACES_ROOT': '/',
     'TASK_QUEUE_API': 'http://127.0.0.1:8485',

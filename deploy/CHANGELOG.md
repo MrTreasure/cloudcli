@@ -1,5 +1,11 @@
 # 2026-10-09 NAS 部署与本地修复
 
+## 升级 CloudCLI UI v1.37.4
+
+- 合并上游正式发布标签 `v1.37.4`；此前本地已包含该版功能代码，此次上游增量仅为版本号与更新日志。
+- NAS 定制维护分支为 `nas`，保留汉化、C137 品牌、原生服务、CDN 和本地插件。
+- Codex SDK 更新至 0.162.0，SDK 与 app-server 共用 NAS 全局 CLI；排除项目依赖携带的重复 CLI。
+
 ## 修改
 
 - 宿主机发布前端，CF Tunnel 转发 `agent.mrtreasure.cc`；只有后端编译产物在 Docker 中运行。
