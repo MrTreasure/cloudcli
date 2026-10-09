@@ -511,7 +511,7 @@ export function mount(container: HTMLElement, api: PluginAPI): void {
 
   // ── WebSocket ─────────────────────────────────────────────────────
 
-  wsClient = createWsClient();
+  wsClient = createWsClient(api.getWebSocketUrl ? () => api.getWebSocketUrl!() : undefined);
   wsClient.onEvent((event) => {
     if (event.type === '_connected' || event.type === '_disconnected') {
       const next = event.type === '_connected';

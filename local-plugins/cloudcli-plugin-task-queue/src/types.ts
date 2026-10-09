@@ -10,6 +10,8 @@ export interface PluginAPI {
   readonly context: PluginContext;
   onContextChange(callback: (ctx: PluginContext) => void): () => void;
   rpc(method: string, path: string, body?: unknown): Promise<unknown>;
+  /** Host-resolved authenticated socket URL; optional for older same-origin hosts. */
+  getWebSocketUrl?(): string;
 }
 
 export interface PluginModule {

@@ -34,7 +34,7 @@ export interface WsClient {
   close(): void;
 }
 
-export function createWsClient(): WsClient {
+export function createWsClient(resolveWebSocketUrl?: () => string): WsClient {
   const listeners = new Set<WsListener>();
   let ws: WebSocket | null = null;
   let connected = false;
@@ -43,6 +43,7 @@ export function createWsClient(): WsClient {
   let reconnectAttempt = 0;
 
   function getWsUrl(): string {
+    if (resolveWebSocketUrl) return resolveWebSocketUrl();
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const token = localStorage.getItem('auth-token');
     const qs = token ? `?token=${encodeURIComponent(token)}` : '';
