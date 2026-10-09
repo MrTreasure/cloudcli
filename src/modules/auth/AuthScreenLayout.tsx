@@ -1,4 +1,4 @@
-import cloudCliLogo from '@/assets/logo.svg';
+import cloudCliLogo from '@/assets/c137-logo.webp';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -37,8 +37,8 @@ export default function AuthScreenLayout({
           <div className="text-center">
             <div className="mb-5 flex justify-center">
               {logo ?? (
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25 ring-1 ring-inset ring-white/20">
-                  <img src={cloudCliLogo} alt="CloudCLI" className="h-9 w-9" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-2xl">
+                  <img src={cloudCliLogo} alt="C137 实验室" className="h-16 w-16 object-contain" />
                 </div>
               )}
             </div>

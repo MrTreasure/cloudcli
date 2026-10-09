@@ -1,4 +1,8 @@
 allowBuilds:
+  '@anthropic-ai/claude-code': true
+  protobufjs: true
+  tldjs: true
+  tree-sitter-bash: true
   better-sqlite3: true
   bcrypt: true
   node-pty: true

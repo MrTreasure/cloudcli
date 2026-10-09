@@ -31,3 +31,26 @@
 - Google 字体不再通过外部 CSS 请求加载；PWA manifest 留在应用源站、图标使用 CDN。
 - 首页公开 HTML 在 CF 边缘缓存 30 秒，发布后仅清理两个入口 URL，未修改其他站点规则。
 - 前端类型检查和构建通过，后端容器继续运行。
+
+## TaskMaster、Chromium 与 NAS 工作区
+
+- 通过 pnpm 全局安装 TaskMaster AI CLI 0.43.1，同时加入后端依赖，使 WebUI 和终端能直接找到 task-master。
+- 共享 NAS Chromium 缓存，补齐 Playwright 1.64 对应的 Chromium 1248；在镜像构建阶段安装 Chromium 系统库。浏览器运行时安装流程改为 pnpm，普通运行用户不再尝试执行 apt 安装。
+- 工作区范围设为 /，挂载 /vol1、/vol2、/vol00 并使用 NAS 管理员附加组。修复根路径比较产生 // 导致拒绝所有子目录的问题；根目录可用于文件导航，项目创建沿用独立校验。
+- 原有 Codex 历史、账号数据库、插件和前端 CDN 保持各自运行目录。
+
+## C137 品牌与插件认证
+
+- 侧栏、登录页、加载页使用 C137 实验室 Logo；更新网页 ICO、PNG 图标与 PWA 图标。新素材采用新文件名避免旧 CDN 缓存。
+- 移除 GitHub 收藏徽标，以及桌面、移动和折叠侧栏中的报告问题、加入社区入口。
+- 插件 Provider 在登录验证后才挂载；迟到的旧请求认证错误不能清除新登录令牌。
+- Chromium 后续下载使用淘宝镜像，系统依赖通过阿里云 Debian 镜像构建。
+
+## 本次验证
+
+- TypeScript 检查、前端构建和后端镜像构建通过，Docker 健康检查 healthy。
+- NAS 全局与容器 task-master 均为 0.43.1，安装状态接口识别已安装。
+- Chromium 156.0.8078.4 与 Headless Shell 依赖库检查通过；浏览器状态 enabled/available/playwrightInstalled/chromiumInstalled 均为 true，未启动浏览器自动化。
+- /vol1、/vol2、/vol00 的工作区校验与读写权限检查通过，目录浏览接口均为 200，默认根目录导航正常。
+- 插件直连 HTTPS 列表携带 JWT 返回 200，CORS 正常；安装接口通过认证并以 400 拒绝空 URL，匿名请求仍为 401。
+- 183 个静态资源通过 CDN 内容与类型校验；公开首页引用 C137 ICO 和 Logo。界面交互由用户手动验收。

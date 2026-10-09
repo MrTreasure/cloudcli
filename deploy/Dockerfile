@@ -25,10 +25,14 @@ RUN git config --system http.version HTTP/1.1
 WORKDIR /app
 COPY --from=build --chown=1000:1001 /app/node_modules ./node_modules
 COPY --from=build --chown=1000:1001 /app/package.json ./package.json
+COPY --from=build --chown=1000:1001 /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+COPY --from=build --chown=1000:1001 /app/scripts/fix-node-pty.js ./scripts/fix-node-pty.js
 COPY --from=build --chown=1000:1001 /app/dist-server ./dist-server
 COPY --from=build /opt/pnpm /opt/pnpm
 RUN ln -s /opt/pnpm/bin/pnpm.mjs /usr/local/bin/pnpm \
     && mkdir -p /home/Treasure && chown 1000:1001 /home/Treasure /app
+RUN sed -i 's|http://deb.debian.org/debian-security|https://mirrors.aliyun.com/debian-security|g; s|http://deb.debian.org/debian|https://mirrors.aliyun.com/debian|g' /etc/apt/sources.list.d/debian.sources
+RUN node node_modules/playwright/cli.js install-deps chromium
 ENV NODE_ENV=production HOME=/home/Treasure PATH=/app/node_modules/.bin:/usr/local/bin:/usr/bin:/bin
 USER 1000:1001
 CMD ["node", "dist-server/server/index.js"]

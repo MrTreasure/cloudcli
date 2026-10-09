@@ -41,7 +41,8 @@ export const authenticatedFetch = (
     if (refreshedToken) {
       storeAuthToken(refreshedToken);
     }
-    if (response.headers.get('X-Auth-Error')) {
+    // A delayed failure from before sign-in must not clear the newly issued session.
+    if (response.headers.get('X-Auth-Error') && token && localStorage.getItem('auth-token') === token) {
       expireAuthSession();
     }
     return response;

@@ -322,6 +322,10 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
    * them read-only.
    */
   async function resolveBrowsablePath(targetPath: string): Promise<string> {
+    // The configured root is a navigation entry; project creation keeps its stricter policy.
+    if (normalizeProjectPath(targetPath) === normalizeProjectPath(dependencies.workspace.rootPath)) {
+      return normalizeProjectPath(await fileSystem.realpath(targetPath));
+    }
     const readOnlyPath = await dependencies.workspace.resolveReadOnlyRootPath(targetPath);
     if (readOnlyPath) {
       return readOnlyPath;

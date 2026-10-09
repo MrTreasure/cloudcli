@@ -375,7 +375,7 @@ export async function validateWorkspacePath(requestedPath: string): Promise<Work
 
     const resolvedWorkspaceRoot = normalizeProjectPath(await realpath(WORKSPACES_ROOT));
     if (
-      !resolvedPath.startsWith(`${resolvedWorkspaceRoot}${path.sep}`)
+      !resolvedPath.startsWith(resolvedWorkspaceRoot.endsWith(path.sep) ? resolvedWorkspaceRoot : `${resolvedWorkspaceRoot}${path.sep}`)
       && resolvedPath !== resolvedWorkspaceRoot
     ) {
       return {
@@ -392,7 +392,7 @@ export async function validateWorkspacePath(requestedPath: string): Promise<Work
         const resolvedSymlinkPath = path.resolve(path.dirname(absolutePath), symlinkTarget);
         const realSymlinkPath = await realpath(resolvedSymlinkPath);
         if (
-          !realSymlinkPath.startsWith(`${resolvedWorkspaceRoot}${path.sep}`)
+          !realSymlinkPath.startsWith(resolvedWorkspaceRoot.endsWith(path.sep) ? resolvedWorkspaceRoot : `${resolvedWorkspaceRoot}${path.sep}`)
           && realSymlinkPath !== resolvedWorkspaceRoot
         ) {
           return {

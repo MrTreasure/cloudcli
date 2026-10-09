@@ -287,7 +287,7 @@ function runCommand(command: string, args: string[]): Promise<void> {
 function formatInstallError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error);
   if (message.includes('sudo') && message.includes('password')) {
-    return 'Installing Chromium system dependencies requires administrator privileges. Run `npx playwright install-deps chromium` on the machine where CloudCLI runs, then try again.';
+    return 'Installing Chromium system dependencies requires administrator privileges. Run `pnpm exec playwright install-deps chromium` on the machine where CloudCLI runs, then try again.';
   }
   return message || 'Failed to install Browser runtime.';
 }
@@ -297,20 +297,23 @@ async function installRuntime(): Promise<{ success: boolean; message: string }> 
     return installPromise;
   }
 
-  const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+  const packageManager = process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
   runtimeProbeCache = null;
   installPromise = (async () => {
     try {
-      lastInstallMessage = 'Installing Playwright package...';
-      await runCommand(npmCommand, ['install', '--no-save', '--no-package-lock', 'playwright']);
+      if (!getPlaywright()) {
+        lastInstallMessage = 'Installing Playwright package...';
+        await runCommand(packageManager, ['add', '--ignore-scripts', 'playwright']);
+      }
 
-      if (process.platform === 'linux') {
+      // Docker supplies system libraries at image build time; non-root runtime only installs browsers.
+      if (process.platform === 'linux' && process.getuid?.() === 0) {
         lastInstallMessage = 'Installing Chromium system dependencies...';
-        await runCommand(npmCommand, ['exec', '--', 'playwright', 'install-deps', 'chromium']);
+        await runCommand(packageManager, ['exec', 'playwright', 'install-deps', 'chromium']);
       }
 
       lastInstallMessage = 'Installing Chromium runtime...';
-      await runCommand(npmCommand, ['exec', '--', 'playwright', 'install', 'chromium']);
+      await runCommand(packageManager, ['exec', 'playwright', 'install', 'chromium']);
 
       lastInstallMessage = 'Browser runtime installed.';
       return { success: true, message: lastInstallMessage };

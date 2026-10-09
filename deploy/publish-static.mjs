@@ -19,13 +19,13 @@ const client = new S3Client({
   requestChecksumCalculation: 'WHEN_REQUIRED',
 });
 const send = command => client.send(command, { abortSignal: AbortSignal.timeout(30000) });
-const types = { js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', svg: 'image/svg+xml', png: 'image/png', webp: 'image/webp', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', woff2: 'font/woff2', woff: 'font/woff', ttf: 'font/ttf' };
+const types = { js: 'text/javascript; charset=utf-8', css: 'text/css; charset=utf-8', svg: 'image/svg+xml', png: 'image/png', ico: 'image/x-icon', webp: 'image/webp', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', woff2: 'font/woff2', woff: 'font/woff', ttf: 'font/ttf' };
 async function filesUnder(dir, parent = '') {
   const files = [];
   for (const item of await readdir(dir, { withFileTypes: true })) {
     const path = parent + item.name;
     if (item.isDirectory()) files.push(...await filesUnder(resolve(dir, item.name), path + '/'));
-    else if (types[path.split('.').at(-1)] && (path.startsWith('assets/') || /\.(svg|png|webp|jpe?g|gif)$/.test(path))) files.push(path);
+    else if (types[path.split('.').at(-1)] && (path.startsWith('assets/') || /\.(svg|png|ico|webp|jpe?g|gif)$/.test(path))) files.push(path);
   }
   return files;
 }

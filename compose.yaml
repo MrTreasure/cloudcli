@@ -9,6 +9,7 @@ services:
     container_name: cloudcli-backend
     network_mode: host
     user: '1000:1001'
+    group_add: ['1000']
     restart: unless-stopped
     environment:
       HOST: 127.0.0.1
@@ -23,13 +24,18 @@ services:
       ANTHROPIC_DEFAULT_HAIKU_MODEL: deepseek-flash
       DATABASE_PATH: /home/Treasure/.cloudcli/auth.db
       CODEX_HOME: /home/Treasure/.codex
+      WORKSPACES_ROOT: /
+      PLAYWRIGHT_BROWSERS_PATH: /opt/playwright
+      PLAYWRIGHT_DOWNLOAD_HOST: https://registry.npmmirror.com/-/binary/playwright
     volumes:
       - /vol1/1000/appdata/cloudcli/cloudcli:/home/Treasure/.cloudcli
       - /vol1/1000/appdata/cloudcli/plugins:/home/Treasure/.claude-code-ui
       - /vol1/1000/appdata/cloudcli/claude:/home/Treasure/.claude
       - /home/Treasure/.codex:/home/Treasure/.codex
-      - /vol1/1000/deploy/data/codex-home:/vol1/1000/deploy/data/codex-home
-      - /vol1/1000/deploy/data/MrTreasure:/vol1/1000/deploy/data/MrTreasure
+      - /vol1:/vol1
+      - /vol2:/vol2
+      - /vol00:/vol00
+      - /vol1/cache/ms-playwright:/opt/playwright
     security_opt:
       - no-new-privileges:true
     cap_drop: [ALL]

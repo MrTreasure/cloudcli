@@ -8,7 +8,9 @@
 - 后端镜像只运行编译产物；源码在宿主机项目目录维护。镜像包含运行依赖、插件构建所需工具和 pnpm 12.3.4。
 - TypeScript 7.0.2 用于类型检查和后端编译。`typescript-ast` 是微软的 TypeScript 6 API 兼容包，仅供汉化维护脚本解析 AST；项目编译命令使用原生 TypeScript 7。
 - Codex CLI / SDK 固定 0.160.0。默认 GPT-6.1 Sol，保留 5.6 及以上目录。Claude 仅列出 DeepSeek V4 Pro / Flash，使用 DeepSeek 官方 Anthropic 兼容接口。
-- Docker 使用 NAS 用户 UID/GID 和 host 网络。共享 `/home/Treasure/.codex` 及其 sessions 符号链接目标 `/vol1/1000/deploy/data/codex-home`，统一管理 NAS CLI 与网页会话。
+- Docker 使用 NAS 用户 UID/GID、NAS 管理员附加组及 host 网络。工作区范围设为 `/`，挂载 `/vol1`、`/vol2`、`/vol00`；目录读写继承 NAS 账号权限。共享 `/home/Treasure/.codex` 及其 sessions 符号链接目标 `/vol1/1000/deploy/data/codex-home`，统一管理 NAS CLI 与网页会话。
+- TaskMaster CLI 使用 `task-master-ai@0.43.1`，NAS 全局安装与后端运行依赖均通过 pnpm 安装，后端 PATH 包含应用命令目录。
+- Chromium 缓存共享 `/vol1/cache/ms-playwright` → `/opt/playwright`；`PLAYWRIGHT_BROWSERS_PATH` 指向该目录。镜像构建时安装系统库，后续下载使用淘宝镜像 `https://registry.npmmirror.com/-/binary/playwright`，匹配的 Chromium 使用 `pnpm exec playwright install chromium` 在宿主机安装，不运行浏览器自动化验收。
 - 数据、附件和插件位于 `/vol1/1000/appdata/cloudcli`；源码根目录不存运行数据或密钥。
 - 密码本唯一来源 `~/.secrets/passwords.yml`：`services.cloudcli.{username,password,agent_api_key}`、`llm_providers.deepseek.{anthropic_base,api_key}`。Compose helper 在运行时注入，不输出展开的配置。
 - 浏览器使用 JWT 认证；额外 API key 只保护 `/api/agent` 自动化接口，不提供给前端。

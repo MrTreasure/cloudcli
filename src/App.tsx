@@ -113,24 +113,25 @@ export default function App() {
     <I18nextProvider i18n={i18n}>
       <ThemeProvider>
         <UiPreferencesProvider>
-        <AuthProvider>
-          <WebSocketProvider>
-            <PluginsProvider>
+          <AuthProvider>
+            <WebSocketProvider>
               <TasksSettingsProvider>
                 <TaskMasterProvider>
-                <ProtectedRoute>
-                  <Router basename={routerBasename}>
-                    <Routes>
-                      <Route path="/" element={<ProjectWorkspaceRoute />} />
-                      <Route path="/session/:sessionId" element={<ProjectWorkspaceRoute />} />
-                    </Routes>
-                  </Router>
-                </ProtectedRoute>
+                  <ProtectedRoute>
+                    {/* Plugin requests require the verified login session. */}
+                    <PluginsProvider>
+                      <Router basename={routerBasename}>
+                        <Routes>
+                          <Route path="/" element={<ProjectWorkspaceRoute />} />
+                          <Route path="/session/:sessionId" element={<ProjectWorkspaceRoute />} />
+                        </Routes>
+                      </Router>
+                    </PluginsProvider>
+                  </ProtectedRoute>
                 </TaskMasterProvider>
               </TasksSettingsProvider>
-            </PluginsProvider>
-          </WebSocketProvider>
-        </AuthProvider>
+            </WebSocketProvider>
+          </AuthProvider>
         </UiPreferencesProvider>
       </ThemeProvider>
     </I18nextProvider>
