@@ -1,8 +1,10 @@
-import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useTranslation } from 'react-i18next';
 
+import { FILE_NAME_FONT_SIZE_OPTIONS, INTERFACE_FONT_SIZE_OPTIONS } from '@/shared/constants';
 import { useTheme } from '@/shared/context/ThemeContext';
+import { useFontSizes } from '@/shared/hooks/useFontSizes';
 import type { CodeEditorSettingsState, ProjectSortOrder, ThemeMode } from '@/shared/types';
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { LanguageSelector } from '@/modules/i18n';
 import SettingsCard from '@/modules/settings/SettingsCard';
 import SettingsRow from '@/modules/settings/SettingsRow';
@@ -31,6 +33,7 @@ export default function AppearanceSettingsTab({
 }: AppearanceSettingsTabProps) {
   const { t } = useTranslation('settings');
   const { themeMode, setThemeMode } = useTheme();
+  const { interfaceFontSize, fileNameFontSize, setFontSize } = useFontSizes();
 
   return (
     <div className="space-y-8">
@@ -55,8 +58,21 @@ export default function AppearanceSettingsTab({
       </SettingsSection>
 
       <SettingsSection title={t('mainTabs.appearance')}>
-        <SettingsCard>
+        <SettingsCard divided>
           <LanguageSelector />
+          <SettingsRow
+            label={t('appearanceSettings.interfaceFontSize.label', 'Interface font size')}
+            description={t('appearanceSettings.interfaceFontSize.description', 'Adjust interface text size; code and file name sizes are set separately.')}
+          >
+            <select
+              aria-label={t('appearanceSettings.interfaceFontSize.label', 'Interface font size')}
+              value={interfaceFontSize}
+              onChange={(event) => setFontSize('interfaceFontSize', Number(event.target.value))}
+              className="w-full touch-manipulation rounded-lg border border-input bg-card p-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:w-28"
+            >
+              {INTERFACE_FONT_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}px</option>)}
+            </select>
+          </SettingsRow>
         </SettingsCard>
       </SettingsSection>
 
@@ -80,6 +96,19 @@ export default function AppearanceSettingsTab({
 
       <SettingsSection title={t('appearanceSettings.codeEditor.title')}>
         <SettingsCard divided>
+          <SettingsRow
+            label={t('appearanceSettings.codeEditor.fileNameFontSize.label', 'File name font size')}
+            description={t('appearanceSettings.codeEditor.fileNameFontSize.description', 'Adjust file and folder names in the file panel and editor titles.')}
+          >
+            <select
+              aria-label={t('appearanceSettings.codeEditor.fileNameFontSize.label', 'File name font size')}
+              value={fileNameFontSize}
+              onChange={(event) => setFontSize('fileNameFontSize', Number(event.target.value))}
+              className="w-full touch-manipulation rounded-lg border border-input bg-card p-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:w-28"
+            >
+              {FILE_NAME_FONT_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}px</option>)}
+            </select>
+          </SettingsRow>
           <SettingsRow
             label={t('appearanceSettings.codeEditor.wordWrap.label')}
             description={t('appearanceSettings.codeEditor.wordWrap.description')}

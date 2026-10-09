@@ -206,7 +206,15 @@
       "fontSize": {
         "label": "字体大小",
         "description": "编辑器字体大小（px）"
+      },
+      "fileNameFontSize": {
+        "label": "文件名字体大小",
+        "description": "调整文件面板中的文件、文件夹名称及编辑器标题字号。"
       }
+    },
+    "interfaceFontSize": {
+      "label": "界面字体大小",
+      "description": "调整界面文字大小，代码正文和文件名使用各自的字号设置。"
     }
   },
   "mcpForm": {

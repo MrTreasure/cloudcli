@@ -181,7 +181,15 @@
       "fontSize": {
         "label": "字型大小",
         "description": "編輯器字型大小（px）"
+      },
+      "fileNameFontSize": {
+        "label": "檔名字體大小",
+        "description": "調整檔案面板中的檔案、資料夾名稱及編輯器標題字體大小。"
       }
+    },
+    "interfaceFontSize": {
+      "label": "介面字體大小",
+      "description": "調整介面文字大小，程式碼內容和檔名使用各自的字體大小設定。"
     }
   },
   "mcpForm": {

@@ -206,7 +206,15 @@
       "fontSize": {
         "label": "Font Size",
         "description": "Editor font size in pixels"
+      },
+      "fileNameFontSize": {
+        "label": "File name font size",
+        "description": "Adjust file and folder names in the file panel and editor titles."
       }
+    },
+    "interfaceFontSize": {
+      "label": "Interface font size",
+      "description": "Adjust interface text size; code and file name sizes are set separately."
     }
   },
   "mcpForm": {

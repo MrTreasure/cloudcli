@@ -88,7 +88,7 @@ export default function CodeEditorHeader({
       <div className="flex min-w-0 flex-1 shrink items-center gap-2">
         <div className="min-w-0 shrink">
           <div className="flex min-w-0 items-center gap-2">
-            <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">{file.name}</h3>
+            <h3 className="truncate text-[length:var(--file-name-font-size,16px)] font-medium text-gray-900 dark:text-white">{file.name}</h3>
             {hasUnsavedChanges && (
               <span
                 role="img"

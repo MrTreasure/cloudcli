@@ -6,7 +6,7 @@ import {
   uiPreferencesReducer,
 } from '@/shared/uiPreferences';
 import type { UiPreferenceKey, UiPreferences } from '@/shared/uiPreferences';
-import { subscribeToUserPreferences, writeUserPreference } from '@/shared/userSettings';
+import { readUserPreference, subscribeToUserPreferences, writeUserPreference } from '@/shared/userSettings';
 
 type UiPreferenceActions = {
   setPreference: (key: UiPreferenceKey, value: boolean) => void;
@@ -50,7 +50,11 @@ export function UiPreferencesProvider({ children }: { children: ReactNode }) {
       return;
     }
     lastPersistedRef.current = serialized;
-    writeUserPreference('uiPreferences', preferences);
+    // Typography shares this blob; changing a toggle must preserve those sizes.
+    writeUserPreference('uiPreferences', {
+      ...readUserPreference<Record<string, unknown>>('uiPreferences', {}),
+      ...preferences,
+    });
   }, [preferences]);
 
   useEffect(() => subscribeToUserPreferences(() => {

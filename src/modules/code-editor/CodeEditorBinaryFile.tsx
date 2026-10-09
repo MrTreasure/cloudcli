@@ -49,7 +49,7 @@ export default function CodeEditorBinaryFile({
       <div className="flex h-full w-full flex-col bg-background">
         <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-3 py-1.5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">{file.name}</h3>
+            <h3 className="truncate text-[length:var(--file-name-font-size,16px)] font-medium text-gray-900 dark:text-white">{file.name}</h3>
           </div>
           <button
             type="button"
@@ -80,7 +80,7 @@ export default function CodeEditorBinaryFile({
       <div className={innerClassName}>
         <div className="flex flex-shrink-0 items-center justify-between border-b border-border px-3 py-1.5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
-            <h3 className="truncate text-sm font-medium text-gray-900 dark:text-white">{file.name}</h3>
+            <h3 className="truncate text-[length:var(--file-name-font-size,16px)] font-medium text-gray-900 dark:text-white">{file.name}</h3>
           </div>
           <div className="flex shrink-0 items-center gap-0.5">
             <button
