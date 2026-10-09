@@ -65,3 +65,11 @@
 - 完整读写挂载 /home/Treasure，移除原有遮盖宿主机 .claude 的运行目录挂载。密码本目录继续只读。
 - .cloudcli 和 .claude-code-ui 创建宿主机符号链接至现有 appdata，账号和插件继续使用已有数据。
 - 宿主机与容器家目录 60 个顶层项一致，运行用户读写检查通过；已有账号登录、插件与 Chromium 状态接口正常。
+
+## 迁移 NAS 原生后端
+
+- 以 Treasure 用户运行编译后的后端，新增 systemd 用户单元和运行时凭据注入启动器，启用开机启动与异常重启。
+- 完成账号数据库备份；账号、附件、插件和 Codex 历史继续使用现有目录。
+- 后端仍监听 127.0.0.1:18803，前端 CDN 和直连 API 地址继续工作。
+- 类型检查、后端构建、登录、HTTPS/CORS、聊天/终端 WebSocket 通过；网页终端实测 Docker 控制和密码本访问正常。Chromium、TaskMaster 0.43.1、已有插件识别正常，未启动浏览器自动化。
+- 删除 cloudcli-backend Docker 容器及旧 Compose、Dockerfile、Compose helper，改用 cloudcli-backend.service 管理服务。
