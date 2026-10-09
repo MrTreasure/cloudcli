@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { CheckSquare, Plus, Trash2 } from 'lucide-react';
 import type { TFunction } from 'i18next';
 
@@ -91,6 +92,8 @@ export default function SidebarProjectSessions({
   onDeleteSelectedSessions,
   t,
 }: SidebarProjectSessionsProps) {
+  const translateInterfaceText = useInterfaceText();
+
   const isCompact = useCompactSidebar();
 
   if (!isExpanded) {
@@ -253,7 +256,7 @@ export default function SidebarProjectSessions({
               onClick={() => onLoadMoreSessions(project.projectId)}
               disabled={isLoadingMoreSessions}
             >
-              {isLoadingMoreSessions ? t('sessions.loadingSessions') : 'Load more sessions'}
+              {isLoadingMoreSessions ? t('sessions.loadingSessions') : translateInterfaceText("Load more sessions")}
             </Button>
           )}
         </>

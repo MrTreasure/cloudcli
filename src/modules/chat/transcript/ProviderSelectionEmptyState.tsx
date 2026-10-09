@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import React, { useCallback, useMemo, useState } from "react";
 import { ChevronDown, Plus } from "lucide-react";
 import { Trans, useTranslation } from "react-i18next";
@@ -214,7 +215,7 @@ export default function ProviderSelectionEmptyState({
             </DialogTrigger>
 
             <DialogContent className="max-w-md overflow-hidden p-0">
-              <DialogTitle>Model Selector</DialogTitle>
+              <DialogTitle><LocalizedText text={"Model Selector"} /></DialogTitle>
               <div className="flex items-center justify-between gap-3 border-b border-border/60 bg-muted/20 px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-foreground">

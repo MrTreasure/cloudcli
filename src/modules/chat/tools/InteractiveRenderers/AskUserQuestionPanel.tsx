@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -179,9 +180,7 @@ export const AskUserQuestionPanel: React.FC<PermissionPanelProps> = ({
             </div>
 
             <div className="flex min-w-0 flex-1 items-center gap-2">
-              <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500">
-                Claude needs your input
-              </span>
+              <span className="text-[10px] font-medium uppercase tracking-wide text-gray-400 dark:text-gray-500"><LocalizedText text={"Claude needs your input"} /></span>
               {q.header && (
                 <span className="inline-flex items-center rounded border border-blue-100 bg-blue-50 px-1.5 py-px text-[9px] font-semibold uppercase tracking-wider text-blue-600 dark:border-blue-800/50 dark:bg-blue-900/30 dark:text-blue-400">
                   {q.header}
@@ -222,7 +221,7 @@ export const AskUserQuestionPanel: React.FC<PermissionPanelProps> = ({
             {q.question}
           </p>
           {multi && (
-            <span className="text-[10px] text-gray-400 dark:text-gray-500">Select all that apply</span>
+            <span className="text-[10px] text-gray-400 dark:text-gray-500"><LocalizedText text={"Select all that apply"} /></span>
           )}
         </div>
 
@@ -301,9 +300,7 @@ export const AskUserQuestionPanel: React.FC<PermissionPanelProps> = ({
                 isOtherOn
                   ? 'font-medium text-gray-900 dark:text-gray-100'
                   : 'text-gray-500 dark:text-gray-400'
-              }`}>
-                Other...
-              </span>
+              }`}><LocalizedText text={"Other..."} /></span>
               {isOtherOn && (
                 <svg className="ml-auto h-4 w-4 flex-shrink-0 text-blue-500 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -361,9 +358,7 @@ export const AskUserQuestionPanel: React.FC<PermissionPanelProps> = ({
               >
                 <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-                Back
-              </button>
+                </svg><LocalizedText text={"Back"} /></button>
             )}
 
             {isLast ? (
@@ -372,18 +367,14 @@ export const AskUserQuestionPanel: React.FC<PermissionPanelProps> = ({
                 onClick={handleSubmit}
                 disabled={!hasCurrentSelection && !Object.keys(buildAnswers()).length}
                 className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-3.5 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all duration-200 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none dark:from-blue-500 dark:to-blue-600"
-              >
-                Submit
-                <span className="ml-0.5 font-mono text-[9px] opacity-70">Enter</span>
+              ><LocalizedText text={"Submit"} /><span className="ml-0.5 font-mono text-[9px] opacity-70">Enter</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => setCurrentStep(s => s + 1)}
                 className="inline-flex items-center gap-1 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-3.5 py-1.5 text-[11px] font-semibold text-white shadow-sm transition-all duration-200 hover:shadow-md dark:from-blue-500 dark:to-blue-600"
-              >
-                Next
-                <span className="ml-0.5 font-mono text-[9px] opacity-70">Enter</span>
+              ><LocalizedText text={"Next"} /><span className="ml-0.5 font-mono text-[9px] opacity-70">Enter</span>
               </button>
             )}
           </div>

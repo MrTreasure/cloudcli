@@ -1,3 +1,5 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { useTranslation } from 'react-i18next';
 import { PencilIcon, XIcon } from 'lucide-react';
 
@@ -18,6 +20,8 @@ export default function QueuedMessageCard({
   onEdit,
   onDelete,
 }: QueuedMessageCardProps) {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation('chat');
 
   return (
@@ -35,8 +39,7 @@ export default function QueuedMessageCard({
           <p className="mt-0.5 line-clamp-2 break-words text-sm text-foreground/90">{content}</p>
           {attachmentCount > 0 && (
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {attachmentCount} {attachmentCount === 1 ? 'file' : 'files'} attached
-            </p>
+              {attachmentCount} {attachmentCount === 1 ? translateInterfaceText("file") : translateInterfaceText("files")}{' '}<LocalizedText text={"attached"} /></p>
           )}
         </div>
 

@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
@@ -242,9 +243,7 @@ export default function CommandMenu({
           transform: 'translateY(0)',
           textAlign: 'center',
         }}
-      >
-        No commands available
-      </div>
+      ><LocalizedText text={"No commands available"} /></div>
     );
   }
 

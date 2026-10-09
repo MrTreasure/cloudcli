@@ -27,7 +27,7 @@
     "url": "https://github.com/siteboon/claudecodeui/issues"
   },
   "scripts": {
-    "dev": "concurrently --kill-others \"npm run server:dev\" \"npm run client\"",
+    "dev": "concurrently --kill-others \"pnpm run server:dev\" \"pnpm run client\"",
     "preserver": "node scripts/promote-dist-server.mjs recover",
     "server": "node dist-server/server/index.js",
     "server:dev": "tsx --tsconfig server/tsconfig.json server/index.ts",
@@ -36,12 +36,12 @@
     "desktop": "electron electron/main.js",
     "desktop:dev": "cross-env ELECTRON_DEV_URL=http://127.0.0.1:5173 electron electron/main.js",
     "desktop:stage": "node scripts/release/prepare-desktop-app.js",
-    "desktop:pack": "npm run build && npm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --dir",
-    "desktop:dist:mac": "npm run build && npm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --mac dmg",
-    "desktop:dist:win": "npm run build && npm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --win nsis",
-    "server:bundle": "npm run build && node scripts/release/build-server-bundle.js",
+    "desktop:pack": "pnpm run build && pnpm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --dir",
+    "desktop:dist:mac": "pnpm run build && pnpm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --mac dmg",
+    "desktop:dist:win": "pnpm run build && pnpm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --win nsis",
+    "server:bundle": "pnpm run build && node scripts/release/build-server-bundle.js",
     "desktop:icon:mac": "node electron/scripts/generate-macos-icon.js",
-    "build": "npm run build:client && npm run build:server",
+    "build": "pnpm run build:client && pnpm run build:server",
     "build:client": "vite build",
     "prebuild:server": "node -e \"require('node:fs').rmSync('dist-server.next', { recursive: true, force: true })\"",
     "build:server": "tsc -p server/tsconfig.json && tsc-alias -p server/tsconfig.json",
@@ -54,9 +54,9 @@
     "lint:server": "oxlint server/",
     "lint:client": "oxlint src/",
     "lint:fix": "oxlint src/ server/ --fix",
-    "start": "npm run build && npm run server",
+    "start": "pnpm run build && pnpm run server",
     "release": "./release.sh",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "pnpm run build",
     "postinstall": "node scripts/fix-node-pty.js",
     "prepare": "husky",
     "update:platform": "./update-platform.sh"
@@ -147,12 +147,15 @@
     "@codemirror/lang-json": "^6.0.1",
     "@codemirror/lang-markdown": "^6.3.3",
     "@codemirror/lang-python": "^6.2.1",
+    "@codemirror/language": "^6.13.1",
     "@codemirror/merge": "^6.11.1",
+    "@codemirror/state": "^6.7.6",
     "@codemirror/theme-one-dark": "^6.1.2",
+    "@codemirror/view": "^6.43.14",
     "@iarna/toml": "^2.2.5",
     "@octokit/rest": "^22.0.0",
-    "@openai/codex": "0.156.1",
-    "@openai/codex-sdk": "^0.156.0",
+    "@openai/codex": "0.160.0",
+    "@openai/codex-sdk": "0.160.0",
     "@replit/codemirror-minimap": "^0.5.2",
     "@tailwindcss/typography": "^0.5.16",
     "@uiw/react-codemirror": "^4.23.13",
@@ -185,6 +188,7 @@
     "multer": "^2.0.1",
     "node-fetch": "^2.7.0",
     "node-pty": "^1.2.0-beta.12",
+    "playwright": "^1.64.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.3",
@@ -244,7 +248,8 @@
     "tailwindcss": "^3.4.0",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
+    "typescript-ast": "npm:@typescript/typescript6@6.0.2",
     "vite": "^7.0.4",
     "vitest": "^3.2.7"
   },
@@ -255,5 +260,6 @@
   "optionalDependencies": {
     "@nut-tree-fork/nut-js": "^4.2.6",
     "screenshot-desktop": "^1.15.4"
-  }
+  },
+  "packageManager": "pnpm@12.3.4"
 }

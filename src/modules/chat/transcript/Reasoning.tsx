@@ -1,3 +1,5 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import * as React from 'react';
 import { BrainIcon, ChevronDownIcon } from 'lucide-react';
 
@@ -132,14 +134,19 @@ export type ReasoningTriggerProps = {
   getThinkingMessage?: (isStreaming: boolean, duration?: number) => React.ReactNode;
 } & React.ButtonHTMLAttributes<HTMLButtonElement>;
 
+function LocalizedThinkingMessage() {
+  const translateInterfaceText = useInterfaceText();
+  return <Shimmer>{translateInterfaceText('Thinking...')}</Shimmer>;
+}
+
 const defaultGetThinkingMessage = (isStreaming: boolean, duration?: number): React.ReactNode => {
   if (isStreaming || duration === 0) {
-    return <Shimmer>Thinking...</Shimmer>;
+    return <LocalizedThinkingMessage />;
   }
   if (duration === undefined) {
-    return <p>Thought for a few seconds</p>;
+    return <p><LocalizedText text={"Thought for a few seconds"} /></p>;
   }
-  return <p>Thought for {duration} seconds</p>;
+  return <p><LocalizedText text={"Thought for"} />{' '}{duration}{' '}<LocalizedText text={"seconds"} /></p>;
 };
 
 /** Toggle of Reasoning, used by MessageComponent. */

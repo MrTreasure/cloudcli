@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { ExternalLink, FileText, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -16,6 +17,8 @@ type HelpStep = {
 
 /** Rendered by TaskBoard to walk through the PRD-to-tasks workflow. */
 export default function TaskHelpModal({ isOpen, onClose, onCreatePrd }: TaskHelpModalProps) {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation('tasks');
 
   if (!isOpen) {
@@ -66,7 +69,7 @@ export default function TaskHelpModal({ isOpen, onClose, onCreatePrd }: TaskHelp
           <button
             onClick={onClose}
             className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
-            title="Close"
+            title={translateInterfaceText("Close")}
           >
             <X className="h-5 w-5" />
           </button>

@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -136,7 +137,7 @@ export default function NextTaskBanner({ onShowAllTasks = null, onStartTask = nu
                 <div className="flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/50">
                   <Target className="h-3 w-3 text-blue-600 dark:text-blue-400" />
                 </div>
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Task {nextTask.id}</span>
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400"><LocalizedText text={"Task"} />{' '}{nextTask.id}</span>
                 <PriorityIndicator priority={nextTask.priority} />
               </div>
               <p className="line-clamp-1 text-sm font-medium text-slate-900 dark:text-slate-100">{nextTask.title}</p>
@@ -204,9 +205,7 @@ export default function NextTaskBanner({ onShowAllTasks = null, onStartTask = nu
               <button
                 onClick={onShowAllTasks}
                 className="rounded bg-purple-600 px-2 py-1 text-xs text-white transition-colors hover:bg-purple-700"
-              >
-                Review
-              </button>
+              ><LocalizedText text={"Review"} /></button>
             )}
           </div>
         </div>

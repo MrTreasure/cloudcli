@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ShieldAlertIcon } from 'lucide-react';
@@ -79,14 +80,12 @@ export default function PermissionRequestsBanner({
               <ShieldAlertIcon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
               <ConfirmationRequest>
                 <div>
-                  <span className="font-medium text-foreground">Permission required</span>
-                  <span className="ml-2 text-muted-foreground">
-                    Tool: <code className="rounded bg-muted px-1.5 py-0.5 text-xs">{request.toolName}</code>
+                  <span className="font-medium text-foreground"><LocalizedText text={"Permission required"} /></span>
+                  <span className="ml-2 text-muted-foreground"><LocalizedText text={"Tool:"} />{' '}<code className="rounded bg-muted px-1.5 py-0.5 text-xs">{request.toolName}</code>
                   </span>
                 </div>
                 {permissionEntry && (
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    Allow rule: <code className="rounded bg-muted px-1 py-0.5 text-xs">{permissionEntry}</code>
+                  <div className="mt-1 text-xs text-muted-foreground"><LocalizedText text={"Allow rule:"} />{' '}<code className="rounded bg-muted px-1 py-0.5 text-xs">{permissionEntry}</code>
                   </div>
                 )}
               </ConfirmationRequest>
@@ -94,9 +93,7 @@ export default function PermissionRequestsBanner({
 
             {rawInput && (
               <details className="mt-2">
-                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
-                  View tool input
-                </summary>
+                <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground"><LocalizedText text={"View tool input"} /></summary>
                 <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-md border bg-muted/50 p-2 text-xs text-muted-foreground">
                   {rawInput}
                 </pre>
@@ -107,9 +104,7 @@ export default function PermissionRequestsBanner({
               <ConfirmationAction
                 variant="outline"
                 onClick={() => handlePermissionDecision(request.requestId, { allow: false, message: t('chat:misc.userDeniedTool') })}
-              >
-                Deny
-              </ConfirmationAction>
+              ><LocalizedText text={"Deny"} /></ConfirmationAction>
               <ConfirmationAction
                 variant="outline"
                 onClick={() => {
@@ -125,9 +120,7 @@ export default function PermissionRequestsBanner({
               <ConfirmationAction
                 variant="default"
                 onClick={() => handlePermissionDecision(request.requestId, { allow: true })}
-              >
-                Allow once
-              </ConfirmationAction>
+              ><LocalizedText text={"Allow once"} /></ConfirmationAction>
             </ConfirmationActions>
           </Confirmation>
         );

@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/shared/context/ThemeContext';
@@ -121,15 +122,15 @@ export default function AppearanceSettingsTab({
               onChange={(event) => onCodeEditorFontSizeChange(event.target.value)}
               className="w-full touch-manipulation rounded-lg border border-input bg-card p-2.5 text-sm text-foreground focus:border-primary focus:ring-1 focus:ring-primary sm:w-28"
             >
-              <option value="10">10px</option>
-              <option value="11">11px</option>
-              <option value="12">12px</option>
-              <option value="13">13px</option>
-              <option value="14">14px</option>
-              <option value="15">15px</option>
-              <option value="16">16px</option>
-              <option value="18">18px</option>
-              <option value="20">20px</option>
+              <option value="10"><LocalizedText text={"10px"} /></option>
+              <option value="11"><LocalizedText text={"11px"} /></option>
+              <option value="12"><LocalizedText text={"12px"} /></option>
+              <option value="13"><LocalizedText text={"13px"} /></option>
+              <option value="14"><LocalizedText text={"14px"} /></option>
+              <option value="15"><LocalizedText text={"15px"} /></option>
+              <option value="16"><LocalizedText text={"16px"} /></option>
+              <option value="18"><LocalizedText text={"18px"} /></option>
+              <option value="20"><LocalizedText text={"20px"} /></option>
             </select>
           </SettingsRow>
         </SettingsCard>

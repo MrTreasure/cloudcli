@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { Loader2, MessageSquare } from 'lucide-react';
 import type { MouseEvent } from 'react';
 import type { TFunction } from 'i18next';
@@ -33,8 +34,10 @@ type SidebarRecentConversationsProps = {
 };
 
 function RecentConversationSkeleton() {
+  const translateInterfaceText = useInterfaceText();
+
   return (
-    <div className="space-y-1 px-1" aria-label="Loading recent conversations">
+    <div className="space-y-1 px-1" aria-label={translateInterfaceText("Loading recent conversations")}>
       {Array.from({ length: 8 }).map((_, index) => (
         <div key={index} className="flex items-center gap-2 rounded-lg px-2 py-2.5">
           <div className="h-7 w-7 animate-pulse rounded-md bg-muted" />

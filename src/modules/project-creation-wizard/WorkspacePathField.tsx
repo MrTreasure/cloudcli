@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { FolderOpen } from 'lucide-react';
@@ -22,6 +23,8 @@ export default function WorkspacePathField({
   onChange,
   onAdvanceToConfirm,
 }: WorkspacePathFieldProps) {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation();
   const [pathSuggestions, setPathSuggestions] = useState<FolderSuggestion[]>([]);
   const [showPathDropdown, setShowPathDropdown] = useState(false);
@@ -90,7 +93,7 @@ export default function WorkspacePathField({
             type="text"
             value={value}
             onChange={(event) => onChange(event.target.value)}
-            placeholder="/path/to/project/workspace"
+            placeholder={translateInterfaceText("/path/to/project/workspace")}
             className="w-full"
             disabled={disabled}
           />

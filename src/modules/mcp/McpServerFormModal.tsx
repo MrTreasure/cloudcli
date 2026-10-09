@@ -1,3 +1,5 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { FolderOpen, Globe, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -67,6 +69,8 @@ export default function McpServerFormModal({
   onClose,
   onSubmit,
 }: McpServerFormModalProps) {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation('settings');
   const isGlobalMode = mode === 'global';
   const availableScopes = supportedScopes ?? MCP_SUPPORTED_SCOPES[provider];
@@ -274,10 +278,8 @@ export default function McpServerFormModal({
               )}
               <p className="mt-2 text-xs text-muted-foreground">
                 {t('mcpForm.validation.jsonHelp')}
-                <br />
-                - stdio: {`{"type":"stdio","command":"npx","args":["@upstash/context7-mcp"]}`}
-                <br />
-                - http/sse: {`{"type":"http","url":"https://api.example.com/mcp"}`}
+                <br /><LocalizedText text={"- stdio:"} />{' '}{`{"type":"stdio","command":"npx","args":["@upstash/context7-mcp"]}`}
+                <br /><LocalizedText text={"- http/sse:"} />{' '}{`{"type":"http","url":"https://api.example.com/mcp"}`}
               </p>
             </div>
           )}
@@ -291,7 +293,7 @@ export default function McpServerFormModal({
                 <Input
                   value={formData.command}
                   onChange={(event) => updateForm('command', event.target.value)}
-                  placeholder="npx @my-org/mcp-server"
+                  placeholder={translateInterfaceText("npx @my-org/mcp-server")}
                   required
                 />
               </div>
@@ -305,7 +307,7 @@ export default function McpServerFormModal({
                   onChange={(event) => updateMultilineText('args', event.target.value)}
                   className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                   rows={3}
-                  placeholder="--port&#10;3000"
+                  placeholder={translateInterfaceText("--port&#10;3000")}
                 />
               </div>
 
@@ -349,7 +351,7 @@ export default function McpServerFormModal({
                 onChange={(event) => updateMultilineText('env', event.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 rows={3}
-                placeholder="API_KEY=your-key&#10;DEBUG=true"
+                placeholder={translateInterfaceText("API_KEY=your-key&#10;DEBUG=true")}
               />
             </div>
           )}
@@ -364,7 +366,7 @@ export default function McpServerFormModal({
                 onChange={(event) => updateMultilineText('headers', event.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 rows={3}
-                placeholder="Authorization=Bearer token&#10;X-API-Key=your-key"
+                placeholder={translateInterfaceText("Authorization=Bearer token&#10;X-API-Key=your-key")}
               />
             </div>
           )}
@@ -379,7 +381,7 @@ export default function McpServerFormModal({
                 onChange={(event) => updateMultilineText('envVars', event.target.value)}
                 className="w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-900 focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
                 rows={3}
-                placeholder="GITHUB_TOKEN&#10;API_KEY"
+                placeholder={translateInterfaceText("GITHUB_TOKEN&#10;API_KEY")}
               />
             </div>
           )}

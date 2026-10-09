@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, Copy, Check } from 'lucide-react';
@@ -34,6 +35,8 @@ export const BashCommandDisplay: React.FC<BashCommandDisplayProps> = ({
   status,
   defaultOpen = false,
 }) => {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation();
   const trimmedOutput = (output || '').replace(/\s+$/, '');
   const hasOutput = trimmedOutput.length > 0;
@@ -127,7 +130,7 @@ export const BashCommandDisplay: React.FC<BashCommandDisplayProps> = ({
         {status && status !== 'running' && <ToolStatusBadge status={status} className="flex-shrink-0" />}
         {!open && hasOutput && !isRunning && (
           <span className="flex-shrink-0 text-[10px] tabular-nums text-muted-foreground/70 transition-opacity group-hover/cmd:opacity-0">
-            {outputLineCount} {outputLineCount === 1 ? 'line' : 'lines'}
+            {outputLineCount} {outputLineCount === 1 ? translateInterfaceText("line") : translateInterfaceText("lines")}
           </span>
         )}
 

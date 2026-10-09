@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import React, { useState } from 'react';
 
 import type { Question } from '@/shared/types';
@@ -108,7 +109,7 @@ export const QuestionAnswerContent: React.FC<QuestionAnswerContentProps> = ({
                         >
                           {lbl}
                           {isCustom && (
-                            <span className="text-[9px] font-normal text-blue-400 dark:text-blue-500">(custom)</span>
+                            <span className="text-[9px] font-normal text-blue-400 dark:text-blue-500"><LocalizedText text={"(custom)"} /></span>
                           )}
                         </span>
                       );
@@ -117,9 +118,7 @@ export const QuestionAnswerContent: React.FC<QuestionAnswerContentProps> = ({
                 )}
 
                 {!isExpanded && skipped && hasAnyAnswer && (
-                  <span className="mt-1 inline-block text-[10px] italic text-gray-400 dark:text-gray-500">
-                    Skipped
-                  </span>
+                  <span className="mt-1 inline-block text-[10px] italic text-gray-400 dark:text-gray-500"><LocalizedText text={"Skipped"} /></span>
                 )}
               </div>
 
@@ -186,15 +185,13 @@ export const QuestionAnswerContent: React.FC<QuestionAnswerContentProps> = ({
                       </div>
                       <div className="min-w-0 flex-1">
                         <span className="font-medium text-gray-900 dark:text-gray-100">{lbl}</span>
-                        <span className="ml-1 text-[10px] text-blue-500 dark:text-blue-400">(custom)</span>
+                        <span className="ml-1 text-[10px] text-blue-500 dark:text-blue-400"><LocalizedText text={"(custom)"} /></span>
                       </div>
                     </div>
                   ))}
 
                   {skipped && hasAnyAnswer && (
-                    <div className="px-2.5 py-1 text-[11px] italic text-gray-400 dark:text-gray-500">
-                      No answer provided
-                    </div>
+                    <div className="px-2.5 py-1 text-[11px] italic text-gray-400 dark:text-gray-500"><LocalizedText text={"No answer provided"} /></div>
                   )}
                 </div>
               </div>
@@ -204,9 +201,7 @@ export const QuestionAnswerContent: React.FC<QuestionAnswerContentProps> = ({
       })}
 
       {!hasAnyAnswer && total === 1 && (
-        <div className="text-[11px] italic text-gray-400 dark:text-gray-500">
-          Skipped
-        </div>
+        <div className="text-[11px] italic text-gray-400 dark:text-gray-500"><LocalizedText text={"Skipped"} /></div>
       )}
     </div>
   );

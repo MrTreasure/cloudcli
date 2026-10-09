@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useState } from 'react';
 import { AlertTriangle, Plus, Shield, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -251,10 +252,10 @@ function ClaudePermissions({
           {t('permissions.toolExamples.title')}
         </h4>
         <ul className="space-y-1 text-sm text-blue-800 dark:text-blue-200">
-          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800">"Bash(git log:*)"</code> {t('permissions.toolExamples.bashGitLog')}</li>
-          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800">"Bash(git diff:*)"</code> {t('permissions.toolExamples.bashGitDiff')}</li>
-          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800">"Write"</code> {t('permissions.toolExamples.write')}</li>
-          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800">"Bash(rm:*)"</code> {t('permissions.toolExamples.bashRm')}</li>
+          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800"><LocalizedText text={"\"Bash(git log:*)\""} /></code> {t('permissions.toolExamples.bashGitLog')}</li>
+          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800"><LocalizedText text={"\"Bash(git diff:*)\""} /></code> {t('permissions.toolExamples.bashGitDiff')}</li>
+          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800"><LocalizedText text={"\"Write\""} /></code> {t('permissions.toolExamples.write')}</li>
+          <li><code className="rounded bg-blue-100 px-1 dark:bg-blue-800"><LocalizedText text={"\"Bash(rm:*)\""} /></code> {t('permissions.toolExamples.bashRm')}</li>
         </ul>
       </div>
 
@@ -465,10 +466,10 @@ function CursorPermissions({
           {t('permissions.shellExamples.title')}
         </h4>
         <ul className="space-y-1 text-sm text-purple-800 dark:text-purple-200">
-          <li><code className="rounded bg-purple-100 px-1 dark:bg-purple-800">"Shell(ls)"</code> {t('permissions.shellExamples.ls')}</li>
-          <li><code className="rounded bg-purple-100 px-1 dark:bg-purple-800">"Shell(git status)"</code> {t('permissions.shellExamples.gitStatus')}</li>
-          <li><code className="rounded bg-purple-100 px-1 dark:bg-purple-800">"Shell(npm install)"</code> {t('permissions.shellExamples.npmInstall')}</li>
-          <li><code className="rounded bg-purple-100 px-1 dark:bg-purple-800">"Shell(rm -rf)"</code> {t('permissions.shellExamples.rmRf')}</li>
+          <li><code className="rounded bg-purple-100 px-1 dark:bg-purple-800"><LocalizedText text={"\"Shell(ls)\""} /></code> {t('permissions.shellExamples.ls')}</li>
+          <li><code className="rounded bg-purple-100 px-1 dark:bg-purple-800"><LocalizedText text={"\"Shell(git status)\""} /></code> {t('permissions.shellExamples.gitStatus')}</li>
+          <li><code className="rounded bg-purple-100 px-1 dark:bg-purple-800"><LocalizedText text={"\"Shell(npm install)\""} /></code> {t('permissions.shellExamples.npmInstall')}</li>
+          <li><code className="rounded bg-purple-100 px-1 dark:bg-purple-800"><LocalizedText text={"\"Shell(rm -rf)\""} /></code> {t('permissions.shellExamples.rmRf')}</li>
         </ul>
       </div>
     </div>

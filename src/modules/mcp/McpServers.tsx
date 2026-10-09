@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { Edit3, ExternalLink, Globe, Lock, Plus, Server, Terminal, Trash2, Users, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -106,6 +107,8 @@ function TeamMcpFeatureCard() {
 
 /** Rendered by the settings module's agents tab to list and manage one provider's MCP servers. */
 export default function McpServers({ selectedProvider, currentProjects }: McpServersProps) {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation('settings');
   const {
     servers,
@@ -203,7 +206,7 @@ export default function McpServers({ selectedProvider, currentProjects }: McpSer
                     {!managed && (
                       <>
                         <Badge variant="outline" className="text-xs">
-                          {server.transport || 'stdio'}
+                          {server.transport || translateInterfaceText("stdio")}
                         </Badge>
                         <Badge variant="outline" className="text-xs">
                           {getScopeLabel(server.scope)}

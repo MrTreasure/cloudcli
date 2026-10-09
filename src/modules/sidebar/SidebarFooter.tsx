@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { Settings, ArrowUpCircle, Bug, AlertTriangle } from 'lucide-react';
 import type { TFunction } from 'i18next';
 
@@ -153,8 +154,7 @@ export default function SidebarFooter({
             target="_blank"
             rel="noopener noreferrer"
             className="text-[10px] text-muted-foreground/40 transition-colors hover:text-muted-foreground"
-          >
-            CloudCLI v{currentVersion} – {t('branding.openSource')}
+          ><LocalizedText text={"CloudCLI v"} />{currentVersion} – {t('branding.openSource')}
           </a>
         </div>
       )}

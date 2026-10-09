@@ -1,3 +1,5 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { memo, useMemo, useState } from 'react';
 import { Bot, ChevronRight, CircleAlert, CircleCheck, CircleDashed } from 'lucide-react';
 
@@ -83,6 +85,8 @@ export const SubagentPanel = memo(({
   createDiff,
   selectedProject,
 }: SubagentPanelProps) => {
+  const translateInterfaceText = useInterfaceText();
+
   // Collapsed by default: an agent is a summary of work, and its detail is
   // only wanted on demand.
   const isExporting = useIsExportingTranscript();
@@ -123,7 +127,7 @@ export const SubagentPanel = memo(({
       >
         <ChevronRight className={cn('h-3 w-3 flex-shrink-0 transition-transform duration-150', isOpen && 'rotate-90')} />
         <Bot className="h-3.5 w-3.5 flex-shrink-0 text-purple-500 dark:text-purple-400" />
-        <span className="flex-shrink-0 font-medium text-foreground">{label || 'Agent'}</span>
+        <span className="flex-shrink-0 font-medium text-foreground">{label || translateInterfaceText("Agent")}</span>
         {description && (
           <>
             <span className="flex-shrink-0 text-[10px] text-muted-foreground/40">/</span>
@@ -136,25 +140,19 @@ export const SubagentPanel = memo(({
         <span className={cn('ml-auto flex flex-shrink-0 items-center gap-1 text-[11px]', STATUS_STYLES[status])}>
           {status === 'running' ? (
             <>
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-500 dark:bg-purple-400" />
-              running
-            </>
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-purple-500 dark:bg-purple-400" /><LocalizedText text={"running"} /></>
           ) : status === 'failed' ? (
             <>
-              <CircleAlert className="h-3 w-3" />
-              failed
-            </>
+              <CircleAlert className="h-3 w-3" /><LocalizedText text={"failed"} /></>
           ) : status === 'stopped' ? (
             // Neither a spinner nor a check mark: the agent never reported and
             // the process it ran in is gone, so there is no outcome to draw.
-            <span title="The run ended before this agent reported back" className="flex items-center gap-1">
-              <CircleDashed className="h-3 w-3" />
-              no result
-            </span>
+            <span title={translateInterfaceText("The run ended before this agent reported back")} className="flex items-center gap-1">
+              <CircleDashed className="h-3 w-3" /><LocalizedText text={"no result"} /></span>
           ) : (
             <>
               <CircleCheck className="h-3 w-3" />
-              {toolCount > 0 ? `${toolCount} ${toolCount === 1 ? 'tool' : 'tools'}` : 'done'}
+              {toolCount > 0 ? `${toolCount} ${toolCount === 1 ? 'tool' : 'tools'}` : translateInterfaceText("done")}
             </>
           )}
         </span>
@@ -168,7 +166,7 @@ export const SubagentPanel = memo(({
 
           {prompt && (
             <div className="rounded border border-border/40 bg-muted/40 p-2 text-xs text-muted-foreground">
-              <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground/60">Task</div>
+              <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground/60"><LocalizedText text={"Task"} /></div>
               <div className="line-clamp-6 whitespace-pre-wrap break-words">{prompt}</div>
             </div>
           )}
@@ -183,7 +181,7 @@ export const SubagentPanel = memo(({
 
           {resultText && (
             <div className="rounded border border-border/40 bg-muted/30 p-2">
-              <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground/60">Result</div>
+              <div className="mb-1 text-[10px] uppercase tracking-wide text-muted-foreground/60"><LocalizedText text={"Result"} /></div>
               <MarkdownContent content={resultText} className="prose prose-sm max-w-none dark:prose-invert" />
             </div>
           )}

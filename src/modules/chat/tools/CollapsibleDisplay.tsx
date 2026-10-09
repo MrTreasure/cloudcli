@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import React from 'react';
 
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/shared/ui';
@@ -76,9 +77,7 @@ export const CollapsibleDisplay: React.FC<CollapsibleDisplayProps> = ({
                 viewBox="0 0 24 24"
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-              raw params
-            </CollapsibleTrigger>
+              </svg><LocalizedText text={"raw params"} /></CollapsibleTrigger>
             <CollapsibleContent>
               <pre className="mt-1 overflow-hidden whitespace-pre-wrap break-words rounded border border-border/40 bg-muted p-2 font-mono text-[11px] text-muted-foreground">
                 {rawContent}

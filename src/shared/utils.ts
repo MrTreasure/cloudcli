@@ -13,6 +13,38 @@ export const IS_PLATFORM = import.meta.env?.VITE_IS_PLATFORM === 'true';
 
 // ---------------------------
 
+//----------------- BACKEND TRANSPORT ------------
+
+/** Resolves backend paths for API, SSE, uploads and assets in split deployments. */
+export function backendUrl(path: string): string {
+  const origin = import.meta.env?.VITE_API_ORIGIN?.trim();
+  return origin && path.startsWith('/') && !path.startsWith('//')
+    ? new URL(path, origin).href
+    : path;
+}
+
+/** Resolves authenticated chat and terminal socket paths to the backend origin. */
+export function backendWebSocketUrl(path: string): string {
+  const url = new URL(backendUrl(path), window.location.origin);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  return url.href;
+}
+
+// ---------------------------
+
+//----------------- INTERFACE TRANSLATION KEYS ------------
+
+/** Provides a stable resource key for static UI labels, shared by translation renderers. */
+export function interfaceTextKey(text: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < text.length; index += 1) {
+    hash = Math.imul(hash ^ text.charCodeAt(index), 16777619);
+  }
+  return `label_${(hash >>> 0).toString(16)}`;
+}
+
+// ---------------------------
+
 //----------------- TAILWIND CLASS COMPOSITION ------------
 
 /**

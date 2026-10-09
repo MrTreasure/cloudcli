@@ -85,7 +85,14 @@ const mergeProviderModels = (
   return {
     OPTIONS: [
       ...predefined.OPTIONS.map((option) => ({ ...option, isCustom: false })),
-      ...custom.map(toCustomProviderModelOption),
+      ...custom.filter((record) => {
+        if (provider === 'claude') return record.model.startsWith('deepseek-');
+        if (provider === 'codex') {
+          const version = /^gpt-(\d+)(?:\.(\d+))?/.exec(record.model);
+          return version !== null && (Number(version[1]) > 5 || (Number(version[1]) === 5 && Number(version[2] ?? 0) >= 6));
+        }
+        return true;
+      }).map(toCustomProviderModelOption),
     ],
     DEFAULT: predefined.DEFAULT,
     // Copied so no caller can mutate the shared capability matrix.

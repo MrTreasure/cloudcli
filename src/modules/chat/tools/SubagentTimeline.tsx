@@ -1,3 +1,5 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { memo, useState } from 'react';
 import { Brain, MessageSquareText } from 'lucide-react';
 
@@ -53,6 +55,8 @@ SubagentNote.displayName = 'SubagentNote';
  * hundred tool renderers.
  */
 export const SubagentTimeline = memo(({ activity, activityCount, onFileOpen, createDiff, selectedProject }: SubagentTimelineProps) => {
+  const translateInterfaceText = useInterfaceText();
+
   const isExporting = useIsExportingTranscript();
   // Raised by the "show more" step so a long run can be inspected in full
   // without paying for it up front.
@@ -97,15 +101,13 @@ export const SubagentTimeline = memo(({ activity, activityCount, onFileOpen, cre
           type="button"
           onClick={() => setRenderLimit((previous) => previous + INITIALLY_RENDERED_ACTIVITIES * 4)}
           className="text-[11px] text-muted-foreground underline-offset-2 hover:text-foreground hover:underline"
-        >
-          Show {hiddenCount} more {hiddenCount === 1 ? 'step' : 'steps'}
+        ><LocalizedText text={"Show"} />{' '}{hiddenCount}{' '}<LocalizedText text={"more"} />{' '}{hiddenCount === 1 ? translateInterfaceText("step") : translateInterfaceText("steps")}
         </button>
       )}
 
       {untransmittedCount > 0 && hiddenCount === 0 && (
         <div className="text-[11px] text-muted-foreground/60">
-          {untransmittedCount} earlier {untransmittedCount === 1 ? 'step is' : 'steps are'} not included
-        </div>
+          {untransmittedCount}{' '}<LocalizedText text={"earlier"} />{' '}{untransmittedCount === 1 ? translateInterfaceText("step is") : translateInterfaceText("steps are")}{' '}<LocalizedText text={"not included"} /></div>
       )}
     </>
   );

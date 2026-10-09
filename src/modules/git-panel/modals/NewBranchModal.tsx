@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -18,6 +19,8 @@ export default function NewBranchModal({
   onClose,
   onCreateBranch,
 }: NewBranchModalProps) {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation();
   const [newBranchName, setNewBranchName] = useState('');
 
@@ -85,7 +88,7 @@ export default function NewBranchModal({
                   onClose();
                 }
               }}
-              placeholder="feature/new-feature"
+              placeholder={translateInterfaceText("feature/new-feature")}
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-foreground placeholder:text-muted-foreground focus:border-primary/30 focus:outline-none focus:ring-2 focus:ring-primary/20"
               autoFocus
             />

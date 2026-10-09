@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import type { InputHTMLAttributes } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -20,6 +21,8 @@ function Field({ label, ...props }: { label: string } & InputHTMLAttributes<HTML
 
 /** Rendered by Settings for the "voice" tab, covering speech-to-text provider credentials. */
 export default function VoiceSettingsTab() {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation('settings');
   const preferences = useUiPreferences();
   const setPreference = useSetUiPreference();
@@ -55,32 +58,32 @@ export default function VoiceSettingsTab() {
               label={t('voiceSettings.apiKey')}
               type="password"
               autoComplete="off"
-              placeholder="sk-…"
+              placeholder={translateInterfaceText("sk-…")}
               value={config.apiKey}
               onChange={(e) => update({ apiKey: e.target.value })}
             />
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
               <Field
                 label={t('voiceSettings.sttModel')}
-                placeholder="whisper-1"
+                placeholder={translateInterfaceText("whisper-1")}
                 value={config.sttModel}
                 onChange={(e) => update({ sttModel: e.target.value })}
               />
               <Field
                 label={t('voiceSettings.ttsModel')}
-                placeholder="tts-1"
+                placeholder={translateInterfaceText("tts-1")}
                 value={config.ttsModel}
                 onChange={(e) => update({ ttsModel: e.target.value })}
               />
               <Field
                 label={t('voiceSettings.voice')}
-                placeholder="alloy"
+                placeholder={translateInterfaceText("alloy")}
                 value={config.ttsVoice}
                 onChange={(e) => update({ ttsVoice: e.target.value })}
               />
               <Field
                 label={t('voiceSettings.format')}
-                placeholder="mp3"
+                placeholder={translateInterfaceText("mp3")}
                 value={config.ttsFormat}
                 onChange={(e) => update({ ttsFormat: e.target.value })}
               />

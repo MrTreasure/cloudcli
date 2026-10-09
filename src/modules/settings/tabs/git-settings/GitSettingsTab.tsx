@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,6 +9,8 @@ import SettingsSection from '@/modules/settings/SettingsSection';
 
 /** Rendered by Settings for the "git" tab, configuring the commit identity and git preferences. */
 export default function GitSettingsTab() {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation('settings');
   const {
     gitName,
@@ -37,7 +40,7 @@ export default function GitSettingsTab() {
                 type="text"
                 value={gitName}
                 onChange={(event) => setGitName(event.target.value)}
-                placeholder="John Doe"
+                placeholder={translateInterfaceText("John Doe")}
                 disabled={isLoading}
                 className="w-full"
               />
@@ -53,7 +56,7 @@ export default function GitSettingsTab() {
                 type="email"
                 value={gitEmail}
                 onChange={(event) => setGitEmail(event.target.value)}
-                placeholder="john@example.com"
+                placeholder={translateInterfaceText("john@example.com")}
                 disabled={isLoading}
                 className="w-full"
               />

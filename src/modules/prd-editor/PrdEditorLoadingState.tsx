@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 /** Rendered by PRDEditor inside the prd-editor module while an existing PRD's contents are still loading. */
 export default function PrdEditorLoadingState() {
   return (
@@ -5,7 +6,7 @@ export default function PrdEditorLoadingState() {
       <div className="flex h-full w-full items-center justify-center bg-white p-8 dark:bg-gray-900 md:h-auto md:w-auto md:rounded-lg">
         <div className="flex items-center gap-3">
           <div className="h-6 w-6 animate-spin rounded-full border-b-2 border-blue-600" />
-          <span className="text-gray-900 dark:text-white">Loading PRD...</span>
+          <span className="text-gray-900 dark:text-white"><LocalizedText text={"Loading PRD..."} /></span>
         </div>
       </div>
     </div>

@@ -1,0 +1,45 @@
+name: cloudcli
+services:
+  backend:
+    image: mrtreasure/cloudcli-backend:1.37.3-local
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile
+      target: backend
+    container_name: cloudcli-backend
+    network_mode: host
+    user: '1000:1001'
+    restart: unless-stopped
+    environment:
+      HOST: 127.0.0.1
+      SERVER_PORT: '18803'
+      FRONTEND_ORIGIN: https://agent.mrtreasure.cc
+      API_KEY: ${CLOUDCLI_AGENT_API_KEY:?Use deploy/compose.py to inject the password-book key}
+      ANTHROPIC_BASE_URL: ${CLOUDCLI_DEEPSEEK_BASE:?Use deploy/compose.py}
+      ANTHROPIC_AUTH_TOKEN: ${CLOUDCLI_DEEPSEEK_KEY:?Use deploy/compose.py}
+      ANTHROPIC_MODEL: deepseek-v4-pro
+      ANTHROPIC_DEFAULT_OPUS_MODEL: deepseek-v4-pro
+      ANTHROPIC_DEFAULT_SONNET_MODEL: deepseek-v4-pro
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: deepseek-flash
+      DATABASE_PATH: /home/Treasure/.cloudcli/auth.db
+      CODEX_HOME: /home/Treasure/.codex
+    volumes:
+      - /vol1/1000/appdata/cloudcli/cloudcli:/home/Treasure/.cloudcli
+      - /vol1/1000/appdata/cloudcli/plugins:/home/Treasure/.claude-code-ui
+      - /vol1/1000/appdata/cloudcli/claude:/home/Treasure/.claude
+      - /home/Treasure/.codex:/home/Treasure/.codex
+      - /vol1/1000/deploy/data/codex-home:/vol1/1000/deploy/data/codex-home
+      - /vol1/1000/deploy/data/MrTreasure:/vol1/1000/deploy/data/MrTreasure
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
+    mem_limit: 2g
+    pids_limit: 512
+    healthcheck:
+      test: [CMD, curl, -fsS, 'http://127.0.0.1:18803/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}

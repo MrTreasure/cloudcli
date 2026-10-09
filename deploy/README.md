@@ -1,0 +1,42 @@
+# NAS 分离部署
+
+- 前端：`https://agent.mrtreasure.cc`，CF Tunnel → 宿主机现有静态 Nginx `127.0.0.1:17843`。宿主机使用 pnpm 构建；前端不放入 Docker。
+- 后端：`https://agent-api-nas.mrtreasure.cc:15432`，DNS only → IPv6 HTTPS Nginx → Docker 后端 `127.0.0.1:18803`。聊天、终端、插件 WebSocket、API、SSE、上传均使用这个地址。
+- `/assets/*` 缓存一年，HTML 必须重新验证。发布保留上一版哈希资源，避免打开中的页面缺少资源。
+- 后端镜像只运行编译产物；源码在宿主机项目目录维护。镜像包含运行依赖、插件构建所需工具和 pnpm 12.3.4。
+- TypeScript 7.0.2 用于类型检查和后端编译。`typescript-ast` 是微软的 TypeScript 6 API 兼容包，仅供汉化维护脚本解析 AST；项目编译命令使用原生 TypeScript 7。
+- Codex CLI / SDK 固定 0.160.0。默认 GPT-6.1 Sol，保留 5.6 及以上目录。Claude 仅列出 DeepSeek V4 Pro / Flash，使用 DeepSeek 官方 Anthropic 兼容接口。
+- Docker 使用 NAS 用户 UID/GID 和 host 网络。共享 `/home/Treasure/.codex` 及其 sessions 符号链接目标 `/vol1/1000/deploy/data/codex-home`，统一管理 NAS CLI 与网页会话。
+- 数据、附件和插件位于 `/vol1/1000/appdata/cloudcli`；源码根目录不存运行数据或密钥。
+- 密码本唯一来源 `~/.secrets/passwords.yml`：`services.cloudcli.{username,password,agent_api_key}`、`llm_providers.deepseek.{anthropic_base,api_key}`。Compose helper 在运行时注入，不输出展开的配置。
+- 浏览器使用 JWT 认证；额外 API key 只保护 `/api/agent` 自动化接口，不提供给前端。
+
+## 更新
+
+```sh
+pnpm install --frozen-lockfile
+pnpm run typecheck
+python3 deploy/publish-frontend.py
+python3 deploy/compose.py build backend
+python3 deploy/compose.py up -d backend
+python3 deploy/bootstrap-user.py
+python3 deploy/compose.py ps
+```
+
+前端发布到 `/vol1/1000/nginx/public/cloudcli`，无需重建或重启后端。`deploy/frontend.conf` 安装到现有静态 Nginx 的 sites 目录。
+
+`deploy/agent-api.conf` 放在 HTTPS proxy 的 http 块内。使用现有证书与 IPv6 15432；访问日志不记录查询字符串，以免持久保存 WS/SSE 的 JWT。
+
+首次发布先完成本地账号初始化。`python3 deploy/configure-cloudflare.py` 配置域名、Tunnel 和静态缓存，保留其他站点设置并备份到 appdata。先验证 Nginx 配置再 reload。
+
+## 汉化与插件
+
+`node scripts/localization/collect-interface-labels.mjs` 收集界面静态文案；修改后应检查 diff、运行 typecheck 并手动验收。`python3 scripts/localization/complete-zh-cn.py` 从密码本读取 DeepSeek 凭据，补齐中文资源并校验插值变量。翻译缓存位于 appdata，不提交。
+
+插件安装和更新执行 `pnpm install --config.production=false --ignore-scripts`，显式保留 TypeScript、类型包和 esbuild 等 devDependencies，再执行插件声明的 build。生产环境不再跳过构建依赖。
+
+## 验证
+
+使用类型检查、构建和服务探测：登录、未认证 API 401、项目和历史读取、模型目录、CORS、WebSocket、终端、Task Queue 实际构建、前端静态文件与 CF 缓存。界面与交互由用户手动验收，不运行浏览器自动化。
+
+上游：https://github.com/siteboon/claudecodeui 。遵循原项目 AGPL-3.0-or-later。

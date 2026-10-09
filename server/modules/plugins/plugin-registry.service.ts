@@ -97,7 +97,7 @@ export function validateManifest(manifest) {
 
 const BUILD_TIMEOUT_MS = 60_000;
 
-/** Run `npm run build` if the plugin's package.json declares a build script. */
+/** Run `pnpm run build` if the plugin's package.json declares a build script. */
 function runBuildIfNeeded(dir, packageJsonPath, onSuccess, onError) {
   try {
     const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf-8'));
@@ -108,7 +108,7 @@ function runBuildIfNeeded(dir, packageJsonPath, onSuccess, onError) {
     return onSuccess(); // Unreadable package.json — skip build
   }
 
-  const buildProcess = spawn('npm', ['run', 'build'], {
+  const buildProcess = spawn('pnpm', ['run', 'build'], {
     cwd: dir,
     stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -121,7 +121,7 @@ function runBuildIfNeeded(dir, packageJsonPath, onSuccess, onError) {
     settled = true;
     buildProcess.removeAllListeners();
     buildProcess.kill();
-    onError(new Error('npm run build timed out'));
+    onError(new Error('pnpm run build timed out'));
   }, BUILD_TIMEOUT_MS);
 
   buildProcess.stderr.on('data', (data) => { stderr += data.toString(); });
@@ -131,7 +131,7 @@ function runBuildIfNeeded(dir, packageJsonPath, onSuccess, onError) {
     settled = true;
     clearTimeout(timer);
     if (code !== 0) {
-      return onError(new Error(`npm run build failed (exit code ${code}): ${stderr.trim()}`));
+      return onError(new Error(`pnpm run build failed (exit code ${code}): ${stderr.trim()}`));
     }
     onSuccess();
   });
@@ -336,24 +336,29 @@ export function installPluginFromGit(url) {
         return reject(new Error(`A plugin named "${manifest.name}" is already installed (in "${existing.dirName}")`));
       }
 
-      // Run npm install if package.json exists.
-      // --ignore-scripts prevents postinstall hooks from executing arbitrary code.
+      // Run pnpm install if package.json exists.
+      // Production servers still need plugin devDependencies (types, TypeScript, esbuild).
+      // --ignore-scripts keeps lifecycle hooks disabled; the build runs explicitly below.
       const packageJsonPath = path.join(tempDir, 'package.json');
       if (fs.existsSync(packageJsonPath)) {
-        const npmProcess = spawn('npm', ['install', '--ignore-scripts'], {
+        const pnpmProcess = spawn('pnpm', ['install', '--config.production=false', '--ignore-scripts'], {
           cwd: tempDir,
+          env: { ...process.env, NODE_ENV: 'development', npm_config_production: 'false' },
           stdio: ['ignore', 'pipe', 'pipe'],
         });
 
-        npmProcess.on('close', (npmCode) => {
-          if (npmCode !== 0) {
+        pnpmProcess.stdout.resume();
+        let installError = '';
+        pnpmProcess.stderr.on('data', (data) => { installError += data.toString(); });
+        pnpmProcess.on('close', (pnpmCode) => {
+          if (pnpmCode !== 0) {
             cleanupTemp();
-            return reject(new Error(`npm install for ${repoName} failed (exit code ${npmCode})`));
+            return reject(new Error(`pnpm install for ${repoName} failed (exit code ${pnpmCode}): ${installError.trim()}`));
           }
           runBuildIfNeeded(tempDir, packageJsonPath, () => finalize(manifest), (err) => { cleanupTemp(); reject(err); });
         });
 
-        npmProcess.on('error', (err) => {
+        pnpmProcess.on('error', (err) => {
           cleanupTemp();
           reject(err);
         });
@@ -404,20 +409,24 @@ export function updatePluginFromGit(name) {
         return reject(new Error(`Invalid manifest after update: ${validation.error}`));
       }
 
-      // Re-run npm install if package.json exists
+      // Re-run pnpm install if package.json exists
       const packageJsonPath = path.join(pluginDir, 'package.json');
       if (fs.existsSync(packageJsonPath)) {
-        const npmProcess = spawn('npm', ['install', '--ignore-scripts'], {
+        const pnpmProcess = spawn('pnpm', ['install', '--config.production=false', '--ignore-scripts'], {
           cwd: pluginDir,
+          env: { ...process.env, NODE_ENV: 'development', npm_config_production: 'false' },
           stdio: ['ignore', 'pipe', 'pipe'],
         });
-        npmProcess.on('close', (npmCode) => {
-          if (npmCode !== 0) {
-            return reject(new Error(`npm install for ${name} failed (exit code ${npmCode})`));
+        pnpmProcess.stdout.resume();
+        let installError = '';
+        pnpmProcess.stderr.on('data', (data) => { installError += data.toString(); });
+        pnpmProcess.on('close', (pnpmCode) => {
+          if (pnpmCode !== 0) {
+            return reject(new Error(`pnpm install for ${name} failed (exit code ${pnpmCode}): ${installError.trim()}`));
           }
           runBuildIfNeeded(pluginDir, packageJsonPath, () => resolve(manifest), (err) => reject(err));
         });
-        npmProcess.on('error', (err) => reject(err));
+        pnpmProcess.on('error', (err) => reject(err));
       } else {
         resolve(manifest);
       }

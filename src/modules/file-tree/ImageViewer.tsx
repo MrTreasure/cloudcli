@@ -1,3 +1,5 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 
@@ -12,6 +14,8 @@ type ImageViewerProps = {
 
 /** Rendered by FileTree to preview an image file picked in the tree. */
 export default function ImageViewer({ file, onClose }: ImageViewerProps) {
+  const translateInterfaceText = useInterfaceText();
+
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -71,7 +75,7 @@ export default function ImageViewer({ file, onClose }: ImageViewerProps) {
         <div className="flex min-h-[400px] items-center justify-center bg-gray-50 p-4 dark:bg-gray-900">
           {loading && (
             <div className="text-center text-gray-500 dark:text-gray-400">
-              <p>Loading image...</p>
+              <p><LocalizedText text={"Loading image..."} /></p>
             </div>
           )}
           {!loading && imageUrl && (
@@ -83,7 +87,7 @@ export default function ImageViewer({ file, onClose }: ImageViewerProps) {
           )}
           {!loading && !imageUrl && (
             <div className="text-center text-gray-500 dark:text-gray-400">
-              <p>{error || 'Unable to load image'}</p>
+              <p>{error || translateInterfaceText("Unable to load image")}</p>
               <p className="mt-2 break-all text-sm">{file.path}</p>
             </div>
           )}

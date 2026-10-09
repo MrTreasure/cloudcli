@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Check, ChevronDown, ChevronRight } from "lucide-react";
 
@@ -119,8 +120,7 @@ export default function ModelGroupList({
                 onSelect={() => toggle(group.key)}
                 className="ml-4 border-l border-border/40 pl-4 text-[11px] text-muted-foreground"
               >
-                {group.models.length} hidden — click to show
-              </CommandItem>
+                {group.models.length}{' '}<LocalizedText text={"hidden — click to show"} /></CommandItem>
             ) : null}
 
             {!isCollapsed && group.models.map((model) => {
@@ -137,7 +137,7 @@ export default function ModelGroupList({
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="truncate">{model.label}</span>
                       {model.isCustom && (
-                        <Badge className="h-4 shrink-0 rounded-full px-1.5 text-[8px]">Custom</Badge>
+                        <Badge className="h-4 shrink-0 rounded-full px-1.5 text-[8px]"><LocalizedText text={"Custom"} /></Badge>
                       )}
                     </div>
                     {model.label !== model.value && (

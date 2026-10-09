@@ -1,3 +1,5 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { memo, useMemo } from 'react';
 
 import { Queue, QueueItem, QueueItemContent, QueueItemIndicator } from '@/modules/chat/tools/Queue';
@@ -25,6 +27,8 @@ const TodoList = memo(
     todos: TodoItem[];
     isResult?: boolean;
   }) => {
+  const translateInterfaceText = useInterfaceText();
+
     const normalized = useMemo(
       () => todos.map((todo) => ({ ...todo, queueStatus: normalizeStatus(todo.status) })),
       [todos],
@@ -40,8 +44,7 @@ const TodoList = memo(
     return (
       <div>
         {isResult && (
-          <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-            Todo List ({normalized.length} {normalized.length === 1 ? 'item' : 'items'})
+          <div className="mb-1.5 text-xs font-medium text-muted-foreground"><LocalizedText text={"Todo List ("} />{normalized.length} {normalized.length === 1 ? translateInterfaceText("item") : translateInterfaceText("items")})
           </div>
         )}
         {/* The count lives in the row header; this only draws the shape of it. */}

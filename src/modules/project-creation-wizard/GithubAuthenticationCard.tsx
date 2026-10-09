@@ -1,3 +1,4 @@
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { Key, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -37,6 +38,8 @@ export default function GithubAuthenticationCard({
   onSelectedGithubTokenChange,
   onNewGithubTokenChange,
 }: GithubAuthenticationCardProps) {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation();
 
   return (
@@ -118,7 +121,7 @@ export default function GithubAuthenticationCard({
                 type="password"
                 value={newGithubToken}
                 onChange={(event) => onNewGithubTokenChange(event.target.value)}
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                placeholder={translateInterfaceText("ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")}
                 className="w-full"
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">

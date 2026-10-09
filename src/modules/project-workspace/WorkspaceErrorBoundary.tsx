@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useCallback, useState, type ErrorInfo, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -63,9 +64,7 @@ function ErrorFallback({
           <button
             onClick={resetErrorBoundary}
             className="rounded bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
-          >
-            Try Again
-          </button>
+          ><LocalizedText text={"Try Again"} /></button>
         </div>
       </div>
     </div>

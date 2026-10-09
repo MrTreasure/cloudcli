@@ -1,3 +1,5 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -141,6 +143,8 @@ function SearchField({
 }
 
 function HelpContent({ data }: { data: HelpCommandData }) {
+  const translateInterfaceText = useInterfaceText();
+
   const { t } = useTranslation();
   const [query, setQuery] = useState('');
   const commands = (Array.isArray(data.commands) && data.commands.length > 0
@@ -179,7 +183,7 @@ function HelpContent({ data }: { data: HelpCommandData }) {
                     {command.name}
                   </code>
                   <Badge variant="secondary" className="shrink-0 text-[10px] capitalize">
-                    {command.namespace || 'builtin'}
+                    {command.namespace || translateInterfaceText("builtin")}
                   </Badge>
                 </div>
                 <p className="mt-3 text-sm leading-5 text-muted-foreground">
@@ -191,9 +195,7 @@ function HelpContent({ data }: { data: HelpCommandData }) {
           </div>
 
           {filteredCommands.length === 0 && (
-            <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground">
-              No commands match that filter.
-            </div>
+            <div className="rounded-2xl border border-dashed border-border bg-muted/20 px-4 py-10 text-center text-sm text-muted-foreground"><LocalizedText text={"No commands match that filter."} /></div>
           )}
         </div>
       </div>
@@ -201,25 +203,19 @@ function HelpContent({ data }: { data: HelpCommandData }) {
       <aside className="space-y-3">
         <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <TerminalSquare className="h-4 w-4 text-primary" />
-            Syntax
-          </div>
+            <TerminalSquare className="h-4 w-4 text-primary" /><LocalizedText text={"Syntax"} /></div>
           <div className="space-y-2 text-sm text-muted-foreground">
             <p><code className="text-foreground">/command arg1 arg2</code></p>
-            <p><code className="text-foreground">$ARGUMENTS</code> passes all args.</p>
-            <p><code className="text-foreground">$1</code>, <code className="text-foreground">$2</code> pass positional args.</p>
-            <p><code className="text-foreground">@file</code> includes file contents.</p>
+            <p><code className="text-foreground">$ARGUMENTS</code>{' '}<LocalizedText text={"passes all args."} /></p>
+            <p><code className="text-foreground">$1</code>, <code className="text-foreground">$2</code>{' '}<LocalizedText text={"pass positional args."} /></p>
+            <p><code className="text-foreground">@file</code>{' '}<LocalizedText text={"includes file contents."} /></p>
           </div>
         </div>
 
         <div className="rounded-2xl border border-primary/25 bg-primary/10 p-4">
           <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Sparkles className="h-4 w-4 text-primary" />
-            Quick tip
-          </div>
-          <p className="text-sm leading-5 text-muted-foreground">
-            Type <code className="text-foreground">/</code> in the composer to open the command palette, then use arrows and Enter to run a command.
-          </p>
+            <Sparkles className="h-4 w-4 text-primary" /><LocalizedText text={"Quick tip"} /></div>
+          <p className="text-sm leading-5 text-muted-foreground"><LocalizedText text={"Type"} />{' '}<code className="text-foreground">/</code>{' '}<LocalizedText text={"in the composer to open the command palette, then use arrows and Enter to run a command."} /></p>
         </div>
       </aside>
     </div>
@@ -317,15 +313,13 @@ function ModelsContent({
     <div className="flex h-full min-h-0 flex-col gap-3">
       <div className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-muted/20 px-3.5 py-2.5">
         <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Active model · {providerLabel}
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"><LocalizedText text={"Active model ·"} />{' '}{providerLabel}
           </p>
           <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <span className="break-all font-mono text-sm font-semibold text-foreground">{currentModel}</span>
             {pendingSessionModel && pendingSessionModel !== currentModel && (
               <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-500 dark:text-emerald-400">
-                → {pendingSessionModel} next
-              </span>
+                → {pendingSessionModel}{' '}<LocalizedText text={"next"} /></span>
             )}
           </p>
         </div>
@@ -336,9 +330,7 @@ function ModelsContent({
           onClick={() => setManagingModels(true)}
           className="h-9 shrink-0 rounded-xl bg-background px-3 text-xs"
         >
-          <Plus className="h-3.5 w-3.5" />
-          Manage models
-        </Button>
+          <Plus className="h-3.5 w-3.5" /><LocalizedText text={"Manage models"} /></Button>
       </div>
 
       {showSearch && (
@@ -371,7 +363,7 @@ function ModelsContent({
                   <span className="flex items-center justify-between gap-2">
                     <span className="break-words text-sm font-semibold text-foreground">{option.label || option.value}</span>
                     <span className="flex shrink-0 items-center gap-2">
-                      {option.isCustom && <Badge className="rounded-full px-2 py-0 text-[9px]">Custom</Badge>}
+                      {option.isCustom && <Badge className="rounded-full px-2 py-0 text-[9px]"><LocalizedText text={"Custom"} /></Badge>}
                       {isCurrent ? (
                         <BadgeCheck className="h-4 w-4 shrink-0 text-primary" />
                       ) : isChanging ? (
@@ -386,12 +378,10 @@ function ModelsContent({
                     <span className="mt-1 text-xs leading-5 text-muted-foreground">{option.description}</span>
                   )}
                   {isCurrent && (
-                    <span className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Current selection</span>
+                    <span className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary"><LocalizedText text={"Current selection"} /></span>
                   )}
                   {isPendingSelection && !isCurrent && (
-                    <span className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-500 dark:text-emerald-400">
-                      Session model
-                    </span>
+                    <span className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-emerald-500 dark:text-emerald-400"><LocalizedText text={"Session model"} /></span>
                   )}
                 </button>
               );
@@ -399,9 +389,7 @@ function ModelsContent({
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl border border-dashed border-border bg-background/60 px-4 py-10 text-center text-sm text-muted-foreground">
-          No models match that search.
-        </div>
+        <div className="rounded-2xl border border-dashed border-border bg-background/60 px-4 py-10 text-center text-sm text-muted-foreground"><LocalizedText text={"No models match that search."} /></div>
       )}
 
       {/* Single quiet line of guidance / feedback */}
@@ -483,11 +471,11 @@ function CostContent({ data }: { data: CostCommandData }) {
       <div className="rounded-2xl border border-border/70 bg-muted/20 p-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Provider</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"><LocalizedText text={"Provider"} /></p>
             <p className="mt-1 text-sm font-semibold text-foreground">{provider}</p>
           </div>
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Model</p>
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground"><LocalizedText text={"Model"} /></p>
             <p className="mt-1 break-all font-mono text-sm text-foreground">{model}</p>
           </div>
         </div>
@@ -497,6 +485,8 @@ function CostContent({ data }: { data: CostCommandData }) {
 }
 
 function StatusContent({ data }: { data: StatusCommandData }) {
+  const translateInterfaceText = useInterfaceText();
+
   const memoryRssMb = data.memoryUsage?.rssMb;
   const rows = [
     { label: 'Package', value: data.packageName || 'claude-code-ui', icon: Package },
@@ -518,11 +508,11 @@ function StatusContent({ data }: { data: StatusCommandData }) {
             <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" />
           </span>
           <div>
-            <p className="text-sm font-semibold text-foreground">Runtime online</p>
-            <p className="text-xs text-muted-foreground">Process {data.pid ? `#${data.pid}` : 'status'} is responding.</p>
+            <p className="text-sm font-semibold text-foreground"><LocalizedText text={"Runtime online"} /></p>
+            <p className="text-xs text-muted-foreground"><LocalizedText text={"Process"} />{' '}{data.pid ? `#${data.pid}` : translateInterfaceText("status")}{' '}<LocalizedText text={"is responding."} /></p>
           </div>
         </div>
-        <Badge className="rounded-full bg-emerald-500 text-white hover:bg-emerald-500">Healthy</Badge>
+        <Badge className="rounded-full bg-emerald-500 text-white hover:bg-emerald-500"><LocalizedText text={"Healthy"} /></Badge>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">

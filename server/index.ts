@@ -124,7 +124,7 @@ createWebSocketServer(server, {
     getPluginPort,
 });
 
-app.use(cors({ exposedHeaders: ['X-Refreshed-Token', 'X-Auth-Error'] }));
+app.use(cors({ origin: process.env.FRONTEND_ORIGIN || false, exposedHeaders: ['X-Refreshed-Token', 'X-Auth-Error'] }));
 app.use(express.json({
     limit: '50mb',
     type: (req) => {
@@ -149,7 +149,9 @@ app.get('/health', (req, res) => {
 });
 
 // Optional API key validation (if configured)
-app.use('/api', validateApiKey);
+// Browser routes use their own JWT auth. Only the external automation API
+// requires the private deployment key; it must never be shipped to the browser.
+app.use('/api/agent', validateApiKey);
 
 // Authentication routes (public)
 app.use('/api/auth', authRoutes);

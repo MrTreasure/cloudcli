@@ -1,3 +1,4 @@
+import { backendUrl } from '@/shared/utils';
 import { useState, useEffect } from 'react';
 
 import { APP_VERSION } from '@/shared/constants';
@@ -34,7 +35,7 @@ export const useVersionCheck = (owner: string, repo: string) => {
   useEffect(() => {
     const fetchHealth = async () => {
       try {
-        const response = await fetch('/health');
+        const response = await fetch(backendUrl('/health'));
         const data = await response.json();
         if (data.installMode === 'npm' || data.installMode === 'git') {
           setInstallMode(data.installMode);

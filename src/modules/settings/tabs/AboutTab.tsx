@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { Cloud, ExternalLink, MessageSquare, Star, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -103,27 +104,21 @@ export default function AboutTab() {
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
         >
-          <DiscordIcon className="h-4 w-4" />
-          Discord
-        </a>
+          <DiscordIcon className="h-4 w-4" /><LocalizedText text={"Discord"} /></a>
         <a
           href={DOCS_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ExternalLink className="h-3.5 w-3.5" />
-          Docs
-        </a>
+          <ExternalLink className="h-3.5 w-3.5" /><LocalizedText text={"Docs"} /></a>
         <a
           href={CLOUDCLI_URL}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground"
         >
-          <ExternalLink className="h-3.5 w-3.5" />
-          cloudcli.ai
-        </a>
+          <ExternalLink className="h-3.5 w-3.5" /><LocalizedText text={"cloudcli.ai"} /></a>
       </div>
 
       {/* Hosted CTA (OSS mode only) */}

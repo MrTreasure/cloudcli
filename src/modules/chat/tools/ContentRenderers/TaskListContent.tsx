@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import React from 'react';
 
 type TaskItem = {
@@ -91,8 +92,7 @@ export const TaskListContent: React.FC<TaskListContentProps> = ({ content }) => 
     <div>
       <div className="mb-1.5 flex items-center gap-2">
         <span className="text-[11px] text-gray-500 dark:text-gray-400">
-          {completed}/{total} completed
-        </span>
+          {completed}/{total}{' '}<LocalizedText text={"completed"} /></span>
         <div className="h-1 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
           <div
             className="h-full rounded-full bg-green-500 transition-all dark:bg-green-400"

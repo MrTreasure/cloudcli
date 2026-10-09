@@ -1,0 +1,13 @@
+allowBuilds:
+  better-sqlite3: true
+  bcrypt: true
+  node-pty: true
+  esbuild: true
+  '@vscode/ripgrep': true
+  sharp: true
+  electron: false
+  electron-winstaller: false
+  unrs-resolver: true
+  '@nut-tree-fork/libnut': false
+  '@nut-tree-fork/nut-js': false
+enablePrePostScripts: true

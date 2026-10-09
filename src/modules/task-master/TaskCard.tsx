@@ -1,3 +1,4 @@
+import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { memo } from 'react';
 import {
   AlertCircle,
@@ -162,7 +163,7 @@ function TaskCard({ task, onClick = null, showParent = false, className = '' }: 
           </h3>
 
           {showParent && task.parentId && (
-            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Task {task.parentId}</span>
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400"><LocalizedText text={"Task"} />{' '}{task.parentId}</span>
           )}
         </div>
 
@@ -175,7 +176,7 @@ function TaskCard({ task, onClick = null, showParent = false, className = '' }: 
             <Tooltip content={`Depends on: ${task.dependencies.map((dependency) => `Task ${dependency}`).join(', ')}`}>
               <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400">
                 <ArrowRight className="h-3 w-3" />
-                <span>Depends on: {task.dependencies.join(', ')}</span>
+                <span><LocalizedText text={"Depends on:"} />{' '}{task.dependencies.join(', ')}</span>
               </div>
             </Tooltip>
           )}
@@ -192,7 +193,7 @@ function TaskCard({ task, onClick = null, showParent = false, className = '' }: 
       {progress.total > 0 && (
         <div className="ml-3">
           <div className="mb-1 flex items-center gap-2">
-            <span className="text-xs text-gray-500 dark:text-gray-400">Progress:</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400"><LocalizedText text={"Progress:"} /></span>
             <div className="h-1.5 flex-1 rounded-full bg-gray-200 dark:bg-gray-700" title={`${progress.completed} of ${progress.total} subtasks completed`}>
               <div
                 className={cn('h-full rounded-full transition-all duration-300', task.status === 'done' ? 'bg-green-500' : 'bg-blue-500')}
