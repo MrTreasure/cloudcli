@@ -8,416 +8,10 @@ import { renderGlobalDashboard } from "./views/global-dashboard.js";
 import { renderRunHistory } from "./views/run-history.js";
 import { renderScheduleList } from "./views/schedule-list.js";
 import { renderTaskForm } from "./views/task-form.js";
+import { ensureStyles } from "./styles.js";
+import { escapeHtml, formatTime, icon } from "./views/ui.js";
 
-const STYLE_ID = "workspace-scheduled-prompts-styles";
 const GLOBAL_REFRESH_INTERVAL_MS = 60_000;
-
-function ensureStyles(): void {
-  if (document.getElementById(STYLE_ID)) {
-    return;
-  }
-
-  const style = document.createElement("style");
-  style.id = STYLE_ID;
-  style.textContent = `
-    .workspace-scheduled-prompts {
-      --wsp-bg: #f5f7fa;
-      --wsp-panel: #ffffff;
-      --wsp-border: #d9e0e7;
-      --wsp-text: #1d2935;
-      --wsp-muted: #607080;
-      --wsp-accent: #1570ef;
-      --wsp-accent-soft: #e8f1ff;
-      --wsp-success: #1d7a46;
-      --wsp-success-soft: #e8f6ee;
-      --wsp-danger: #b42318;
-      --wsp-danger-soft: #fdecea;
-      color: var(--wsp-text);
-      background: var(--wsp-bg);
-      min-height: 100%;
-      box-sizing: border-box;
-      padding: 20px;
-      font: 13px/1.45 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    .workspace-scheduled-prompts[data-theme="dark"] {
-      --wsp-bg: #0f1720;
-      --wsp-panel: #15202b;
-      --wsp-border: #263241;
-      --wsp-text: #dce6ef;
-      --wsp-muted: #97a6b5;
-      --wsp-accent: #61a4ff;
-      --wsp-accent-soft: rgba(97, 164, 255, 0.14);
-      --wsp-success: #53c483;
-      --wsp-success-soft: rgba(83, 196, 131, 0.14);
-      --wsp-danger: #ff7b72;
-      --wsp-danger-soft: rgba(255, 123, 114, 0.14);
-    }
-
-    .workspace-scheduled-prompts * { box-sizing: border-box; }
-    .workspace-scheduled-prompts h1,
-    .workspace-scheduled-prompts h2,
-    .workspace-scheduled-prompts h3,
-    .workspace-scheduled-prompts p { margin: 0; }
-
-    .wsp-shell { display: grid; gap: 16px; }
-    .wsp-tabs {
-      display: inline-flex;
-      gap: 8px;
-      padding: 4px;
-      border: 1px solid var(--wsp-border);
-      border-radius: 12px;
-      background: var(--wsp-bg);
-    }
-    .wsp-tab {
-      border: 0;
-      background: transparent;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-weight: 600;
-    }
-    .wsp-tab[data-active="true"] {
-      background: var(--wsp-panel);
-      box-shadow: inset 0 0 0 1px var(--wsp-border);
-      color: var(--wsp-accent);
-    }
-    .wsp-tab:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-    .wsp-header {
-      display: flex;
-      justify-content: space-between;
-      gap: 16px;
-      align-items: flex-start;
-      padding: 16px 18px;
-      border: 1px solid var(--wsp-border);
-      border-radius: 12px;
-      background: var(--wsp-panel);
-    }
-    .wsp-header h1 { font-size: 18px; font-weight: 650; }
-    .wsp-header p { color: var(--wsp-muted); margin-top: 4px; }
-    .wsp-workspace-chip {
-      max-width: 42%;
-      padding: 8px 10px;
-      border: 1px solid var(--wsp-border);
-      border-radius: 10px;
-      background: var(--wsp-bg);
-      color: var(--wsp-muted);
-      font-size: 12px;
-      text-align: right;
-      word-break: break-word;
-    }
-
-    .wsp-banner {
-      padding: 12px 14px;
-      border-radius: 10px;
-      border: 1px solid var(--wsp-border);
-      background: var(--wsp-panel);
-    }
-    .wsp-banner strong { display: block; margin-bottom: 2px; }
-    .wsp-banner-error {
-      border-color: var(--wsp-danger);
-      background: var(--wsp-danger-soft);
-      color: var(--wsp-danger);
-    }
-    .wsp-banner-success {
-      border-color: var(--wsp-success);
-      background: var(--wsp-success-soft);
-      color: var(--wsp-success);
-    }
-    .wsp-banner-info {
-      background: var(--wsp-accent-soft);
-      border-color: var(--wsp-accent);
-    }
-
-    .wsp-main {
-      display: grid;
-      grid-template-columns: minmax(340px, 1.2fr) minmax(320px, 1fr);
-      gap: 16px;
-      align-items: start;
-    }
-    .wsp-stack { display: grid; gap: 16px; }
-    .wsp-panel,
-    .execution-banner,
-    .schedule-list,
-    .run-history {
-      padding: 16px 18px;
-      border: 1px solid var(--wsp-border);
-      border-radius: 12px;
-      background: var(--wsp-panel);
-    }
-
-    .wsp-section-heading h2,
-    .execution-banner h2,
-    .schedule-list h2,
-    .run-history h2 { font-size: 15px; font-weight: 650; }
-    .wsp-section-heading p,
-    .execution-banner p,
-    .schedule-list p,
-    .run-history p { color: var(--wsp-muted); }
-
-    .wsp-panel-title {
-      margin-bottom: 12px;
-      font-size: 12px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: var(--wsp-muted);
-    }
-
-    .wsp-form { display: grid; gap: 14px; }
-    .wsp-form-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-    }
-    .wsp-field,
-    .wsp-checkbox-group,
-    .wsp-form-actions {
-      display: grid;
-      gap: 6px;
-    }
-    .wsp-field-span-2 { grid-column: span 2; }
-    .wsp-field label {
-      font-weight: 600;
-      font-size: 12px;
-    }
-    .wsp-field p,
-    .wsp-preview-note {
-      font-size: 12px;
-      color: var(--wsp-muted);
-    }
-
-    .workspace-scheduled-prompts input,
-    .workspace-scheduled-prompts select,
-    .workspace-scheduled-prompts textarea,
-    .workspace-scheduled-prompts button {
-      font: inherit;
-    }
-    .workspace-scheduled-prompts input,
-    .workspace-scheduled-prompts select,
-    .workspace-scheduled-prompts textarea {
-      width: 100%;
-      border: 1px solid var(--wsp-border);
-      border-radius: 10px;
-      padding: 10px 12px;
-      background: var(--wsp-bg);
-      color: var(--wsp-text);
-      outline: none;
-    }
-    .workspace-scheduled-prompts input:focus,
-    .workspace-scheduled-prompts select:focus,
-    .workspace-scheduled-prompts textarea:focus {
-      border-color: var(--wsp-accent);
-      box-shadow: 0 0 0 3px rgba(21, 112, 239, 0.16);
-    }
-    .workspace-scheduled-prompts textarea {
-      resize: vertical;
-      min-height: 120px;
-    }
-
-    .wsp-checkbox-group {
-      grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-      gap: 8px;
-    }
-    .wsp-checkbox {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 8px 10px;
-      border: 1px solid var(--wsp-border);
-      border-radius: 10px;
-      background: var(--wsp-bg);
-    }
-    .wsp-checkbox input {
-      width: auto;
-      margin: 0;
-    }
-
-    .wsp-preview {
-      padding: 12px 14px;
-      border-radius: 10px;
-      background: var(--wsp-bg);
-      border: 1px solid var(--wsp-border);
-      color: var(--wsp-text);
-      min-height: 44px;
-    }
-    .wsp-feedback {
-      min-height: 18px;
-      color: var(--wsp-danger);
-      font-weight: 500;
-    }
-    .wsp-form-actions {
-      grid-auto-flow: column;
-      justify-content: start;
-      align-items: center;
-    }
-    .workspace-scheduled-prompts button {
-      border: 1px solid var(--wsp-border);
-      border-radius: 10px;
-      padding: 10px 14px;
-      background: var(--wsp-panel);
-      color: var(--wsp-text);
-      cursor: pointer;
-    }
-    .workspace-scheduled-prompts button[type="submit"] {
-      background: var(--wsp-accent);
-      border-color: var(--wsp-accent);
-      color: #ffffff;
-      font-weight: 600;
-    }
-    .wsp-secondary-button { background: var(--wsp-bg); }
-
-    .execution-banner {
-      display: grid;
-      gap: 6px;
-    }
-    .wsp-status-chip {
-      display: inline-flex;
-      align-items: center;
-      width: fit-content;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      background: var(--wsp-accent-soft);
-      color: var(--wsp-accent);
-    }
-
-    .schedule-list ul,
-    .run-history ul,
-    .wsp-global-job-list {
-      list-style: none;
-      padding: 0;
-      margin: 12px 0 0;
-      display: grid;
-      gap: 10px;
-    }
-    .schedule-list li,
-    .run-history li {
-      border: 1px solid var(--wsp-border);
-      border-radius: 10px;
-      background: var(--wsp-bg);
-      padding: 12px;
-    }
-    .wsp-task-head,
-    .wsp-run-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: flex-start;
-      margin-bottom: 6px;
-    }
-    .wsp-task-meta,
-    .wsp-run-meta {
-      display: grid;
-      gap: 4px;
-      color: var(--wsp-muted);
-      font-size: 12px;
-    }
-    .wsp-inline-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
-    .wsp-inline-actions button {
-      padding: 7px 10px;
-      font-size: 12px;
-    }
-    .wsp-global-dashboard { display: grid; gap: 14px; }
-    .wsp-global-dashboard-head {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: flex-start;
-    }
-    .wsp-global-controls {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-    .wsp-global-controls .wsp-field > span {
-      font-weight: 600;
-      font-size: 12px;
-    }
-    .wsp-global-summary {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
-    }
-    .wsp-global-card,
-    .wsp-global-workspace-pill {
-      padding: 12px 14px;
-      border: 1px solid var(--wsp-border);
-      border-radius: 10px;
-      background: var(--wsp-bg);
-    }
-    .wsp-global-card strong {
-      display: block;
-      font-size: 18px;
-      font-weight: 700;
-    }
-    .wsp-global-card span {
-      color: var(--wsp-muted);
-      font-size: 12px;
-    }
-    .wsp-global-workspaces {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .wsp-global-warning-list {
-      margin: 8px 0 0;
-      padding-left: 18px;
-      color: inherit;
-    }
-    .wsp-global-workspace-pill[data-status="partial"] {
-      border-color: var(--wsp-accent);
-    }
-    .wsp-global-workspace-pill[data-status="unavailable"] {
-      border-color: var(--wsp-danger);
-      color: var(--wsp-danger);
-    }
-    .wsp-global-job {
-      border: 1px solid var(--wsp-border);
-      border-radius: 10px;
-      background: var(--wsp-bg);
-      padding: 12px;
-    }
-    .wsp-global-job[data-problem="true"] {
-      border-color: var(--wsp-danger);
-      box-shadow: inset 0 0 0 1px rgba(180, 35, 24, 0.16);
-    }
-    .wsp-global-job[data-workspace-availability="partial"] {
-      border-color: var(--wsp-accent);
-    }
-    .wsp-global-job[data-workspace-availability="unavailable"] {
-      border-color: var(--wsp-danger);
-    }
-
-    @media (max-width: 900px) {
-      .wsp-main,
-      .wsp-form-grid,
-      .wsp-global-controls,
-      .wsp-global-summary {
-        grid-template-columns: 1fr;
-      }
-      .wsp-field-span-2,
-      .wsp-workspace-chip {
-        grid-column: auto;
-        max-width: 100%;
-      }
-      .wsp-header {
-        flex-direction: column;
-      }
-    }
-  `;
-  document.head.append(style);
-}
 
 function normalizeGlobalRunStatus(
   status: WorkspaceTask["lastRunStatus"],
@@ -437,7 +31,8 @@ function normalizeGlobalRunStatus(
 function renderBanner(kind: "error" | "success" | "info", title: string, message: string): HTMLElement {
   const banner = document.createElement("div");
   banner.className = `wsp-banner wsp-banner-${kind}`;
-  banner.innerHTML = `<strong>${title}</strong><span>${message}</span>`;
+  banner.setAttribute("role", kind === "error" ? "alert" : "status");
+  banner.innerHTML = `<strong>${escapeHtml(title)}</strong><span>${escapeHtml(message)}</span>`;
   return banner;
 }
 
@@ -445,6 +40,12 @@ export class WorkspaceScheduledPromptsApp {
   private readonly rpc: PluginRpcClient;
   private readonly state = new AppStateStore();
   private unsubscribe: (() => void) | null = null;
+  private editorOpen = false;
+  private taskForm: HTMLElement | null = null;
+  private taskFormKey: string | null = null;
+  private executionSettingsOpen: boolean | null = null;
+  private executionElement: HTMLElement | null = null;
+  private executionKey: string | null = null;
   private globalRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(private readonly container: HTMLElement, private readonly api: PluginAPI) {
@@ -597,8 +198,8 @@ export class WorkspaceScheduledPromptsApp {
       await this.loadGlobalDashboard(true);
       const messageByAction: Record<typeof action, string> = {
         run_now: `手动运行已完成 "${response.task.name}".`,
-        pause: `Schedule "${response.task.name}" paused.`,
-        resume: `Schedule "${response.task.name}" resumed.`,
+        pause: `已暂停“${response.task.name}”`,
+        resume: `已恢复“${response.task.name}”`,
         retry: `重试已完成 "${response.task.name}".`
       };
       this.state.patch({
@@ -630,6 +231,14 @@ export class WorkspaceScheduledPromptsApp {
   }
 
   async loadFromContext(workspacePath: string | null): Promise<boolean> {
+    if (workspacePath !== this.state.snapshot.workspacePath) {
+      this.editorOpen = false;
+      this.taskForm = null;
+      this.taskFormKey = null;
+      this.executionSettingsOpen = null;
+      this.executionElement = null;
+      this.executionKey = null;
+    }
     if (!workspacePath) {
       this.state.replace({
         activeTab: "global",
@@ -713,11 +322,13 @@ export class WorkspaceScheduledPromptsApp {
     }
 
     const response = await this.rpc.createTask({ ...request, workspacePath });
+    this.editorOpen = false;
+    this.taskForm = null;
     this.state.upsertTask(response.task);
     this.state.patch({
       editingTaskId: null,
       error: null,
-      successMessage: `Schedule "${response.task.name}" created.`,
+      successMessage: `已创建“${response.task.name}”`,
       highlightedTaskId: response.task.id
     });
     await this.loadGlobalDashboard(true);
@@ -742,11 +353,13 @@ export class WorkspaceScheduledPromptsApp {
       recurrence: request.recurrence
     };
     const response = await this.rpc.updateTask(editingTaskId, update);
+    this.editorOpen = false;
+    this.taskForm = null;
     this.state.upsertTask(response.task);
     this.state.patch({
       editingTaskId: null,
       error: null,
-      successMessage: `Schedule "${response.task.name}" updated.`,
+      successMessage: `已更新“${response.task.name}”`,
       highlightedTaskId: response.task.id
     });
     await this.loadGlobalDashboard(true);
@@ -754,34 +367,54 @@ export class WorkspaceScheduledPromptsApp {
 
   private render(): void {
     const snapshot = this.state.snapshot;
+    const focused = this.container.contains(document.activeElement) ? document.activeElement as HTMLElement : null;
+    const restoreFocus = (root: HTMLElement) => {
+      if (!focused) return;
+      const target = root.contains(focused) ? focused
+        : focused.id ? root.querySelector<HTMLElement>(`#${CSS.escape(focused.id)}`)
+        : focused.getAttribute("name") ? root.querySelector<HTMLElement>(`[name="${CSS.escape(focused.getAttribute("name")!)}"]`) : null;
+      target?.focus({ preventScroll: true });
+    };
     this.container.innerHTML = "";
 
     const root = document.createElement("div");
     root.className = "workspace-scheduled-prompts";
     root.dataset.theme = this.api.context.theme;
 
+    const shell = document.createElement("div");
+    shell.className = "wsp-shell";
+    root.append(shell);
     const heading = document.createElement("header");
     heading.className = "wsp-header";
-    heading.innerHTML = `
-      <div>
-        <h1>计划提示</h1>
-        <p>${snapshot.activeTab === "global"
-          ? "监控所有已知工作区中的计划任务。"
-          : "为活动工作区创建、查看和监控计划提示。"}</p>
-      </div>
-      <div class="wsp-workspace-chip">
-        ${snapshot.activeTab === "global" ? "全局概览" : snapshot.workspacePath ?? "未选择工作区"}
-      </div>
-    `;
-    root.append(heading);
-
+    heading.innerHTML = `<div class="wsp-header-heading"><span class="wsp-heading-icon">${icon("clock")}</span><div><h1>定时提示词</h1><p>把重复的工作交给计划，让 Agent 按时执行。</p></div></div>`;
+    const headerActions = document.createElement("div");
+    headerActions.className = "wsp-header-actions";
+    const create = document.createElement("button");
+    create.type = "button";
+    create.id = "wsp-create-plan";
+    create.className = "wsp-primary-button";
+    create.disabled = !snapshot.workspacePath || snapshot.busy;
+    create.innerHTML = `${icon("plus")}新增计划`;
+    create.addEventListener("click", () => {
+      this.editorOpen = true;
+      this.taskForm = null;
+      this.state.patch({ activeTab: "workspace", editingTaskId: null, error: null, successMessage: null });
+      this.container.querySelector<HTMLInputElement>("#wsp-name")?.focus();
+    });
+    headerActions.append(create);
+    heading.append(headerActions);
+    shell.append(heading);
+    const toolbar = document.createElement("div");
+    toolbar.className = "wsp-toolbar";
     const tabs = document.createElement("div");
     tabs.className = "wsp-tabs";
     const globalTab = document.createElement("button");
     globalTab.type = "button";
+    globalTab.id = "wsp-tab-global";
     globalTab.className = "wsp-tab";
     globalTab.dataset.active = String(snapshot.activeTab === "global");
-    globalTab.textContent = "全局";
+    globalTab.textContent = "全部项目";
+    globalTab.setAttribute("aria-pressed", String(snapshot.activeTab === "global"));
     globalTab.addEventListener("click", () => {
       this.state.patch({ activeTab: "global", error: null, successMessage: null });
       void this.loadGlobalDashboard();
@@ -790,29 +423,37 @@ export class WorkspaceScheduledPromptsApp {
 
     const workspaceTab = document.createElement("button");
     workspaceTab.type = "button";
+    workspaceTab.id = "wsp-tab-workspace";
     workspaceTab.className = "wsp-tab";
     workspaceTab.dataset.active = String(snapshot.activeTab === "workspace");
-    workspaceTab.textContent = "工作区";
+    workspaceTab.textContent = "当前项目";
+    workspaceTab.setAttribute("aria-pressed", String(snapshot.activeTab === "workspace"));
     workspaceTab.disabled = !snapshot.workspacePath;
     workspaceTab.addEventListener("click", () => {
       this.state.patch({ activeTab: "workspace", error: null, successMessage: null });
     });
     tabs.append(workspaceTab);
-    root.append(tabs);
+    toolbar.append(tabs);
+    const projectPath = document.createElement("span");
+    projectPath.className = "wsp-workspace-chip";
+    projectPath.textContent = snapshot.activeTab === "global" ? "所有已保存的项目计划" : snapshot.workspacePath ?? "请选择项目";
+    projectPath.title = snapshot.workspacePath ?? "";
+    toolbar.append(projectPath);
+    shell.append(toolbar);
 
     if (snapshot.error) {
-      root.append(renderBanner("error", "需要操作", snapshot.error));
+      shell.append(renderBanner("error", "需要操作", snapshot.error));
     }
 
     if (snapshot.successMessage) {
       const success = renderBanner("success", "已保存", snapshot.successMessage);
       success.setAttribute("role", "status");
       success.setAttribute("aria-live", "polite");
-      root.append(success);
+      shell.append(success);
     }
 
     if (snapshot.busy) {
-      root.append(renderBanner("info", "加载中", "正在刷新工作区计划和运行历史。"));
+      shell.append(renderBanner("info", "加载中", "正在刷新工作区计划和运行历史。"));
     }
 
     const main = document.createElement("div");
@@ -858,37 +499,52 @@ export class WorkspaceScheduledPromptsApp {
           snapshot.globalPendingActionKey
         )
       );
-      root.append(main);
+      shell.append(main);
       this.container.append(root);
+      restoreFocus(root);
       return;
     }
 
+    const upcoming = snapshot.tasks.filter(task => task.enabled && task.nextRunAt)
+      .sort((a, b) => Date.parse(a.nextRunAt!) - Date.parse(b.nextRunAt!))[0];
+    const stats = document.createElement("div");
+    stats.className = "wsp-stats";
+    stats.innerHTML = `
+      <div class="wsp-stat"><span class="wsp-stat-label">${icon("calendar")}计划总数</span><strong>${snapshot.tasks.length}</strong><small>当前项目</small></div>
+      <div class="wsp-stat"><span class="wsp-stat-label">${icon("play")}已启用</span><strong>${snapshot.tasks.filter(task => task.enabled).length}</strong><small>按计划自动执行</small></div>
+      <div class="wsp-stat"><span class="wsp-stat-label">${icon("alert")}需要关注</span><strong>${snapshot.tasks.filter(task => task.lastRunStatus === "failed" || task.lastRunStatus === "missed").length}</strong><small>失败或错过的执行</small></div>
+      <div class="wsp-stat"><span class="wsp-stat-label">${icon("clock")}下次执行</span><strong class="wsp-stat-time">${escapeHtml(formatTime(upcoming?.nextRunAt, upcoming?.recurrence.timezone))}</strong><small>${escapeHtml(upcoming ? upcoming.name + " · " + upcoming.recurrence.timezone : "创建计划后显示")}</small></div>`;
+    shell.append(stats);
     const left = document.createElement("div");
     left.className = "wsp-stack";
-    left.append(
-      renderTaskForm(this.currentEditingTask(), {
-        onSubmit: (request) => {
-          void this.handleSaveTask(request).catch((error) => {
-            this.state.patch({
-              error: error instanceof Error ? error.message : "保存任务失败。",
-              successMessage: null
-            });
-          });
-        },
-        onCancelEdit: () => this.state.patch({ editingTaskId: null, error: null, successMessage: null })
-      })
-    );
-
+    if (this.editorOpen || snapshot.editingTaskId) {
+      const key = `${snapshot.workspacePath}:${snapshot.editingTaskId ?? "new"}`;
+      if (!this.taskForm || this.taskFormKey !== key) {
+        this.taskFormKey = key;
+        this.taskForm = renderTaskForm(this.currentEditingTask(), {
+          onSubmit: request => this.handleSaveTask(request),
+          onCancelEdit: () => {
+            this.editorOpen = false;
+            this.taskForm = null;
+            this.state.patch({ editingTaskId: null, error: null, successMessage: null });
+          }
+        });
+      }
+      // Keep the editor DOM so background refreshes preserve the draft.
+      shell.append(this.taskForm);
+    }
     const right = document.createElement("div");
     right.className = "wsp-stack";
-    right.append(
-      renderExecutionBanner(snapshot.capability, snapshot.executionProfile, {
+    const executionKey = JSON.stringify([snapshot.workspacePath, snapshot.executionProfile, snapshot.capability]);
+    if (!this.executionElement || this.executionKey !== executionKey) {
+      this.executionKey = executionKey;
+      this.executionElement = renderExecutionBanner(snapshot.capability, snapshot.executionProfile, {
         onSave: (request) => {
           const workspacePath = this.state.snapshot.workspacePath;
           if (!workspacePath) {
             return;
           }
-          void this.rpc.saveExecutionProfile({ ...request, workspacePath }).then((response) => {
+          return this.rpc.saveExecutionProfile({ ...request, workspacePath }).then((response) => {
             this.state.patch({
               capability: response.capability,
               executionProfile: response.executionProfile,
@@ -901,18 +557,31 @@ export class WorkspaceScheduledPromptsApp {
               error: error instanceof Error ? error.message : "保存执行设置失败。",
               successMessage: null
             });
+            throw error;
           });
         }
-      })
-    );
-    right.append(
+      });
+    }
+    const execution = this.executionElement;
+    const executionDetails = execution.querySelector("details");
+    if (executionDetails) {
+      if (this.executionSettingsOpen !== null) executionDetails.open = this.executionSettingsOpen;
+      executionDetails.ontoggle = () => { this.executionSettingsOpen = executionDetails.open; };
+    }
+    shell.append(execution);
+    left.append(
       renderScheduleList(snapshot.tasks, {
-        onEdit: (taskId) => this.state.patch({
+        onCreate: () => create.click(),
+        onEdit: (taskId) => {
+          this.editorOpen = true;
+          this.state.patch({
           editingTaskId: taskId,
           error: null,
           successMessage: null,
           highlightedTaskId: taskId
-        }),
+          });
+          this.container.querySelector<HTMLInputElement>("#wsp-name")?.focus();
+        },
         onDelete: (taskId) => {
           const workspacePath = this.state.snapshot.workspacePath;
           if (!workspacePath) {
@@ -936,7 +605,7 @@ export class WorkspaceScheduledPromptsApp {
             return;
           }
           void this.rpc.pauseTask(taskId, workspacePath).then((response) => {
-            return this.reconcileWorkspaceState(workspacePath, `Schedule "${response.task.name}" paused.`, response.task.id);
+            return this.reconcileWorkspaceState(workspacePath, `已暂停“${response.task.name}”`, response.task.id);
           }).catch((error) => {
             this.state.patch({
               error: error instanceof Error ? error.message : "暂停任务失败。",
@@ -950,7 +619,7 @@ export class WorkspaceScheduledPromptsApp {
             return;
           }
           void this.rpc.resumeTask(taskId, workspacePath).then((response) => {
-            return this.reconcileWorkspaceState(workspacePath, `Schedule "${response.task.name}" resumed.`, response.task.id);
+            return this.reconcileWorkspaceState(workspacePath, `已恢复“${response.task.name}”`, response.task.id);
           }).catch((error) => {
             this.state.patch({
               error: error instanceof Error ? error.message : "恢复任务失败。",
@@ -964,7 +633,7 @@ export class WorkspaceScheduledPromptsApp {
             return;
           }
           void this.rpc.duplicateTask(taskId, workspacePath).then((response) => {
-            return this.reconcileWorkspaceState(workspacePath, `Schedule "${response.task.name}" duplicated.`, response.task.id);
+            return this.reconcileWorkspaceState(workspacePath, `已复制“${response.task.name}”`, response.task.id);
           }).catch((error) => {
             this.state.patch({
               error: error instanceof Error ? error.message : "复制任务失败。",
@@ -1011,10 +680,11 @@ export class WorkspaceScheduledPromptsApp {
           });
         });
       }
-    }));
+    }, new Map(snapshot.tasks.map(task => [task.id, task.name]))));
     main.append(left, right);
-    root.append(main);
+    shell.append(main);
 
     this.container.append(root);
+    restoreFocus(root);
   }
 }

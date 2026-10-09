@@ -1,3 +1,5 @@
+import { DateTime } from "luxon";
+import { escapeHtml, formatTime } from "./ui.js";
 import { displayLabel } from "../../shared/labels.js";
 import type { CreateTaskRequest } from "../../shared/contracts.js";
 import type {
@@ -14,7 +16,7 @@ import type {
 import { formatRecurrenceSummary, nextOccurrenceForRecurrence, validateRecurrenceDefinition } from "../../server/recurrence.js";
 
 export interface TaskFormHandlers {
-  onSubmit(request: Omit<CreateTaskRequest, "workspacePath">): void;
+  onSubmit(request: Omit<CreateTaskRequest, "workspacePath">): void | Promise<void>;
   onCancelEdit(): void;
 }
 
@@ -42,7 +44,8 @@ function recurrenceFields(task: WorkspaceTask | null): string {
     typeof recurrence.localTime === "string"
       ? recurrence.localTime
       : "09:00";
-  const runAt = recurrence?.scheduleType === "one_time" ? recurrence.runAt : "";
+  const runAt = recurrence?.scheduleType === "one_time"
+    ? DateTime.fromISO(recurrence.runAt).setZone(timezone).toFormat("yyyy-LL-dd'T'HH:mm") : "";
   const weekdays = recurrence?.scheduleType === "weekdays" ? recurrence.weekdays : ["monday", "tuesday", "wednesday", "thursday", "friday"];
   const dayOfWeek = recurrence?.scheduleType === "weekly" ? recurrence.dayOfWeek : "monday";
   const dayOfMonth = recurrence?.scheduleType === "monthly" ? recurrence.dayOfMonth : 1;
@@ -53,7 +56,7 @@ function recurrenceFields(task: WorkspaceTask | null): string {
       <select id="wsp-schedule-type" name="scheduleType">
         <option value="one_time"${scheduleType === "one_time" ? " selected" : ""}>一次性</option>
         <option value="daily"${scheduleType === "daily" ? " selected" : ""}>每天</option>
-        <option value="weekdays"${scheduleType === "weekdays" ? " selected" : ""}>选中的工作日</option>
+        <option value="weekdays"${scheduleType === "weekdays" ? " selected" : ""}>指定日期</option>
         <option value="weekly"${scheduleType === "weekly" ? " selected" : ""}>每周</option>
         <option value="monthly"${scheduleType === "monthly" ? " selected" : ""}>每月</option>
       </select>
@@ -61,18 +64,18 @@ function recurrenceFields(task: WorkspaceTask | null): string {
     </div>
     <div class="wsp-field">
       <label for="wsp-timezone">时区</label>
-      <input id="wsp-timezone" name="timezone" value="${timezone}" placeholder="Europe/Paris">
-      <p>用于计算下次运行的 IANA 时区。</p>
+      <input id="wsp-timezone" name="timezone" value="${escapeHtml(timezone)}" placeholder="Asia/Shanghai" list="wsp-timezones">
+      <datalist id="wsp-timezones"><option value="Asia/Shanghai"><option value="America/Los_Angeles"><option value="Europe/Paris"><option value="UTC"></datalist><p>按此时区计算并执行计划。</p>
     </div>
     <div class="wsp-field" data-schedule-scope="timed">
-      <label for="wsp-local-time">本地时间</label>
-      <input id="wsp-local-time" name="localTime" value="${localTime}" placeholder="09:00" inputmode="numeric">
-      <p>用于重复计划的 24 小时本地时间。</p>
+      <label for="wsp-local-time">执行时间</label>
+      <input id="wsp-local-time" name="localTime" value="${escapeHtml(localTime)}" type="time">
+      <p>用于重复计划的 24 小时执行时间。</p>
     </div>
     <div class="wsp-field" data-schedule-scope="one_time">
       <label for="wsp-run-at">运行时间</label>
-      <input id="wsp-run-at" name="runAt" value="${runAt}" placeholder="2026-04-26T09:00:00.000Z">
-      <p>单次执行的绝对 ISO 时间戳。</p>
+      <input id="wsp-run-at" name="runAt" value="${escapeHtml(runAt)}" type="datetime-local">
+      <p>选择执行日期和时间，按上方时区保存。</p>
     </div>
     <div class="wsp-field wsp-field-span-2" data-schedule-scope="weekdays">
       <label>工作日</label>
@@ -98,7 +101,7 @@ function recurrenceFields(task: WorkspaceTask | null): string {
     <div class="wsp-field" data-schedule-scope="monthly">
       <label for="wsp-day-of-month">每月日期</label>
       <input id="wsp-day-of-month" name="dayOfMonth" value="${dayOfMonth}" type="number" min="1" max="31">
-      <p>如果该日在月份中不存在，则钳制到最后一天。</p>
+      <p>当月份没有这一天时，在该月最后一天执行。</p>
     </div>
   `;
 }
@@ -113,7 +116,7 @@ function buildRecurrence(formData: FormData): RecurrenceDefinition {
       return {
         scheduleType,
         timezone,
-        runAt: String(formData.get("runAt") ?? "").trim()
+        runAt: DateTime.fromISO(String(formData.get("runAt") ?? "").trim(), { zone: timezone }).toUTC().toISO() ?? ""
       } satisfies OneTimeRecurrenceDefinition;
     case "daily":
       return { scheduleType, timezone, localTime } satisfies DailyRecurrenceDefinition;
@@ -148,7 +151,7 @@ function buildRecurrence(formData: FormData): RecurrenceDefinition {
 
 function summarizeDraft(recurrence: RecurrenceDefinition): string {
   const nextRunAt = nextOccurrenceForRecurrence(recurrence);
-  return `${formatRecurrenceSummary(recurrence)}${nextRunAt ? ` | 下次运行：${nextRunAt}` : " | 下次运行：不可用"}`;
+  return `${formatRecurrenceSummary(recurrence)}${nextRunAt ? ` | 下次运行：${formatTime(nextRunAt, recurrence.timezone)}` : " | 下次运行：不可用"}`;
 }
 
 export function renderTaskForm(task: WorkspaceTask | null, handlers: TaskFormHandlers): HTMLElement {
@@ -157,32 +160,32 @@ export function renderTaskForm(task: WorkspaceTask | null, handlers: TaskFormHan
   section.innerHTML = `
     <div class="wsp-section-heading">
       <h2>${task ? "编辑计划" : "创建计划"}</h2>
-      <p>${task ? "更新提示词或频率，然后保存调度。" : "为此工作区定义提示、频率和时区。"}</p>
+      <p>${task ? "调整内容或时间，保存后立即生效。" : "写下任务内容，再选择执行时间。"}</p>
     </div>
     <form class="wsp-form">
       <div class="wsp-panel">
-        <div class="wsp-panel-title">提示</div>
+        <div class="wsp-panel-title"><span class="wsp-step">1</span>任务内容</div>
         <div class="wsp-field">
           <label for="wsp-name">名称</label>
-          <input id="wsp-name" name="name" value="${task?.name ?? ""}" required placeholder="早间摘要">
+          <input id="wsp-name" name="name" value="${escapeHtml(task?.name ?? "")}" required placeholder="早间摘要">
           <p>计划列表中显示的简短标签。</p>
         </div>
         <div class="wsp-field">
-          <label for="wsp-prompt">提示</label>
-          <textarea id="wsp-prompt" name="prompt" rows="6" required placeholder="总结工作区并突出显示阻塞项。">${task?.prompt ?? ""}</textarea>
-          <p>任务运行时发送的确切提示。</p>
+          <label for="wsp-prompt">提示词</label>
+          <textarea id="wsp-prompt" name="prompt" rows="6" required placeholder="总结工作区并突出显示阻塞项。">${escapeHtml(task?.prompt ?? "")}</textarea>
+          <p>Agent 会在项目目录中执行这段提示词。</p>
         </div>
       </div>
 
       <div class="wsp-panel">
-        <div class="wsp-panel-title">定时</div>
+        <div class="wsp-panel-title"><span class="wsp-step">2</span>执行时间</div>
         <div class="wsp-form-grid">
           ${recurrenceFields(task)}
         </div>
       </div>
 
       <div class="wsp-panel">
-        <div class="wsp-panel-title">验证</div>
+        <div class="wsp-panel-title">计划预览</div>
         <p class="wsp-feedback" data-testid="task-form-feedback" role="alert"></p>
         <div class="wsp-preview" data-testid="task-form-preview"></div>
         <p class="wsp-preview-note">保存会立即在此工作区中创建或更新任务。</p>
@@ -190,7 +193,7 @@ export function renderTaskForm(task: WorkspaceTask | null, handlers: TaskFormHan
 
       <div class="wsp-form-actions">
         <button type="submit">${task ? "保存计划" : "创建计划"}</button>
-        ${task ? "<button type=\"button\" data-testid=\"cancel-edit\" class=\"wsp-secondary-button\">取消</button>" : ""}
+        <button type="button" data-testid="cancel-edit" class="wsp-secondary-button">取消</button>
       </div>
     </form>
   `;
@@ -251,7 +254,7 @@ export function renderTaskForm(task: WorkspaceTask | null, handlers: TaskFormHan
     refreshPreview();
   });
 
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(form);
     const name = String(formData.get("name") ?? "").trim();
@@ -267,7 +270,16 @@ export function renderTaskForm(task: WorkspaceTask | null, handlers: TaskFormHan
       return;
     }
 
-    handlers.onSubmit({ name, prompt, recurrence });
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    if (submit?.disabled) return;
+    if (submit) { submit.disabled = true; submit.textContent = "正在保存…"; }
+    try {
+      await handlers.onSubmit({ name, prompt, recurrence });
+    } catch (error) {
+      feedback.textContent = error instanceof Error ? error.message : "保存失败，请重试。";
+    } finally {
+      if (submit) { submit.disabled = false; submit.textContent = task ? "保存计划" : "创建计划"; }
+    }
   });
 
   cancel?.addEventListener("click", () => handlers.onCancelEdit());

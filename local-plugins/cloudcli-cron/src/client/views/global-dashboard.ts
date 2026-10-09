@@ -1,3 +1,4 @@
+import { emptyState, formatTime } from "./ui.js";
 import { displayLabel } from "../../shared/labels.js";
 import type {
   GlobalDashboardFilter,
@@ -133,7 +134,7 @@ export function renderGlobalDashboard(
   const refresh = document.createElement("button");
   refresh.type = "button";
   refresh.className = "wsp-secondary-button";
-  refresh.textContent = busy ? "Refreshing..." : "刷新";
+  refresh.textContent = busy ? "正在刷新…" : "刷新";
   refresh.disabled = busy;
   refresh.addEventListener("click", () => handlers.onRefresh());
   header.append(refresh);
@@ -228,9 +229,7 @@ export function renderGlobalDashboard(
   }
 
   if (!snapshot.jobs.length) {
-    const empty = document.createElement("p");
-    empty.textContent = "在所有已知工作区中未找到计划任务。";
-    section.append(empty);
+    section.append(emptyState("还没有定时计划", "选择一个项目，点击新增计划开始。"));
     return section;
   }
 
@@ -260,17 +259,18 @@ export function renderGlobalDashboard(
     const status = document.createElement("span");
     status.className = "wsp-status-chip";
     status.textContent = statusLabel(job);
+    status.dataset.status = job.lastRunStatus;
     head.append(titleBlock, status);
     item.append(head);
 
     const meta = document.createElement("div");
     meta.className = "wsp-task-meta";
     appendMeta(meta, job.recurrenceSummary);
-    appendMeta(meta, `下次运行： ${job.nextRunAt ?? "未计划"}`);
-    appendMeta(meta, `Workspace: ${job.workspaceAvailability}`);
-    appendMeta(meta, `Path: ${job.workspacePath}`);
+    appendMeta(meta, `下次运行： ${formatTime(job.nextRunAt)}`);
+    appendMeta(meta, `项目状态：${displayLabel(job.workspaceAvailability)}`);
+    appendMeta(meta, `目录：${job.workspacePath}`);
     if (job.lastRunFinishedAt) {
-      appendMeta(meta, `上次完成：${job.lastRunFinishedAt}`);
+      appendMeta(meta, `上次完成：${formatTime(job.lastRunFinishedAt)}`);
     }
     if (isProblemJob(job)) {
       appendMeta(meta, "需要关注");
@@ -293,7 +293,7 @@ export function renderGlobalDashboard(
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.action = action;
-      button.textContent = isPending ? "Working..." : actionButtonLabel(action);
+      button.textContent = isPending ? "处理中…" : actionButtonLabel(action);
       button.disabled = busy || isPending || job.workspaceAvailability === "unavailable";
       if (action === "retry" && !job.latestActionableRunId) {
         button.disabled = true;

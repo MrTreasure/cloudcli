@@ -1,8 +1,9 @@
+import { escapeHtml, icon } from "./ui.js";
 import type { ExecutionProfileRequest } from "../../shared/contracts.js";
 import type { ExecutionCapability, ExecutionProfile } from "../../shared/model.js";
 
 export interface ExecutionBannerHandlers {
-  onSave(request: Omit<ExecutionProfileRequest, "workspacePath">): void;
+  onSave(request: Omit<ExecutionProfileRequest, "workspacePath">): void | Promise<void>;
 }
 
 interface ExecutionPreset {
@@ -102,12 +103,12 @@ export function renderExecutionBanner(
   const section = document.createElement("section");
   section.className = `execution-banner status-${capability.status}`;
   section.innerHTML = `
-    <div class="wsp-section-heading">
-      <h2>执行</h2>
-      <p>配置将接收每个计划提示的本地命令。</p>
-    </div>
-    <div class="wsp-status-chip">${statusLabel(capability.status)}</div>
-    <p>${capability.message}</p>
+    <details>
+    <summary class="wsp-execution-summary">
+      <div class="wsp-execution-title">${icon("terminal")}<strong>执行环境</strong><small>${escapeHtml(profile?.command ?? "选择接收提示词的 Agent")}</small></div>
+      <div><span class="wsp-status-chip" data-status="${capability.status}">${statusLabel(capability.status)}</span><span class="wsp-chevron">${icon("chevron")}</span></div>
+    </summary>
+    <div class="wsp-execution-body"><p>${escapeHtml(capability.message)}</p>
     <form class="wsp-form">
       <div class="wsp-field">
         <label for="wsp-exec-preset">预设</label>
@@ -123,7 +124,7 @@ export function renderExecutionBanner(
           <input
             id="wsp-exec-command"
             name="command"
-            value="${profile?.command ?? ""}"
+            value="${escapeHtml(profile?.command ?? "")}"
             placeholder="codex"
             required
           >
@@ -136,7 +137,7 @@ export function renderExecutionBanner(
             name="args"
             rows="5"
             placeholder="exec&#10;--json"
-          >${(profile?.args ?? []).join("\n")}</textarea>
+          >${escapeHtml((profile?.args ?? []).join("\n"))}</textarea>
           <p>每行一个参数。提示始终通过 stdin 发送。可用模板： <code>{{prompt}}</code>, <code>{{workspacePath}}</code>, <code>{{taskName}}</code>, <code>{{taskId}}</code>, <code>{{scheduledFor}}</code>.</p>
         </div>
         <div class="wsp-field">
@@ -156,15 +157,16 @@ export function renderExecutionBanner(
         <strong>${EXECUTION_PRESETS.find((preset) => preset.key === selectedPresetKey)?.label ?? "预设行为"}</strong>
         <div>${EXECUTION_PRESETS.find((preset) => preset.key === selectedPresetKey)?.note ?? "自定义配置。"}</div>
       </div>
-      <div class="wsp-preview">
-        <strong>运行时契约</strong>
+      <details class="wsp-preview wsp-runtime-help">
+        <summary>高级：提示词传递方式</summary>
         <div>提示会传递给 <code>stdin</code> 除非你的命令或参数包含 <code>{{prompt}}</code>，在这种情况下模板会内联展开。</div>
         <div>环境变量包括 <code>SCHEDULED_PROMPT</code>, <code>SCHEDULED_WORKSPACE_PATH</code>, <code>SCHEDULED_TASK_NAME</code>, <code>SCHEDULED_TASK_ID</code>，以及 <code>SCHEDULED_FOR</code>.</div>
-      </div>
+      </details>
+      <p class="wsp-feedback" data-execution-feedback role="alert"></p>
       <div class="wsp-form-actions">
         <button type="submit">保存执行设置</button>
       </div>
-    </form>
+    </form></div></details>
   `;
 
   const form = section.querySelector("form");
@@ -197,14 +199,25 @@ export function renderExecutionBanner(
     applyPreset(presetSelect.value);
   });
 
-  form.addEventListener("submit", (event) => {
+  form.addEventListener("submit", async (event) => {
     event.preventDefault();
     const formData = new FormData(form);
-    handlers.onSave({
-      command: String(formData.get("command") ?? "").trim(),
-      args: splitArgs(String(formData.get("args") ?? "")),
-      timeoutMs: Number(formData.get("timeoutMs") ?? 300000)
-    });
+    const submit = form.querySelector<HTMLButtonElement>('button[type="submit"]');
+    const feedback = form.querySelector<HTMLElement>('[data-execution-feedback]');
+    if (submit?.disabled) return;
+    if (feedback) feedback.textContent = "";
+    if (submit) { submit.disabled = true; submit.textContent = "正在保存…"; }
+    try {
+      await handlers.onSave({
+        command: String(formData.get("command") ?? "").trim(),
+        args: splitArgs(String(formData.get("args") ?? "")),
+        timeoutMs: Number(formData.get("timeoutMs") ?? 300000)
+      });
+    } catch (error) {
+      if (feedback) feedback.textContent = error instanceof Error ? error.message : "保存执行设置失败。";
+    } finally {
+      if (submit) { submit.disabled = false; submit.textContent = "保存执行设置"; }
+    }
   });
 
   return section;
