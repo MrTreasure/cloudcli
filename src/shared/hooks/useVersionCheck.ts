@@ -1,6 +1,6 @@
-import { backendUrl } from '@/shared/utils';
 import { useState, useEffect } from 'react';
 
+import { api } from '@/shared/api';
 import { APP_VERSION } from '@/shared/constants';
 import type { InstallMode, ReleaseInfo } from '@/shared/types';
 
@@ -24,50 +24,67 @@ const compareVersions = (v1: string, v2: string) => {
 };
 
 
+/** Used by sidebar and settings modules to report releases and server restart needs. */
 export const useVersionCheck = (owner: string, repo: string) => {
-  const [updateAvailable, setUpdateAvailable] = useState(false);
+  // Latest upstream version is retained for the upgrade dialog and comparison.
   const [latestVersion, setLatestVersion] = useState<string | null>(null);
+  // Release notes populate the upgrade dialog without an additional request.
   const [releaseInfo, setReleaseInfo] = useState<ReleaseInfo | null>(null);
+  // Installation method determines the appropriate upgrade instructions.
   const [installMode, setInstallMode] = useState<InstallMode>('git');
+  // A live server version detects upgrades made while this page stays open.
   const [runningVersion, setRunningVersion] = useState<string | null>(null);
-  const [restartRequired, setRestartRequired] = useState(false);
+
+  // An older open tab must not advertise a release already running on the NAS.
+  const currentVersion = runningVersion && compareVersions(runningVersion, APP_VERSION) > 0
+    ? runningVersion
+    : APP_VERSION;
+  const updateAvailable = latestVersion !== null && compareVersions(latestVersion, currentVersion) > 0;
+  // Only a server older than the installed frontend needs restarting.
+  const restartRequired = runningVersion !== null && compareVersions(APP_VERSION, runningVersion) > 0;
 
   useEffect(() => {
+    let cancelled = false;
     const fetchHealth = async () => {
       try {
-        const response = await fetch(backendUrl('/health'));
+        const response = await api.version.health();
+        if (!response.ok) return;
         const data = await response.json();
+        if (cancelled) return;
         if (data.installMode === 'npm' || data.installMode === 'git') {
           setInstallMode(data.installMode);
         }
-        // `data.version` is the version the server process is actually running.
-        // This module's `version` is baked into the frontend bundle at build
-        // time, so it reflects the installed (on-disk) package. If they differ,
-        // the package was updated but the server process was not restarted, and
-        // DB-backed actions may silently fail until it is.
+        // The server may be newer than this tab, or older if it needs a restart.
         if (typeof data.version === 'string' && data.version.length > 0) {
           setRunningVersion(data.version);
-          setRestartRequired(data.version !== APP_VERSION);
         }
       } catch {
         // Default to git / no restart hint on error
       }
     };
     fetchHealth();
+    const interval = setInterval(fetchHealth, 5 * 60 * 1000);
+    window.addEventListener('focus', fetchHealth);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('focus', fetchHealth);
+    };
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const checkVersion = async () => {
       try {
-        const response = await fetch(`https://api.github.com/repos/${owner}/${repo}/releases/latest`);
+        const response = await api.version.latestRelease(owner, repo);
+        if (!response.ok) throw new Error(`Release lookup failed: ${response.status}`);
         const data = await response.json();
+        if (cancelled) return;
 
         // Handle the case where there might not be any releases
-        if (data.tag_name) {
+        if (typeof data.tag_name === 'string' && /^v?\d+\.\d+\.\d+$/.test(data.tag_name)) {
           const latest = data.tag_name.replace(/^v/, '');
           setLatestVersion(latest);
-          // Only show update if latest version is actually newer
-          setUpdateAvailable(compareVersions(latest, APP_VERSION) > 0);
 
           // Store release information
           setReleaseInfo({
@@ -78,14 +95,13 @@ export const useVersionCheck = (owner: string, repo: string) => {
           });
         } else {
           // No releases found, don't show update notification
-          setUpdateAvailable(false);
           setLatestVersion(null);
           setReleaseInfo(null);
         }
       } catch (error) {
+        if (cancelled) return;
         console.error('Version check failed:', error);
         // On error, don't show update notification
-        setUpdateAvailable(false);
         setLatestVersion(null);
         setReleaseInfo(null);
       }
@@ -93,8 +109,13 @@ export const useVersionCheck = (owner: string, repo: string) => {
 
     checkVersion();
     const interval = setInterval(checkVersion, 5 * 60 * 1000); // Check every 5 minutes
-    return () => clearInterval(interval);
+    window.addEventListener('focus', checkVersion);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+      window.removeEventListener('focus', checkVersion);
+    };
   }, [owner, repo]);
 
-  return { updateAvailable, latestVersion, currentVersion: APP_VERSION, releaseInfo, installMode, runningVersion, restartRequired };
+  return { updateAvailable, latestVersion, currentVersion, releaseInfo, installMode, runningVersion, restartRequired };
 };

@@ -256,7 +256,7 @@ export default function FileTree({ selectedProject, onFileOpen, revealDirectory 
                   if (operations.isCreating) operations.handleConfirmCreate();
                 }, 100);
               }}
-              className="h-6 flex-1 text-sm"
+              className="h-7 flex-1 text-[16px]"
               disabled={operationLoading}
             />
           </div>

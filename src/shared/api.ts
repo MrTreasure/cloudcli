@@ -187,6 +187,14 @@ const pluginAssetPath = (pluginName: string, assetFile: string) =>
 // import a named method instead of assembling URLs of their own.
 
 export const api = {
+  // Public version endpoints used by sidebar and About settings checks.
+  version: {
+    health: () => fetch(backendUrl('/health'), { cache: 'no-store' }),
+    latestRelease: (owner: string, repo: string) => fetch(
+      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/latest`,
+      { cache: 'no-store' },
+    ),
+  },
   // Auth endpoints (no token required)
   auth: {
     status: () => fetch(backendUrl('/api/auth/status')),
