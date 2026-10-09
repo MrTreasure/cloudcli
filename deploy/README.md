@@ -12,6 +12,7 @@
 - TaskMaster CLI 使用 `task-master-ai@0.43.1`，NAS 全局安装与后端运行依赖均通过 pnpm 安装，后端 PATH 包含应用命令目录。
 - Chromium 缓存共享 `/vol1/cache/ms-playwright` → `/opt/playwright`；`PLAYWRIGHT_BROWSERS_PATH` 指向该目录。镜像构建时安装系统库，后续下载使用淘宝镜像 `https://registry.npmmirror.com/-/binary/playwright`，匹配的 Chromium 使用 `pnpm exec playwright install chromium` 在宿主机安装，不运行浏览器自动化验收。
 - 数据、附件和插件位于 `/vol1/1000/appdata/cloudcli`；源码根目录不存运行数据或密钥。
+- 密码本目录 `/home/Treasure/.secrets` 与宿主机技能目录 `/home/Treasure/.claude/skills` 只读挂载，`PASSWORD_BOOK` 指向 `/home/Treasure/.secrets/passwords.yml`；Codex 的技能符号链接可在容器中解析。
 - 密码本唯一来源 `~/.secrets/passwords.yml`：`services.cloudcli.{username,password,agent_api_key}`、`llm_providers.deepseek.{anthropic_base,api_key}`。Compose helper 在运行时注入，不输出展开的配置。
 - 浏览器使用 JWT 认证；额外 API key 只保护 `/api/agent` 自动化接口，不提供给前端。
 

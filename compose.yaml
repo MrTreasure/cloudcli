@@ -24,6 +24,7 @@ services:
       ANTHROPIC_DEFAULT_HAIKU_MODEL: deepseek-flash
       DATABASE_PATH: /home/Treasure/.cloudcli/auth.db
       CODEX_HOME: /home/Treasure/.codex
+      PASSWORD_BOOK: /home/Treasure/.secrets/passwords.yml
       WORKSPACES_ROOT: /
       PLAYWRIGHT_BROWSERS_PATH: /opt/playwright
       PLAYWRIGHT_DOWNLOAD_HOST: https://registry.npmmirror.com/-/binary/playwright
@@ -32,6 +33,8 @@ services:
       - /vol1/1000/appdata/cloudcli/plugins:/home/Treasure/.claude-code-ui
       - /vol1/1000/appdata/cloudcli/claude:/home/Treasure/.claude
       - /home/Treasure/.codex:/home/Treasure/.codex
+      - /home/Treasure/.secrets:/home/Treasure/.secrets:ro
+      - /home/Treasure/.claude/skills:/home/Treasure/.claude/skills:ro
       - /vol1:/vol1
       - /vol2:/vol2
       - /vol00:/vol00
