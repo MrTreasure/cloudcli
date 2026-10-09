@@ -3,6 +3,7 @@
 from datetime import datetime
 import json
 from pathlib import Path
+import sys
 import urllib.request
 import yaml
 
@@ -31,5 +32,11 @@ if existing is None or any(existing.get(key) != value for key, value in rule.ite
         request('PATCH', f"zones/{zone}/rulesets/{ruleset['id']}/rules/{existing['id']}", rule)
     else:
         request('POST', f"zones/{zone}/rulesets/{ruleset['id']}/rules", rule)
-request('POST', f'zones/{zone}/purge_cache', {'files': ['https://agent.mrtreasure.cc/', 'https://agent.mrtreasure.cc/index.html']})
+files = ['https://agent.mrtreasure.cc/', 'https://agent.mrtreasure.cc/index.html']
+for url in sys.argv[1:]:
+    if not url.startswith('https://assets.mrtreasure.cc/cloudcli/v1/assets/'):
+        raise ValueError('Static cache purge must remain within CloudCLI assets')
+    # Purge both the ordinary cache key and its browser Origin variant.
+    files.extend([url, {'url': url, 'headers': {'Origin': 'https://agent.mrtreasure.cc'}}])
+request('POST', f'zones/{zone}/purge_cache', {'files': files})
 print('Public HTML edge cache: 30 seconds; entry URLs purged')

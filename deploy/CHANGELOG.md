@@ -73,3 +73,9 @@
 - 后端仍监听 127.0.0.1:18803，前端 CDN 和直连 API 地址继续工作。
 - 类型检查、后端构建、登录、HTTPS/CORS、聊天/终端 WebSocket 通过；网页终端实测 Docker 控制和密码本访问正常。Chromium、TaskMaster 0.43.1、已有插件识别正常，未启动浏览器自动化。
 - 删除 cloudcli-backend Docker 容器及旧 Compose、Dockerfile、Compose helper，改用 cloudcli-backend.service 管理服务。
+
+## 静态 CSS 请求失败处理
+
+- 用户反馈 index-9lQ0NYQn.css ERR_FAILED；服务器侧 200、内容 SHA256、gzip 与 CORS 正常，截图未提供具体浏览器错误原因，不能据此确认根因。
+- 更新 Service Worker 缓存版本，跳过错误和不匹配的 opaque 响应；缓存读写失败不阻断网络下载，失败下载绕过浏览器 HTTP 缓存重试一次。
+- 清理该 CSS 的普通及 Origin CDN 缓存版本，并发布新 Service Worker；清理后 CSS 为 MISS/200，跨域头正确。最终浏览器恢复情况由用户手动刷新确认。

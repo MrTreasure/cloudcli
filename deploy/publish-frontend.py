@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build on NAS and atomically publish static files without touching Docker."""
+"""Build on NAS and atomically publish static files without restarting the backend."""
 import os
 import json
 from pathlib import Path
@@ -30,4 +30,4 @@ temporary.write_bytes((root / 'dist/index.html').read_bytes())
 temporary.chmod(0o644)
 os.replace(temporary, destination / 'index.html')
 subprocess.run(['python3', 'deploy/cache-frontend.py'], cwd=root, check=True)
-print('Frontend and CDN published; Docker backend unchanged')
+print('Frontend and CDN published; API backend unchanged')

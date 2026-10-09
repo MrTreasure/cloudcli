@@ -1,7 +1,7 @@
 // Service Worker for CloudCLI PWA
 // Cache only manifest (needed for PWA install). HTML and JS are never pre-cached
 // so a rebuild + refresh always picks up the latest assets.
-const CACHE_NAME = 'claude-ui-v2';
+const CACHE_NAME = 'c137-static-v3';
 const urlsToCache = [
   '/manifest.json'
 ];
@@ -39,14 +39,35 @@ self.addEventListener('fetch', event => {
   // Hashed assets (JS/CSS in /assets/) — cache-first since filenames change per build
   if (url.includes('/assets/')) {
     event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-          return response;
-        });
-      })
+      (async () => {
+        // An opaque response cannot satisfy a CORS request; error pages are not assets.
+        const usable = response => response.ok
+          || (response.type === 'opaque' && event.request.mode === 'no-cors');
+        let cache;
+        try {
+          cache = await caches.open(CACHE_NAME);
+          const cached = await cache.match(event.request);
+          if (cached && usable(cached)) return cached;
+          if (cached) await cache.delete(event.request);
+        } catch {
+          // A broken or unavailable browser cache must not block the network request.
+          cache = null;
+        }
+
+        let response;
+        try {
+          response = await fetch(event.request);
+          if (!usable(response)) throw new Error('Static resource request failed');
+        } catch {
+          // Retry a failed CDN request once without reusing the browser HTTP cache.
+          response = await fetch(event.request, { cache: 'reload' });
+        }
+        if (cache && usable(response)) {
+          // Cache failures must not turn a successfully downloaded stylesheet into ERR_FAILED.
+          event.waitUntil(cache.put(event.request, response.clone()).catch(() => {}));
+        }
+        return response;
+      })()
     );
     return;
   }
@@ -63,7 +84,8 @@ self.addEventListener('activate', event => {
     caches.keys().then(cacheNames =>
       Promise.all(
         cacheNames
-          .filter(name => name !== CACHE_NAME)
+          .filter(name => name !== CACHE_NAME
+            && (name.startsWith('claude-ui-') || name.startsWith('c137-static-')))
           .map(name => caches.delete(name))
       )
     )
