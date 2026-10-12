@@ -347,6 +347,8 @@
     "configuredContextWindow": "模型設定視窗",
     "autoCompactThreshold": "自動壓縮閾值",
     "contextStages": "上下文用量進度",
+    "configuredValues": "設定值",
+    "actualValues": "目前值",
     "compactStage": "自動壓縮",
     "contextUnknown": "尚未取得",
     "contextOccupancy": "上下文佔用：{{percentage}}",

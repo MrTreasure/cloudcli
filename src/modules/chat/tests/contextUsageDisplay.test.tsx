@@ -51,5 +51,7 @@ test('Codex details mark the real automatic compaction threshold on the usage ba
   />);
   expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('50');
   expect(screen.getByText('94.7% · 460.8K')).toBeTruthy();
+  expect(screen.getByText(/misc\.configuredValues|设定值|Configured/)).toBeTruthy();
+  expect(screen.getByText(/misc\.actualValues|当前值|Current/)).toBeTruthy();
   expect(screen.queryByText(/摘要|summary/i)).toBeNull();
 });

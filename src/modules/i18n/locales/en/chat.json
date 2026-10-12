@@ -408,6 +408,8 @@
     "configuredContextWindow": "Configured model window",
     "autoCompactThreshold": "Auto compact threshold",
     "contextStages": "Context usage progress",
+    "configuredValues": "Configured",
+    "actualValues": "Current",
     "compactStage": "Auto compact",
     "contextUnknown": "Not reported",
     "contextOccupancy": "Context occupancy: {{percentage}}",
