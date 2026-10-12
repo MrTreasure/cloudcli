@@ -1264,3 +1264,81 @@ test('explicit steer rejection leaves the original turn running', async () => {
   assert.equal(output.messages.filter((item) => item.kind === 'complete').length, 0);
   harness.notify('turn/completed', { threadId: 'thread-existing', turn: { id: 'turn-1', status: 'completed' } }); await run;
 });
+
+test('native compact waits for turn completion, updates usage, and cannot be steered', async () => {
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  const output = createWriter();
+  let settled = false;
+  const operation = runtime.run('/compact', { sessionId: 'resume-app' }, output.writer, context)
+    .then((result) => { settled = true; return result; });
+  assert.equal((await harness.nextRequest()).method, 'initialize');
+  assert.equal((await harness.nextRequest()).method, 'initialized');
+  assert.equal((await harness.nextRequest()).method, 'thread/resume');
+  const request = await harness.nextRequest();
+  assert.equal(request.method, 'thread/compact/start');
+  assert.deepEqual(request.params, { threadId: 'thread-existing' });
+  harness.respondWithResult(request, {});
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(settled, false);
+  harness.notify('turn/started', { threadId: 'thread-existing', turn: { id: 'compact-1', status: 'inProgress' } });
+  assert.equal(runtime.activeTurnToken('resume-app'), null);
+  await assert.rejects(runtime.steer({ sessionId: 'resume-app', activeTurnToken: 'invalid', messageId: 'compact-steer', content: 'hello', attachments: [] }), /No active/);
+  harness.notify('thread/tokenUsage/updated', {
+    threadId: 'thread-existing', tokenUsage: {
+      total: { totalTokens: 100000 }, last: { inputTokens: 1000, outputTokens: 10, totalTokens: 1010 }, modelContextWindow: 258400,
+    },
+  });
+  harness.notify('turn/completed', { threadId: 'thread-existing', turn: { id: 'compact-1', status: 'completed' } });
+  assert.deepEqual(await operation, { status: 'completed' });
+  assert.ok(output.messages.some((message) => message.content === '上下文压缩完成。'));
+  assert.ok(output.messages.some((message) => (message.tokenBudget as AnyRecord | undefined)?.used === 1010));
+  assert.equal(harness.requests.some((request) => request.method === 'turn/start'), false);
+});
+
+test('compact rejects a fresh thread and unsupported instructions without submitting a prompt', async () => {
+  for (const [command, sessionId] of [['/compact', 'app-new'], ['/compact instructions', 'resume-app']]) {
+    const harness = createHarness();
+    const runtime = createRuntime(harness.process);
+    await assert.rejects(runtime.run(command, { sessionId }, createWriter().writer, context), /可压缩|附加参数/);
+    assert.equal(harness.requests.some((request) => request.method === 'turn/start' || request.method === 'thread/start'), false);
+  }
+});
+
+test('compact RPC failure releases the active session', async () => {
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  const operation = runtime.run('/compact', { sessionId: 'resume-app' }, createWriter().writer, context);
+  const rejection = assert.rejects(operation, /compact unavailable/);
+  await harness.nextRequest();
+  await harness.nextRequest();
+  await harness.nextRequest();
+  const request = await harness.nextRequest();
+  harness.respondWithError(request, -32601, 'compact unavailable');
+  await rejection;
+  const next = runtime.run('hello', { sessionId: 'resume-app' }, createWriter().writer, context);
+  assert.equal((await harness.nextRequest()).method, 'thread/resume');
+  assert.equal((await harness.nextRequest()).method, 'turn/start');
+  harness.notify('turn/completed', { threadId: 'thread-existing', turn: { id: 'turn-1', status: 'completed' } });
+  await next;
+});
+
+test('abort before a compact turn id arrives interrupts the observed compact turn', async () => {
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  const output = createWriter();
+  const operation = runtime.run('/compact', { sessionId: 'resume-app' }, output.writer, context);
+  await harness.nextRequest();
+  await harness.nextRequest();
+  await harness.nextRequest();
+  const request = await harness.nextRequest();
+  harness.respondWithResult(request, {});
+  assert.equal(await runtime.abort('resume-app'), true);
+  harness.notify('turn/started', { threadId: 'thread-existing', turn: { id: 'compact-aborted', status: 'inProgress' } });
+  const interrupt = await harness.nextRequest();
+  assert.equal(interrupt.method, 'turn/interrupt');
+  assert.deepEqual(interrupt.params, { threadId: 'thread-existing', turnId: 'compact-aborted' });
+  harness.notify('turn/completed', { threadId: 'thread-existing', turn: { id: 'compact-aborted', status: 'interrupted' } });
+  assert.deepEqual(await operation, { status: 'interrupted' });
+  assert.equal(output.messages.some((message) => message.content === '上下文压缩完成。'), false);
+});

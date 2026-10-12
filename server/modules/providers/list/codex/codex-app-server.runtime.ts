@@ -48,6 +48,7 @@ type AppServerRun = {
   writer: ProviderRuntimeWriter;
   context: ProviderRuntimeContext;
   turnAccepted: boolean;
+  isCompaction: boolean;
   abortRequested: boolean;
   terminal: boolean;
   lastError: string | null;
@@ -506,6 +507,10 @@ export class CodexAppServerRuntime {
     writer: ProviderRuntimeWriter,
     context: ProviderRuntimeContext,
   ): Promise<unknown> {
+    const isCompaction = /^\/compact(?:\s|$)/.test(command.trim());
+    if (isCompaction && command.trim() !== '/compact') {
+      throw new CodexAppServerPreTurnError('Codex 原生 /compact 暂不支持附加参数。');
+    }
     const sessionId = readString(options.sessionId);
     const sessionSummary = readString(options.sessionSummary);
     if (sessionId && (
@@ -534,6 +539,9 @@ export class CodexAppServerRuntime {
       checkSetupAbort();
 
       const providerSessionId = context.resolveProviderSessionId(sessionId);
+      if (isCompaction && !providerSessionId) {
+        throw new CodexAppServerPreTurnError('当前会话还没有可压缩的 Codex 历史。');
+      }
       const resolvedModel = await context.resolveResumeModel(sessionId ?? undefined, readString(options.model));
       checkSetupAbort();
       const workingDirectory = readString(options.cwd)
@@ -582,6 +590,19 @@ export class CodexAppServerRuntime {
       run = this.createRun(sessionId, threadId, writer, context, sessionSummary, workingDirectory);
       if (sessionId) {
         this.pendingRunSetups.delete(sessionId);
+      }
+      if (isCompaction) {
+        run.isCompaction = true;
+        run.writer.send(createNormalizedMessage({
+          kind: 'text', provider: 'codex', sessionId: threadId, role: 'assistant',
+          content: '正在压缩当前会话上下文…',
+        }));
+        // The empty RPC acknowledgment only schedules compaction. Keep the run
+        // reserved until the native turn/completed notification arrives.
+        await this.manager.request('thread/compact/start', { threadId });
+        run.turnAccepted = true;
+        if (run.abortRequested) void this.interruptRun(run);
+        return await run.completion;
       }
       const turnParams = {
         threadId,
@@ -647,12 +668,12 @@ export class CodexAppServerRuntime {
 
   activeTurnToken(sessionId: string): string | null {
     const run = this.runsBySession.get(sessionId);
-    return run && !run.terminal && !run.abortRequested && run.turnAccepted && run.turnId ? run.activeTurnToken : null;
+    return run && !run.isCompaction && !run.terminal && !run.abortRequested && run.turnAccepted && run.turnId ? run.activeTurnToken : null;
   }
 
   async steer(input: ProviderSteerInput): Promise<void> {
     const run = this.runsBySession.get(input.sessionId);
-    if (!run || run.terminal || run.abortRequested || !run.turnAccepted || !run.turnId) {
+    if (!run || run.isCompaction || run.terminal || run.abortRequested || !run.turnAccepted || !run.turnId) {
       throw new AppError('No active Codex app-server turn to steer.', { code: 'NO_ACTIVE_TURN', statusCode: 409 });
     }
     if (input.activeTurnToken !== run.activeTurnToken) {
@@ -840,6 +861,7 @@ export class CodexAppServerRuntime {
       writer,
       context,
       turnAccepted: false,
+      isCompaction: false,
       abortRequested: false,
       terminal: false,
       lastError: null,
@@ -903,6 +925,10 @@ export class CodexAppServerRuntime {
 
     switch (notification.method) {
       case 'turn/started':
+        if (run.isCompaction) {
+          run.turnAccepted = true;
+          if (run.abortRequested) void this.interruptRun(run);
+        }
         return;
       case 'item/completed': {
         const item = readNestedRecord(params, 'item');
@@ -1112,6 +1138,12 @@ export class CodexAppServerRuntime {
       return;
     }
     run.terminal = true;
+    if (run.isCompaction && status === 'completed' && !run.abortRequested) {
+      run.writer.send(createNormalizedMessage({
+        kind: 'text', provider: 'codex', sessionId: run.threadId, role: 'assistant',
+        content: '上下文压缩完成。',
+      }));
+    }
     this.cancelApprovalsForRun(run, status);
     if (error) {
       run.lastError = error;

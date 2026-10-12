@@ -520,7 +520,8 @@ async function queryCodex(
   context: ProviderRuntimeContext,
 ) {
   const mode = resolveCodexRuntimeMode(options.codexRuntimeMode);
-  if (mode === 'sdk') {
+  // Native commands must never become literal prompts in the legacy SDK.
+  if (mode === 'sdk' && !/^\/compact(?:\s|$)/.test(command.trim())) {
     return queryLegacyCodex(command, options, ws, context);
   }
 
