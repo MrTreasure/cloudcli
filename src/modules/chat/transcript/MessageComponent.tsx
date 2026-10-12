@@ -16,6 +16,7 @@ import MessageModelLabel from '@/modules/chat/transcript/MessageModelLabel';
 import MessageSpeakControl from '@/modules/chat/transcript/MessageSpeakControl';
 import { useIsExportingTranscript } from '@/modules/chat/context/TranscriptRenderContext';
 import { MemoryCitations } from '@/modules/chat/transcript/MemoryCitations';
+import { useBranding } from '@/shared/hooks/useBranding';
 
 type MessageComponentProps = {
   message: ChatMessage;
@@ -49,6 +50,7 @@ const COPY_HIDDEN_TOOL_NAMES = new Set(['Bash', 'Edit', 'Write', 'ApplyPatch']);
  */
 const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, showRawParameters, showThinking, selectedProject, provider, onEditMessage, onForkFromMessage }: MessageComponentProps) => {
   const { t } = useTranslation('chat');
+  const { avatar } = useBranding();
   const isGrouped = prevMessage && prevMessage.type === message.type &&
     ((prevMessage.type === 'assistant') ||
       (prevMessage.type === 'user') ||
@@ -156,11 +158,9 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, s
               </div>
             )}
           </div>
-          {!isGrouped && (
-            <div className="hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm text-white sm:flex">
-              U
-            </div>
-          )}
+          {!isGrouped && (avatar
+            ? <img src={avatar} alt="" width={32} height={32} className="hidden h-8 w-8 flex-shrink-0 rounded-full object-cover sm:block" />
+            : <div className="hidden h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-blue-600 text-sm text-white sm:flex">U</div>)}
         </div>
       ) : message.compact ? (
         /* A compaction: one row, its numbers, and its summary folded into it */

@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { IS_PLATFORM } from '@/shared/utils';
+import { useBranding } from '@/shared/hooks/useBranding';
 
 type AuthScreenLayoutProps = {
   title: string;
@@ -21,6 +22,7 @@ export default function AuthScreenLayout({
   logo,
 }: AuthScreenLayoutProps) {
   const { t } = useTranslation('auth');
+  const { title: brandTitle, logo: brandLogo } = useBranding();
   return (
     <div className="relative h-screen overflow-y-auto bg-background">
       {/* Ambient, on-brand backdrop that gives the screen depth without
@@ -38,7 +40,7 @@ export default function AuthScreenLayout({
             <div className="mb-5 flex justify-center">
               {logo ?? (
                 <div className="flex h-16 w-16 items-center justify-center rounded-2xl">
-                  <img src={cloudCliLogo} alt="C137 实验室" className="h-16 w-16 object-contain" />
+                  <img src={brandLogo || cloudCliLogo} alt={brandTitle || 'C137 实验室'} className="h-16 w-16 object-contain" />
                 </div>
               )}
             </div>

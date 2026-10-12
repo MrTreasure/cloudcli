@@ -39,3 +39,17 @@ test('appearance controls save interface and file name sizes separately from cod
   });
   expect(changeCodeSize).not.toHaveBeenCalled();
 });
+
+test('appearance title is saved to account preferences', () => {
+  render(<AppearanceSettingsTab
+    projectSortOrder="name"
+    onProjectSortOrderChange={vi.fn()}
+    codeEditorSettings={{ ...CODE_EDITOR_DEFAULTS }}
+    onCodeEditorWordWrapChange={vi.fn()}
+    onCodeEditorShowMinimapChange={vi.fn()}
+    onCodeEditorLineNumbersChange={vi.fn()}
+    onCodeEditorFontSizeChange={vi.fn()}
+  />);
+  fireEvent.change(screen.getByRole('textbox', { name: /branding\.siteTitle|Sidebar title/ }), { target: { value: 'My CloudCLI' } });
+  expect(readUserPreference<{ title?: string }>('branding', {}).title).toBe('My CloudCLI');
+});

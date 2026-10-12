@@ -27,6 +27,7 @@ export type UserPreferences = {
   opencodePermissions: unknown;
   codeEditorSettings: unknown;
   uiPreferences: unknown;
+  branding: unknown;
   selectedProvider: string;
 };
 
@@ -66,6 +67,7 @@ const LEGACY_STORAGE_KEYS: Record<UserPreferenceKey, string> = {
   // read by readLegacyCodeEditorSettings instead.
   codeEditorSettings: '',
   uiPreferences: 'uiPreferences',
+  branding: '',
   selectedProvider: 'selected-provider',
 };
 

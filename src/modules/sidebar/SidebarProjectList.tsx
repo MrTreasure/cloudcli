@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 
 import type { SidebarProjectListProps } from '@/shared/types';
+import { useBranding } from '@/shared/hooks/useBranding';
 import { getPageTitle } from '@/shared/utils';
 import SidebarProjectItem from '@/modules/sidebar/SidebarProjectItem';
 import SidebarProjectsState from '@/modules/sidebar/SidebarProjectsState';
@@ -51,7 +52,8 @@ export default function SidebarProjectList({
   onDeleteSelectedSessions,
   t,
 }: SidebarProjectListProps) {
-  const pageTitle = getPageTitle(selectedProject, selectedSession);
+  const { title } = useBranding();
+  const pageTitle = getPageTitle(selectedProject, selectedSession, title || 'C137 实验室');
   const state = (
     <SidebarProjectsState
       isLoading={isLoading}

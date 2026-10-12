@@ -143,6 +143,15 @@
     }
   },
   "appearanceSettings": {
+    "branding": {
+      "title": "站點標識",
+      "siteTitle": "左上角標題",
+      "logo": "左上角 Logo",
+      "avatar": "對話頭像",
+      "upload": "上傳圖片",
+      "reset": "恢復預設",
+      "invalidImage": "請選擇不超過 5 MB 的 PNG、JPG 或 WebP 圖片"
+    },
     "darkMode": {
       "label": "深色模式",
       "description": "切換淺色和深色佈景主題"

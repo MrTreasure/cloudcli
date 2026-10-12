@@ -168,6 +168,15 @@
     }
   },
   "appearanceSettings": {
+    "branding": {
+      "title": "Branding",
+      "siteTitle": "Sidebar title",
+      "logo": "Sidebar logo",
+      "avatar": "Chat avatar",
+      "upload": "Upload image",
+      "reset": "Reset",
+      "invalidImage": "Choose a PNG, JPG or WebP image under 5 MB"
+    },
     "darkMode": {
       "label": "Dark Mode",
       "description": "Toggle between light and dark themes"

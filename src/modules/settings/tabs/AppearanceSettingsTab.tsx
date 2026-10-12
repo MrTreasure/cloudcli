@@ -1,8 +1,11 @@
+import { useState } from 'react';
+import type { ChangeEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { FILE_NAME_FONT_SIZE_OPTIONS, INTERFACE_FONT_SIZE_OPTIONS } from '@/shared/constants';
 import { useTheme } from '@/shared/context/ThemeContext';
 import { useFontSizes } from '@/shared/hooks/useFontSizes';
+import { useBranding } from '@/shared/hooks/useBranding';
 import type { CodeEditorSettingsState, ProjectSortOrder, ThemeMode } from '@/shared/types';
 import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { LanguageSelector } from '@/modules/i18n';
@@ -21,6 +24,31 @@ type AppearanceSettingsTabProps = {
   onCodeEditorFontSizeChange: (value: string) => void;
 };
 
+async function resizeBrandImage(file: File): Promise<string> {
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    throw new Error('image');
+  }
+  const source = URL.createObjectURL(file);
+  try {
+    const image = new Image();
+    image.src = source;
+    await image.decode();
+    const size = 128;
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('canvas');
+    const scale = Math.min(size / image.width, size / image.height);
+    const width = image.width * scale;
+    const height = image.height * scale;
+    context.drawImage(image, (size - width) / 2, (size - height) / 2, width, height);
+    return canvas.toDataURL('image/png');
+  } finally {
+    URL.revokeObjectURL(source);
+  }
+}
+
 /** Rendered by Settings for the "appearance" tab, covering theme, project sorting and code editor preferences. */
 export default function AppearanceSettingsTab({
   projectSortOrder,
@@ -34,9 +62,55 @@ export default function AppearanceSettingsTab({
   const { t } = useTranslation('settings');
   const { themeMode, setThemeMode } = useTheme();
   const { interfaceFontSize, fileNameFontSize, setFontSize } = useFontSizes();
+  const { title, logo, avatar, updateBranding } = useBranding();
+  // Shows a validation message only when a selected image cannot be stored.
+  const [brandImageError, setBrandImageError] = useState<string | null>(null);
+
+  const handleBrandImage = async (event: ChangeEvent<HTMLInputElement>, key: 'logo' | 'avatar') => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+    try {
+      updateBranding({ [key]: await resizeBrandImage(file) });
+      setBrandImageError(null);
+    } catch {
+      setBrandImageError(t('appearanceSettings.branding.invalidImage'));
+    }
+  };
 
   return (
     <div className="space-y-8">
+      <SettingsSection title={t('appearanceSettings.branding.title')}>
+        <SettingsCard divided>
+          <SettingsRow label={t('appearanceSettings.branding.siteTitle')}>
+            <input
+              type="text"
+              value={title}
+              maxLength={60}
+              onChange={(event) => updateBranding({ title: event.target.value })}
+              aria-label={t('appearanceSettings.branding.siteTitle')}
+              className="w-full rounded-lg border border-input bg-card px-3 py-2 text-sm text-foreground sm:w-56"
+            />
+          </SettingsRow>
+          {(['logo', 'avatar'] as const).map((key) => (
+            <SettingsRow key={key} label={t(`appearanceSettings.branding.${key}`)}>
+              <div className="flex items-center gap-3">
+                {key === 'logo' || avatar
+                  ? <img src={key === 'logo' ? logo : avatar || ''} alt="" className="h-10 w-10 rounded-lg object-contain" />
+                  : <span className="grid h-10 w-10 place-items-center rounded-full bg-primary text-white">U</span>}
+                <label className="cursor-pointer rounded-lg border border-input px-3 py-2 text-sm text-foreground">
+                  {t('appearanceSettings.branding.upload')}
+                  <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(event) => { void handleBrandImage(event, key); }} />
+                </label>
+                <button type="button" className="text-sm text-muted-foreground underline" onClick={() => updateBranding({ [key]: key === 'logo' ? '' : null })}>
+                  {t('appearanceSettings.branding.reset')}
+                </button>
+              </div>
+            </SettingsRow>
+          ))}
+          {brandImageError && <p role="alert" className="px-4 pb-3 text-sm text-destructive">{brandImageError}</p>}
+        </SettingsCard>
+      </SettingsSection>
       <SettingsSection title={t('appearanceSettings.theme.label')}>
         <SettingsCard>
           <SettingsRow

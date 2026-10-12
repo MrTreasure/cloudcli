@@ -168,6 +168,15 @@
     }
   },
   "appearanceSettings": {
+    "branding": {
+      "title": "站点标识",
+      "siteTitle": "左上角标题",
+      "logo": "左上角 Logo",
+      "avatar": "对话头像",
+      "upload": "上传图片",
+      "reset": "恢复默认",
+      "invalidImage": "请选择不超过 5 MB 的 PNG、JPG 或 WebP 图片"
+    },
     "darkMode": {
       "label": "深色模式",
       "description": "切换浅色和深色主题"

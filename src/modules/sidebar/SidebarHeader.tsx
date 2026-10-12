@@ -3,9 +3,9 @@ import type { TFunction } from 'i18next';
 
 import { Button, Input } from '@/shared/ui';
 import { CLOUDCLI_WORDMARK_FONT_FAMILY } from '@/shared/constants';
+import { useBranding } from '@/shared/hooks/useBranding';
 import { IS_PLATFORM } from '@/shared/utils';
 import type { SidebarSearchMode } from '@/shared/types';
-import c137Logo from '@/assets/c137-logo.webp';
 import SidebarModeTabs from '@/modules/sidebar/SidebarModeTabs';
 
 const MOD_KEY =
@@ -33,14 +33,15 @@ type SidebarHeaderProps = {
 
 /** Module-level, not a nested render function, so the wordmark is not remounted on every SidebarHeader render. */
 function LogoBlock({ t }: { t: TFunction }) {
+  const { title, logo } = useBranding();
   return (
     <div className="flex min-w-0 items-center gap-2.5">
-      <img src={c137Logo} alt="" width={28} height={28} className="h-7 w-7 flex-shrink-0 object-contain" />
+      <img src={logo} alt="" width={28} height={28} className="h-7 w-7 flex-shrink-0 object-contain" />
       <h1
         className="truncate text-sm font-bold tracking-tight text-foreground"
         style={{ fontFamily: CLOUDCLI_WORDMARK_FONT_FAMILY }}
       >
-        {t('app.title')}
+        {title || t('app.title')}
       </h1>
     </div>
   );
