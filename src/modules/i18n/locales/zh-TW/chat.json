@@ -343,7 +343,11 @@
   "misc": {
     "contextLabel": "上下文",
     "contextUsed": "已使用上下文",
-    "contextMaximum": "上下文上限",
+    "contextMaximum": "可用上下文上限",
+    "configuredContextWindow": "模型設定視窗",
+    "autoCompactThreshold": "自動壓縮／摘要閾值",
+    "postTurnCompactThreshold": "回合結束壓縮閾值",
+    "thresholdDisabled": "未啟用",
     "contextUnknown": "尚未取得",
     "contextOccupancy": "上下文佔用：{{percentage}}",
     "contextInput": "輸入 Token",

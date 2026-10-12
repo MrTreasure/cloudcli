@@ -418,6 +418,17 @@ function CostContent({ data }: { data: CostCommandData }) {
   const usageRows = [
     { label: t('misc.contextUsed'), value: used === null ? t('misc.contextUnknown') : formatContextTokenCount(used), icon: Activity },
     { label: t('misc.contextMaximum'), value: total === null ? t('misc.contextUnknown') : formatContextTokenCount(total), icon: Gauge },
+    ...(data.provider === 'codex' && data.tokenUsage?.configuredContextWindow
+      ? [
+          { label: t('misc.configuredContextWindow'), value: formatContextTokenCount(data.tokenUsage.configuredContextWindow), icon: Gauge },
+          { label: t('misc.autoCompactThreshold'), value: data.tokenUsage.autoCompactThreshold
+            ? formatContextTokenCount(data.tokenUsage.autoCompactThreshold)
+            : t('misc.contextUnknown'), icon: Activity },
+          { label: t('misc.postTurnCompactThreshold'), value: data.tokenUsage.postTurnCompactThreshold
+            ? formatContextTokenCount(data.tokenUsage.postTurnCompactThreshold)
+            : t('misc.thresholdDisabled'), icon: Activity },
+        ]
+      : []),
     { label: t('misc.contextLabel'), value: percentage === null ? t('misc.contextUnknown') : `${percentage}%`, icon: Activity },
     ...(hasBreakdown
       ? [

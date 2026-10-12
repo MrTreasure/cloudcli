@@ -459,6 +459,23 @@ export function useChatComposerState({
 
         const result = (await response.json()) as CommandExecutionResult;
         if (result.type === 'builtin') {
+          if (result.action === 'cost' && provider === 'codex' && context.sessionId) {
+            // The composer can still hold an older window after Codex settings
+            // change. Read the current server-side limits when opening details.
+            try {
+              const usageResponse = await api.providers.sessionTokenUsage(context.sessionId);
+              if (usageResponse.ok) {
+                const usage = (await usageResponse.json()).data;
+                result.data = {
+                  ...(result.data || {}),
+                  tokenUsage: usage,
+                  tokenBreakdown: usage?.breakdown,
+                };
+              }
+            } catch {
+              // Keep the already-returned command result when usage is offline.
+            }
+          }
           handleBuiltInCommand(result);
           if (!options?.preserveInput) {
             setInput('');

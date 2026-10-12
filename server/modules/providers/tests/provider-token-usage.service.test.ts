@@ -104,6 +104,7 @@ test('Codex token usage uses the latest token_count snapshot', async () => {
         provider: 'codex',
         jsonl_path: sessionFilePath,
       }),
+      getCodexContextLimits: () => null,
     });
 
     assert.deepEqual(await service.getSessionTokenUsage('app-session'), {
@@ -112,6 +113,41 @@ test('Codex token usage uses the latest token_count snapshot', async () => {
       inputTokens: 40,
       outputTokens: 9,
       breakdown: { input: 40, output: 9 },
+    });
+  } finally {
+    await rm(tempDirectory, { recursive: true, force: true });
+  }
+});
+
+test('Codex usage keeps the latest used tokens but shows current configured limits', async () => {
+  const tempDirectory = await mkdtemp(path.join(tmpdir(), 'provider-token-limits-'));
+  const sessionFilePath = path.join(tempDirectory, 'rollout-provider-session.jsonl');
+  try {
+    await writeFile(sessionFilePath, JSON.stringify({
+      type: 'event_msg',
+      payload: { type: 'token_count', info: {
+        last_token_usage: { input_tokens: 90, output_tokens: 10, total_tokens: 100 },
+        model_context_window: 258400,
+      } },
+    }));
+    const service = createProviderTokenUsageService({
+      getSessionById: () => createSessionRow({ provider: 'codex', model: 'test-model', jsonl_path: sessionFilePath }),
+      getCodexContextLimits: () => ({
+        configuredContextWindow: 512000,
+        usableContextWindow: 486400,
+        autoCompactThreshold: 460800,
+        postTurnCompactThreshold: null,
+      }),
+    });
+    assert.deepEqual(await service.getSessionTokenUsage('app-session'), {
+      used: 100,
+      total: 486400,
+      configuredContextWindow: 512000,
+      autoCompactThreshold: 460800,
+      postTurnCompactThreshold: null,
+      inputTokens: 90,
+      outputTokens: 10,
+      breakdown: { input: 90, output: 10 },
     });
   } finally {
     await rm(tempDirectory, { recursive: true, force: true });
@@ -332,6 +368,7 @@ test('Codex token usage reads only the tail of a large rollout', async () => {
     const service = createProviderTokenUsageService({
       getSessionById: () => createSessionRow({ provider: 'codex', jsonl_path: sessionFilePath }),
       readTextFile: () => { throw new Error('full read must not happen when the tail has usage'); },
+      getCodexContextLimits: () => null,
     });
 
     assert.deepEqual(await service.getSessionTokenUsage('app-session'), {

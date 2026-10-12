@@ -6,6 +6,7 @@ import { projectsDb, sessionsDb } from '@/modules/database/index.js';
 import { broadcastSessionUpserted, chatRunRegistry } from '@/modules/websocket/index.js';
 import { providerRegistry } from '@/modules/providers/provider.registry.js';
 import { resolveCodexRuntimeMode } from '@/modules/providers/list/codex/codex-app-server.config.js';
+import { readCodexContextLimits } from '@/modules/providers/services/codex-context-limits.service.js';
 import { listBusyClaudeCliSessions } from '@/modules/providers/services/claude-cli-liveness.service.js';
 import { sessionHistoryCache } from '@/modules/providers/services/session-history-cache.service.js';
 import type {
@@ -558,8 +559,21 @@ export const sessionsService = {
       });
     }
 
+    const codexLimits = provider === 'codex' ? readCodexContextLimits(session.model) : null;
+    const recordedUsage = result.tokenUsage && typeof result.tokenUsage === 'object'
+      ? result.tokenUsage as Record<string, unknown>
+      : null;
     return {
       ...result,
+      ...(codexLimits && recordedUsage
+        ? { tokenUsage: {
+            ...recordedUsage,
+            total: codexLimits.usableContextWindow,
+            configuredContextWindow: codexLimits.configuredContextWindow,
+            autoCompactThreshold: codexLimits.autoCompactThreshold,
+            postTurnCompactThreshold: codexLimits.postTurnCompactThreshold,
+          } }
+        : {}),
       messages: result.messages.map((message) => ({
         ...message,
         sessionId,

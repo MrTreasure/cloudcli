@@ -721,6 +721,9 @@ export type CostCommandData = {
   tokenUsage?: {
     used?: number;
     total?: number;
+    configuredContextWindow?: number;
+    autoCompactThreshold?: number;
+    postTurnCompactThreshold?: number | null;
   };
   tokenBreakdown?: {
     input?: number;
