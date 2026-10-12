@@ -150,10 +150,11 @@ function findCodexTokenUsage(fileContent: string): TokenUsageResult | null {
       let inputTokens = 0;
       let outputTokens = 0;
       let totalTokens = 0;
-      if (tokenInfo.total_token_usage) {
-        inputTokens = readUsageNumber(tokenInfo.total_token_usage.input_tokens);
-        outputTokens = readUsageNumber(tokenInfo.total_token_usage.output_tokens);
-        totalTokens = readUsageNumber(tokenInfo.total_token_usage.total_tokens)
+      const contextUsage = tokenInfo.last_token_usage ?? tokenInfo.total_token_usage;
+      if (contextUsage) {
+        inputTokens = readUsageNumber(contextUsage.input_tokens);
+        outputTokens = readUsageNumber(contextUsage.output_tokens);
+        totalTokens = readUsageNumber(contextUsage.total_tokens)
           || inputTokens + outputTokens;
       }
       return {

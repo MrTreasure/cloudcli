@@ -11,7 +11,7 @@ import type {
   RefObject,
   TouchEvent,
 } from 'react';
-import { PaperclipIcon, MessageSquareIcon, XIcon, Loader2, ArrowUpIcon, PencilIcon } from 'lucide-react';
+import { PaperclipIcon, MessageSquareIcon, XIcon, Loader2, ArrowUpIcon, PencilIcon, Minimize2 } from 'lucide-react';
 
 import { useVoiceInput } from '@/modules/chat/hooks/useVoiceInput';
 import { useVoiceAvailable } from '@/modules/chat/hooks/useVoiceAvailable';
@@ -53,6 +53,11 @@ type ChatComposerProps = {
   activity: SessionActivity | null;
   isLoading: boolean;
   onAbortSession: () => void;
+  /** Raw provider id (not the display label) — gates provider-only controls like Compact. */
+  provider: string;
+  /** Whether a session is currently open; Compact has nothing to compact before one exists. */
+  hasSelectedSession: boolean;
+  onCompact: () => void;
   permissionMode: PermissionMode;
   availablePermissionModes: PermissionMode[];
   onSelectPermissionMode: (mode: PermissionMode) => void;
@@ -135,6 +140,9 @@ export default function ChatComposer({
   activity,
   isLoading,
   onAbortSession,
+  provider,
+  hasSelectedSession,
+  onCompact,
   permissionMode,
   availablePermissionModes,
   onSelectPermissionMode,
@@ -266,6 +274,7 @@ export default function ChatComposer({
   const hasPendingPermissions = pendingPermissionRequests.length > 0;
   const hasActivityIndicator = Boolean(activity && !hasPendingPermissions);
 
+  const canCompact = provider === 'claude' && hasSelectedSession && !isEditingSentMessage;
   const hasQueuedDraft = Boolean(editingQueuedMessage);
   const canQueueDraft = (isLoading || queueItems.length > 0 || hasQueuedDraft) && Boolean(input.trim() || attachedFiles.length > 0 || editingQueuedMessage?.attachments.length);
   const submitHint = canQueueDraft
@@ -479,6 +488,18 @@ export default function ChatComposer({
             )}
 
             <TokenUsageSummary usage={tokenBudget} onClick={onShowTokenUsage} />
+
+            {canCompact && (
+              <PromptInputButton
+                tooltip={{ content: t('input.compact.action', { defaultValue: 'Compact conversation' }) }}
+                onClick={onCompact}
+                disabled={isLoading}
+                title={t('input.compact.action', { defaultValue: 'Compact conversation' })}
+                aria-label={t('input.compact.action', { defaultValue: 'Compact conversation' })}
+              >
+                <Minimize2 />
+              </PromptInputButton>
+            )}
 
             <PromptInputButton
               tooltip={{ content: t('input.showAllCommands') }}

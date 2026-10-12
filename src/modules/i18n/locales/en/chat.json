@@ -150,6 +150,9 @@
     "clickToChangeMode": "Click to change permission mode (or press Tab in input)",
     "showAllCommands": "Show all commands",
     "clearInput": "Clear input",
+    "compact": {
+      "action": "Compact conversation"
+    },
     "scrollToBottom": "Scroll to bottom",
     "queue": {
       "sendNext": "Queue next message",
@@ -398,7 +401,12 @@
     "tokensLabel_one": "token",
     "tokensLabel_other": "tokens",
     "escClosesModal": "Esc closes the modal.",
-    "close": "Close"
+    "close": "Close",
+    "contextLabel": "Context",
+    "contextUsed": "Context used",
+    "contextMaximum": "Context limit",
+    "contextUnknown": "Not reported",
+    "contextOccupancy": "Context occupancy: {{percentage}}"
   },
   "modelLibrary": {
     "effortLevels": "Reasoning levels",

@@ -148,6 +148,10 @@
       "willSend": "將在目前回合完成後傳送",
       "edit": "編輯排隊訊息",
       "delete": "刪除排隊訊息"
+    },
+    "compact": {
+      "action": "壓縮對話",
+      "disabled": "目前無法壓縮對話"
     }
   },
   "thinkingMode": {
@@ -336,5 +340,12 @@
     "effortLevels": "推理等級",
     "effortLevelsHint": "選擇此模型支援的推理強度等級。若未選擇任何等級，將無法在輸入框中為此模型選擇等級。",
     "effortSummary": "推理：{{levels}}"
+  },
+  "misc": {
+    "contextLabel": "上下文",
+    "contextUsed": "已使用上下文",
+    "contextMaximum": "上下文上限",
+    "contextUnknown": "尚未取得",
+    "contextOccupancy": "上下文佔用：{{percentage}}"
   }
 }

@@ -163,6 +163,10 @@
         "failed": "发送失败",
         "unknown": "结果待确认"
       }
+    },
+    "compact": {
+      "action": "压缩对话",
+      "disabled": "当前无法压缩对话"
     }
   },
   "providerSelection": {
@@ -403,6 +407,11 @@
     "tokensLabel_one": "token",
     "tokensLabel_other": "token",
     "escClosesModal": "按 Esc 关闭弹窗。",
-    "close": "关闭"
+    "close": "关闭",
+    "contextLabel": "上下文",
+    "contextUsed": "已使用上下文",
+    "contextMaximum": "上下文上限",
+    "contextUnknown": "尚未获取",
+    "contextOccupancy": "上下文占用：{{percentage}}"
   }
 }

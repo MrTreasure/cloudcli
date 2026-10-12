@@ -194,7 +194,7 @@ function readTokenBudget(value: unknown): AnyRecord | null {
     return null;
   }
 
-  const aggregate = readNestedRecord(usage, 'total') ?? usage;
+  const aggregate = readNestedRecord(usage, 'last') ?? usage;
   const inputTokens = Number(aggregate.inputTokens ?? aggregate.input_tokens ?? 0);
   const outputTokens = Number(aggregate.outputTokens ?? aggregate.output_tokens ?? 0);
   const totalTokens = Number(

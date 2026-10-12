@@ -1,3 +1,4 @@
+import { readContextWindowUsage } from '@/shared/utils';
 import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { memo, useMemo, useState } from 'react';
@@ -407,15 +408,17 @@ function ModelsContent({
 }
 
 function CostContent({ data }: { data: CostCommandData }) {
-  const used = Number(data.tokenUsage?.used ?? 0);
-  const total = Number(data.tokenUsage?.total ?? 0);
+  const { t } = useTranslation('chat');
+  const { used, total, percentage } = readContextWindowUsage(data.tokenUsage);
   const model = data.model || 'Unknown';
   const provider = getProviderLabel(data.provider, data.provider || 'Unknown');
   const hasBreakdown =
     typeof data.tokenBreakdown?.input === 'number' ||
     typeof data.tokenBreakdown?.output === 'number';
   const usageRows = [
-    { label: 'Total tokens used', value: formatNumber(used), icon: Activity },
+    { label: t('misc.contextUsed'), value: used === null ? t('misc.contextUnknown') : formatNumber(used), icon: Activity },
+    { label: t('misc.contextMaximum'), value: total === null ? t('misc.contextUnknown') : formatNumber(total), icon: Gauge },
+    { label: t('misc.contextLabel'), value: percentage === null ? t('misc.contextUnknown') : `${percentage}%`, icon: Activity },
     ...(hasBreakdown
       ? [
           {
@@ -436,13 +439,7 @@ function CostContent({ data }: { data: CostCommandData }) {
             icon: TerminalSquare,
           },
         ]),
-    // Only when it is consistent with what was actually used. The window comes
-    // from the CONTEXT_WINDOW setting, which cannot know whether a session is
-    // running a 200K or a 1M variant of the same model name — and a row reading
-    // "used 404,009 / window 160,000" is worse than no row at all.
-    ...(total > used
-      ? [{ label: 'Context window', value: formatNumber(total), icon: Gauge }]
-      : []),
+
   ];
 
   return (

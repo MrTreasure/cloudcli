@@ -356,11 +356,11 @@ test('starts/resumes a thread, submits a turn, and normalizes completed items', 
     turnId: 'turn-1',
     tokenUsage: {
       total: {
-        inputTokens: 120,
+        inputTokens: 499970,
         cachedInputTokens: 20,
         outputTokens: 30,
         reasoningOutputTokens: 10,
-        totalTokens: 150,
+        totalTokens: 500000,
       },
       last: {
         inputTokens: 120,

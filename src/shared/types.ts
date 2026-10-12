@@ -1848,3 +1848,8 @@ export type QueuedMessage = {
 export type QueueMessageInput = {
   content: string; attachments: unknown[]; options: QueuedSendOptions;
 };
+
+//----------------- CONTEXT WINDOW USAGE ------------
+
+/** Current context occupancy, with null values when the provider has not reported it. */
+export type ContextWindowUsage = { used: number | null; total: number | null; percentage: number | null };

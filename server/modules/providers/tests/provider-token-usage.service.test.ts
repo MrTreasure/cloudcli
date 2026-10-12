@@ -91,7 +91,8 @@ test('Codex token usage uses the latest token_count snapshot', async () => {
         payload: {
           type: 'token_count',
           info: {
-            total_token_usage: { input_tokens: 40, output_tokens: 9, total_tokens: 49 },
+            total_token_usage: { input_tokens: 500000, output_tokens: 9000, total_tokens: 509000 },
+            last_token_usage: { input_tokens: 40, output_tokens: 9, total_tokens: 49 },
             model_context_window: 250_000,
           },
         },

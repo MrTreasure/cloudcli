@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-import type { Project, ProjectSession, QuickSettingsTab, SlashCommand } from '@/shared/types';
+import type { ContextWindowUsage, Project, ProjectSession, QuickSettingsTab, SlashCommand } from '@/shared/types';
 
 //----------------- DEPLOYMENT MODE ------------
 
@@ -282,3 +282,14 @@ export const getQuickSettingsTabId = (tab: QuickSettingsTab): string => `quick-s
 
 /** DOM id of the tabpanel a quick settings tab controls; pairs with `getQuickSettingsTabId`. */
 export const getQuickSettingsTabPanelId = (tab: QuickSettingsTab): string => `quick-settings-tabpanel-${tab}`;
+
+//----------------- CONTEXT WINDOW USAGE ------------
+
+/** Used by chat's summary and details to interpret current occupancy without confusing missing data with zero. */
+export function readContextWindowUsage(usage: { used?: unknown; total?: unknown; contextUnavailable?: unknown } | null | undefined): ContextWindowUsage {
+  const usedValue = usage?.used == null ? NaN : Number(usage.used);
+  const totalValue = usage?.total == null ? NaN : Number(usage.total);
+  const used = !usage?.contextUnavailable && Number.isFinite(usedValue) && usedValue >= 0 ? usedValue : null;
+  const total = Number.isFinite(totalValue) && totalValue > 0 ? totalValue : null;
+  return { used, total, percentage: used !== null && total !== null ? Math.round(used / total * 1000) / 10 : null };
+}

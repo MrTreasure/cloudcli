@@ -57,7 +57,7 @@ function readUsageNumber(value: unknown) {
 
 function extractCodexTokenBudget(event: AnyRecord) {
   const info = event?.info || event?.payload?.info || event?.usage?.info;
-  const usage = info?.total_token_usage || event?.usage?.total_token_usage || event?.usage;
+  const usage = info?.last_token_usage || event?.usage?.last_token_usage || event?.usage;
   if (!usage || typeof usage !== 'object') {
     return null;
   }
