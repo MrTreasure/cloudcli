@@ -293,3 +293,10 @@ export function readContextWindowUsage(usage: { used?: unknown; total?: unknown;
   const total = Number.isFinite(totalValue) && totalValue > 0 ? totalValue : null;
   return { used, total, percentage: used !== null && total !== null ? Math.round(used / total * 1000) / 10 : null };
 }
+
+/** Used by chat context summaries and details to abbreviate counts in decimal thousands. */
+export function formatContextTokenCount(value: number): string {
+  return value >= 1000
+    ? `${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K`
+    : value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}

@@ -165,8 +165,7 @@
       }
     },
     "compact": {
-      "action": "压缩对话",
-      "disabled": "当前无法压缩对话"
+      "action": "压缩对话"
     }
   },
   "providerSelection": {
@@ -412,6 +411,8 @@
     "contextUsed": "已使用上下文",
     "contextMaximum": "上下文上限",
     "contextUnknown": "尚未获取",
-    "contextOccupancy": "上下文占用：{{percentage}}"
+    "contextOccupancy": "上下文占用：{{percentage}}",
+    "contextInput": "输入 Token",
+    "contextOutput": "输出 Token"
   }
 }

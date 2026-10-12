@@ -150,8 +150,7 @@
       "delete": "刪除排隊訊息"
     },
     "compact": {
-      "action": "壓縮對話",
-      "disabled": "目前無法壓縮對話"
+      "action": "壓縮對話"
     }
   },
   "thinkingMode": {
@@ -346,6 +345,8 @@
     "contextUsed": "已使用上下文",
     "contextMaximum": "上下文上限",
     "contextUnknown": "尚未取得",
-    "contextOccupancy": "上下文佔用：{{percentage}}"
+    "contextOccupancy": "上下文佔用：{{percentage}}",
+    "contextInput": "輸入 Token",
+    "contextOutput": "輸出 Token"
   }
 }

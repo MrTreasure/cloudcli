@@ -1,4 +1,4 @@
-import { readContextWindowUsage } from '@/shared/utils';
+import { formatContextTokenCount, readContextWindowUsage } from '@/shared/utils';
 import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { memo, useMemo, useState } from 'react';
@@ -416,19 +416,19 @@ function CostContent({ data }: { data: CostCommandData }) {
     typeof data.tokenBreakdown?.input === 'number' ||
     typeof data.tokenBreakdown?.output === 'number';
   const usageRows = [
-    { label: t('misc.contextUsed'), value: used === null ? t('misc.contextUnknown') : formatNumber(used), icon: Activity },
-    { label: t('misc.contextMaximum'), value: total === null ? t('misc.contextUnknown') : formatNumber(total), icon: Gauge },
+    { label: t('misc.contextUsed'), value: used === null ? t('misc.contextUnknown') : formatContextTokenCount(used), icon: Activity },
+    { label: t('misc.contextMaximum'), value: total === null ? t('misc.contextUnknown') : formatContextTokenCount(total), icon: Gauge },
     { label: t('misc.contextLabel'), value: percentage === null ? t('misc.contextUnknown') : `${percentage}%`, icon: Activity },
     ...(hasBreakdown
       ? [
           {
-            label: 'Input tokens',
-            value: formatNumber(Number(data.tokenBreakdown?.input ?? 0)),
+            label: t('misc.contextInput'),
+            value: formatContextTokenCount(Number(data.tokenBreakdown?.input ?? 0)),
             icon: TerminalSquare,
           },
           {
-            label: 'Output tokens',
-            value: formatNumber(Number(data.tokenBreakdown?.output ?? 0)),
+            label: t('misc.contextOutput'),
+            value: formatContextTokenCount(Number(data.tokenBreakdown?.output ?? 0)),
             icon: Coins,
           },
         ]

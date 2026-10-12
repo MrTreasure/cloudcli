@@ -2,7 +2,7 @@ import { render, screen, cleanup } from '@testing-library/react';
 import { afterEach, expect, test } from 'vitest';
 import '@/modules/i18n';
 import TokenUsageSummary from '@/modules/chat/composer/TokenUsageSummary';
-import { readContextWindowUsage } from '@/shared/utils';
+import { formatContextTokenCount, readContextWindowUsage } from '@/shared/utils';
 
 afterEach(cleanup);
 
@@ -23,4 +23,12 @@ test('full and over-limit windows retain their actual occupancy', () => {
   expect(readContextWindowUsage({ used: 220000, total: 200000 }).percentage).toBe(110);
   expect(readContextWindowUsage({ used: 0, total: 200000 }).percentage).toBe(0);
   expect(readContextWindowUsage({ used: 120, total: 0 }).percentage).toBeNull();
+});
+
+
+test('context details use K abbreviations for the reported screenshot values', () => {
+  expect(formatContextTokenCount(171341)).toBe('171.3K');
+  expect(formatContextTokenCount(258400)).toBe('258.4K');
+  expect(formatContextTokenCount(182)).toBe('182');
+  expect(readContextWindowUsage({ used: 171341, total: 258400 }).percentage).toBe(66.3);
 });

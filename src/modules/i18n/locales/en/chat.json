@@ -406,7 +406,9 @@
     "contextUsed": "Context used",
     "contextMaximum": "Context limit",
     "contextUnknown": "Not reported",
-    "contextOccupancy": "Context occupancy: {{percentage}}"
+    "contextOccupancy": "Context occupancy: {{percentage}}",
+    "contextInput": "Input tokens",
+    "contextOutput": "Output tokens"
   },
   "modelLibrary": {
     "effortLevels": "Reasoning levels",
