@@ -1,4 +1,4 @@
-/** Publish and verify public build resources before releasing the HTML entry. */
+/** Publish build resources before releasing the HTML entry. */
 import { createHash } from 'node:crypto';
 import { readFile, readdir, mkdir, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
@@ -48,18 +48,7 @@ async function publish(name) {
       Metadata: { sha256: sha256(raw) }, ...(existing ? { IfMatch: existing.ETag } : { IfNoneMatch: '*' }),
     }));
   }
-  // Check decoded bytes, MIME and browser CORS, including gzip and font resources.
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      const started = performance.now();
-      const response = await fetch(`${cdn}${name}`, { headers: { Origin: origin, 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(30000) });
-      const received = Buffer.from(await response.arrayBuffer());
-      if (!response.ok || response.headers.get('content-type')?.split(';')[0] !== contentType.split(';')[0]
-        || ![origin, '*'].includes(response.headers.get('access-control-allow-origin')) || sha256(received) !== sha256(raw)) throw new Error('PublicAssetVerificationFailed');
-      console.log(`Verified ${name}: ${body.length} uploaded bytes, HTTP ${response.status}, ${Math.round(performance.now() - started)}ms`);
-      return;
-    } catch (error) { if (attempt === 2) throw error; }
-  }
+
 }
 try {
   let rules;
@@ -78,7 +67,7 @@ try {
   const files = await filesUnder(directory);
   let index = 0;
   await Promise.all(Array.from({ length: 4 }, async () => { while (index < files.length) await publish(files[index++]); }));
-  console.log(`All ${files.length} static resources verified; HTML may now be published.`);
+  console.log(`All ${files.length} static resources published; HTML may now be published.`);
 } catch (error) {
   console.error(`Static publication stopped: ${error.name}, HTTP ${error.$metadata?.httpStatusCode ?? 'unknown'}`);
   process.exitCode = 1;

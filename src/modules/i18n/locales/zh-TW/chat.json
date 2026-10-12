@@ -121,12 +121,34 @@
     "stop": "停止",
     "hintText": {
       "ctrlEnter": "Ctrl+Enter 傳送 • Shift+Enter 換行 • Tab 切換模式 • / 斜線指令",
-      "enter": "Enter 傳送 • Shift+Enter 換行 • Tab 切換模式 • / 斜線指令"
+      "enter": "Enter 傳送 • Shift+Enter 換行 • Tab 切換模式 • / 斜線指令",
+      "queue": "Enter 排隊傳送下一則訊息",
+      "updateQueued": "Enter 更新排隊訊息"
     },
     "clickToChangeMode": "點擊變更權限模式（或在輸入框中按 Tab）",
     "showAllCommands": "顯示所有指令",
     "clearInput": "清空輸入",
-    "scrollToBottom": "捲動到底部"
+    "scrollToBottom": "捲動到底部",
+    "queue": {
+      "steer": "立即引導",
+      "list": "訊息佇列",
+      "editing": "正在編輯這則排隊訊息",
+      "needsAttention": "查看傳送狀態",
+      "removeAttachment": "移除附件",
+      "status": {
+        "queued": "排隊中",
+        "dispatching": "傳送中",
+        "steering": "引導中",
+        "failed": "傳送失敗",
+        "unknown": "結果待確認"
+      },
+      "sendNext": "排隊傳送下一則訊息",
+      "update": "更新排隊訊息",
+      "label": "已排隊",
+      "willSend": "將在目前回合完成後傳送",
+      "edit": "編輯排隊訊息",
+      "delete": "刪除排隊訊息"
+    }
   },
   "thinkingMode": {
     "selector": {
