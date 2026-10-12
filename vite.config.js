@@ -25,15 +25,22 @@ export default defineConfig(({ mode }) => {
   // TODO: Remove support for legacy PORT variables in all locations in a future major release, leaving only SERVER_PORT.
   const serverPort = env.SERVER_PORT || env.PORT || 3001
 
+  // Ordinary clones build self-contained assets. The NAS publisher opts in to
+  // its CDN explicitly so a production build on another computer stays local.
+  const assetBase = mode === 'production' ? env.VITE_STATIC_ASSET_BASE || '/' : '/'
+
   return {
-    base: mode === 'production' ? staticCdn.base : '/',
+    base: assetBase,
     plugins: [react(), {
       name: 'keep-pwa-manifest-on-app-origin',
       transformIndexHtml: {
         order: 'post',
         handler(html) {
           // PWA start_url and service worker scope must remain on the app origin.
-          return html.replaceAll(`${staticCdn.base}manifest.json`, '/manifest.json');
+          if (assetBase !== staticCdn.base) return html;
+          const withLocalManifest = html.replaceAll(`${assetBase}manifest.json`, '/manifest.json');
+          const cdnOrigin = new URL(assetBase).origin;
+          return withLocalManifest.replace('</head>', `    <link rel="preconnect" href="${cdnOrigin}" crossorigin />\n  </head>`);
         }
       }
     }],

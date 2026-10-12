@@ -8,6 +8,7 @@ import subprocess
 root = Path(__file__).resolve().parent.parent
 environment = os.environ.copy()
 environment['VITE_API_ORIGIN'] = 'https://agent-api-nas.mrtreasure.cc:15432'
+environment['VITE_STATIC_ASSET_BASE'] = json.loads((root / 'deploy/static-cdn.json').read_text())['base']
 subprocess.run(['pnpm', 'run', 'build:client'], cwd=root, env=environment, check=True)
 # Upload changed resources before pointing browsers at this build.
 subprocess.run(['node', 'deploy/publish-static.mjs'], cwd=root, check=True)
