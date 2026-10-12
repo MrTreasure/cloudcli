@@ -21,6 +21,7 @@ test('getNativeCommands keeps Claude commands out of the other providers', () =>
   const opencode = getNativeCommands('opencode').map((command) => command.name);
 
   assert.ok(claude.includes('/context'));
+  assert.ok(claude.includes('/goal'));
   assert.ok(!cursor.includes('/context'));
   assert.ok(!opencode.includes('/context'));
   assert.ok(opencode.includes('/undo'), 'opencode table should carry its own /undo');

@@ -39,6 +39,7 @@ const STATIC_NATIVE_COMMANDS: Record<NativeCommandProvider, NativeSlashCommand[]
     { name: '/clear', description: 'Start a new session with empty context; the previous one stays resumable' },
     { name: '/compact', description: 'Free up context by summarizing the conversation so far' },
     { name: '/context', description: 'Show current context usage' },
+    { name: '/goal', description: 'Set, view or clear a persistent task goal', argumentHint: '[condition|clear]' },
     { name: '/init', description: 'Generate a CLAUDE.md guide for the project' },
     { name: '/review', description: 'Review a pull request' },
     { name: '/security-review', description: 'Complete a security review of the pending changes on the current branch' },
