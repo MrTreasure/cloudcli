@@ -160,7 +160,9 @@ function transformCodexEvent(event: AnyRecord): AnyRecord {
             type: 'item',
             itemType: 'web_search',
             itemId: item.id,
-            query: item.query
+            query: item.query,
+            action: item.action,
+            status: event.type === 'item.completed' ? 'completed' : 'in_progress',
           };
 
         case 'todo_list':

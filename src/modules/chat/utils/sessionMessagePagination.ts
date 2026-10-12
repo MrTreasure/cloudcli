@@ -133,9 +133,10 @@ export function planLatestPageBridge(
 }
 
 /**
- * Returns true once a backward bridge has reached the time range already
- * represented by the cached tail. This prevents a rewritten transcript with
- * no semantic ID overlap from walking backward through old history forever.
+ * Returns true once a backward bridge has passed the cached tail's time.
+ * Equality is not an anchor: Codex app-server stamps every item in a turn
+ * with that turn's start, including messages the cache has never received.
+ * A strictly older timestamp bounds discovery for rewritten transcripts.
  */
 export function hasReachedCachedTailTimeBoundary(
   cachedMessages: NormalizedMessage[],
@@ -151,7 +152,7 @@ export function hasReachedCachedTailTimeBoundary(
     return false;
   }
 
-  return fetchedOldestTime <= cachedNewestTime;
+  return fetchedOldestTime < cachedNewestTime;
 }
 
 /**

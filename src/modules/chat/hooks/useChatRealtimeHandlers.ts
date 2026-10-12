@@ -154,6 +154,12 @@ export function useChatRealtimeHandlers({
           }
 
           const isViewedSession = sid === activeViewSessionId;
+          // An idle ack can arrive after the terminal event was missed. The
+          // server does not replay completed runs, so recover their messages
+          // from persisted history rather than only clearing the spinner.
+          if (isViewedSession && !msg.isProcessing) {
+            void requestLatestMessages(sid, isActiveRef.current);
+          }
           if (isViewedSession && Array.isArray(msg.pendingPermissions)) {
             const nextPendingPermissionRequests = msg.pendingPermissions as PendingPermissionRequest[];
             const hadActionablePermissionRequests = hasActionablePermissionRequests(pendingPermissionRequestsRef.current);

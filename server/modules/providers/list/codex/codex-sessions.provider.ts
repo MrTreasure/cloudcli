@@ -459,10 +459,23 @@ function readStringProperty(objectSource: string, key: string): string | undefin
   return match ? decodeJavaScriptStringLiteral(match[1]) : undefined;
 }
 
-/** Reads every `q: "..."` entry out of a `web__run` search-query array. */
+/** Reads search queries and page references from a `web__run` call. */
 function readSearchQueries(objectSource: string): string[] {
-  const pattern = /(?:["']q["']|\bq)\s*:\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)/gs;
+  const pattern = /(?:["'](?:q|ref_id)["']|\b(?:q|ref_id))\s*:\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)/gs;
   return Array.from(objectSource.matchAll(pattern), (match) => decodeJavaScriptStringLiteral(match[1]));
+}
+
+/** Native searches and page opens store their display target on the action. */
+function readCodexWebQuery(item: AnyRecord): string {
+  const action = readObjectRecord(item.action);
+  const queries = Array.isArray(action?.queries)
+    ? action.queries.filter((query: unknown): query is string => typeof query === 'string').join(' | ')
+    : '';
+  return readNonEmptyString(item.query)
+    ?? readNonEmptyString(action?.query)
+    ?? readNonEmptyString(queries)
+    ?? readNonEmptyString(action?.url)
+    ?? '';
 }
 
 /**
@@ -1229,6 +1242,8 @@ async function getCodexSessionMessages(sessionId: string): Promise<CodexHistoryR
   const ignoredToolCallIds = new Set<string>();
   /** Exec calls that own a shell row, so their output can be routed back. */
   const shellCallMessages = new Map<string, AnyRecord>();
+  /** Search rows split from one exec must all settle when that wrapper returns. */
+  const execSearchCallIds = new Map<string, string[]>();
   /**
    * File rows produced by each patch call, so the authoritative
    * `patch_apply_end` diffs can replace what was reconstructed from the call
@@ -1266,6 +1281,13 @@ async function getCodexSessionMessages(sessionId: string): Promise<CodexHistoryR
     }
     completedExecCalls.add(callId);
     messages.push({ type: 'tool_result', timestamp, toolCallId: callId, output, isError });
+    for (const searchCallId of execSearchCallIds.get(callId) ?? []) {
+      if (searchCallId !== callId) {
+        // The wrapper has one shared output; do not copy shell output onto
+        // sibling searches. An empty result records completion only.
+        messages.push({ type: 'tool_result', timestamp, toolCallId: searchCallId, output: '' });
+      }
+    }
   };
 
   for await (const line of rl) {
@@ -1471,8 +1493,7 @@ async function getCodexSessionMessages(sessionId: string): Promise<CodexHistoryR
     }
 
     if (payload.type === 'web_search_call') {
-      const action = readObjectRecord(payload.action);
-      const query = readNonEmptyString(action?.query as string | undefined);
+      const query = readCodexWebQuery(payload);
       if (query) {
         const callId = readNonEmptyString(payload.id) ?? generateMessageId('codex-search');
         messages.push({
@@ -1482,6 +1503,9 @@ async function getCodexSessionMessages(sessionId: string): Promise<CodexHistoryR
           toolInput: JSON.stringify({ query }),
           toolCallId: callId,
         });
+        if (payload.status !== 'in_progress') {
+          pushToolResult(callId, timestamp, '', payload.status === 'failed');
+        }
       }
       continue;
     }
@@ -1595,14 +1619,13 @@ async function getCodexSessionMessages(sessionId: string): Promise<CodexHistoryR
       if (name === 'exec') {
         const operations = parseCodexExecScript(rawInput);
         const shellCommands = operations.filter((operation) => operation.kind === 'shell');
-        const stdinWrites = operations.filter((operation) => operation.kind === 'stdin');
         const patches = operations.filter((operation) => operation.kind === 'patch');
         const searches = operations.filter((operation) => operation.kind === 'search');
         const plans = operations.filter((operation) => operation.kind === 'plan');
 
         // A bare stdin poll continues whatever command is still running; it is
         // a continuation, not an action of its own.
-        if (operations.length > 0 && shellCommands.length === 0 && stdinWrites.length > 0) {
+        if (operations.length > 0 && operations.every((operation) => operation.kind === 'stdin')) {
           ignoredToolCallIds.add(callId);
           if (runningExecCallId) {
             waitCallToExecCall.set(callId, runningExecCallId);
@@ -1653,13 +1676,17 @@ async function getCodexSessionMessages(sessionId: string): Promise<CodexHistoryR
         }
 
         for (const search of searches) {
+          const searchCallId = nextRowId();
           messages.push({
             type: 'tool_use',
             timestamp,
             toolName: 'WebSearch',
             toolInput: JSON.stringify({ query: search.queries.join(' | ') }),
-            toolCallId: nextRowId(),
+            toolCallId: searchCallId,
           });
+          const searchCallIds = execSearchCallIds.get(callId) ?? [];
+          searchCallIds.push(searchCallId);
+          execSearchCallIds.set(callId, searchCallIds);
         }
 
         for (const plan of plans) {
@@ -2298,17 +2325,35 @@ export class CodexSessionsProvider implements IProviderSessions {
             toolId: itemId,
             status: raw.status,
           })];
-        case 'web_search':
-          return [createNormalizedMessage({
+        case 'web_search': {
+          const toolUse = createNormalizedMessage({
             id: itemId,
             sessionId,
             timestamp: ts,
             provider: PROVIDER,
             kind: 'tool_use',
             toolName: 'WebSearch',
-            toolInput: { query: raw.query },
+            toolInput: { query: readCodexWebQuery(raw) || '网页检索' },
             toolId: itemId,
+            status: raw.status,
+          });
+          if (raw.status === 'in_progress') {
+            return [toolUse];
+          }
+          // Search items report completion without a separate output item.
+          // The transcript renderer uses this pair for the same lifecycle as
+          // shell and MCP calls, including searches with no visible output.
+          return [toolUse, createNormalizedMessage({
+            id: `${itemId}_result`,
+            sessionId,
+            timestamp: ts,
+            provider: PROVIDER,
+            kind: 'tool_result',
+            toolId: itemId,
+            content: '',
+            isError: raw.status === 'failed',
           })];
+        }
         case 'todo_list':
           // Codex's live plan uses `{text, completed}`; Claude's TodoWrite uses
           // `{content, status}`. Normalizing here means one renderer, not two.
