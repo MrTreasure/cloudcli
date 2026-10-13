@@ -1,5 +1,12 @@
 # Repository guidance
 
+## NAS change records
+
+- Maintain `docs/nas/README.md` when a feature is added, changed, removed, or merged from an upstream PR. Record its purpose, owning paths, upstream source, and rollback dependencies.
+- The `nas` pre-commit hook regenerates `docs/nas/commit-log.md` and `docs/nas/file-index.md` from Git history plus the staged changes. Keep all intended source changes staged before committing. The generated files record the current commit's staged paths separately because its SHA does not exist yet.
+- `docs/nas/upstream-base.txt` identifies the official comparison baseline. Change it only after an official upgrade has been merged and reviewed; retain previous baseline references in the guide.
+- If hooks are bypassed, run `node scripts/record-nas-changes.mjs` after staging and add the generated records to the commit. Generated records must not replace the maintained feature/rollback guide.
+
 ## Backend code
 
 For every task that creates, modifies, refactors, or reviews backend code under `server/`, load and follow `$backend-module-standards` from `.agents/skills/backend-module-standards/SKILL.md`. Apply it only to backend code; do not impose those architecture rules on the frontend.

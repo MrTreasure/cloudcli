@@ -1,1 +1,7 @@
-npx lint-staged
+npx lint-staged || exit 1
+
+# Record the committed history and this commit's staged paths on the NAS fork.
+if [ "$(git branch --show-current)" = "nas" ]; then
+  node scripts/record-nas-changes.mjs || exit 1
+  git add docs/nas/commit-log.md docs/nas/file-index.md
+fi

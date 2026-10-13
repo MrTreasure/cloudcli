@@ -374,7 +374,9 @@ export const api = {
   saveFile: (projectId: string, filePath: string, content: string) =>
     put(`/api/file-tree/projects/${projectId}/file`, { filePath, content }),
   getFiles: (projectId: string, options: ApiRequestOptions = {}) =>
-    get(`/api/file-tree/projects/${projectId}/files${query({ respectGitignore: true })}`, options),
+    // Browsing includes ignored configuration/dotfiles; the backend still
+    // excludes dependency, build/cache and version-control directories.
+    get(`/api/file-tree/projects/${projectId}/files`, options),
 
   // File operations
   createFile: (

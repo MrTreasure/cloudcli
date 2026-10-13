@@ -1,5 +1,7 @@
 # NAS 分离部署
 
+NAS 分支全部源码变更、官方升级及功能回退参考：[维护指南](../docs/nas/README.md)、[完整提交记录](../docs/nas/commit-log.md)、[文件索引](../docs/nas/file-index.md)。
+
 - 前端：`https://agent.mrtreasure.cc`，CF Tunnel → 宿主机现有静态 Nginx `127.0.0.1:17843`。宿主机使用 pnpm 构建；前端不放入 Docker。
 - 后端：`https://agent-api-nas.mrtreasure.cc:15432`，DNS only → IPv6 HTTPS Nginx → NAS 原生后端 `127.0.0.1:18803`。聊天、终端、插件 WebSocket、API、SSE、上传均使用这个地址。
 - 静态 JS、CSS、字体、图标和图片发布到 R2 CDN `https://assets.mrtreasure.cc/cloudcli/v1/`。哈希资源缓存一年，固定名称图片缓存一小时；Google 在线字体已改为本地依赖打包到 CDN。

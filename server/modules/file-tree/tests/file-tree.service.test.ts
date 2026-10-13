@@ -158,6 +158,67 @@ test('listProjectFiles applies gitignore alongside hard directory exclusions', a
   assert.equal(readDirectories.includes(nodeModulesDirectory), false);
 });
 
+test('default browsing includes dotfiles and hidden configuration folders but never enters excluded directories', async () => {
+  const projectRoot = path.resolve('hidden-file-tree-project');
+  const visited: string[] = [];
+  const folders = ['.github', '.vscode', '.agents', '.git', 'node_modules', '.venv', 'dist'];
+  const fileSystem = createFakeFileSystem({
+    access: async () => undefined,
+    openDirectory: createDirectoryReader((directoryPath) => {
+      visited.push(directoryPath);
+      return directoryPath === projectRoot
+        ? [...folders.map((name) => createDirectoryEntry(name, true)), createDirectoryEntry('.env', false), createDirectoryEntry('.gitignore', false)]
+        : [createDirectoryEntry('config.json', false)];
+    }),
+    lstat: async (candidatePath) => createStats(folders.includes(path.basename(candidatePath)), 0o644),
+  });
+  const service = createFileTreeService(createDependencies(fileSystem, projectRoot));
+  const tree = await service.listProjectFiles('project-1');
+  assert.deepEqual(tree.map((entry) => entry.name), ['.agents', '.github', '.vscode', '.env', '.gitignore']);
+  for (const name of ['.git', 'node_modules', '.venv', 'dist']) {
+    assert.equal(visited.includes(path.join(projectRoot, name)), false);
+  }
+});
+
+test('default browsing skips language artifacts while preserving config and ordinary source directories', async () => {
+  const projectRoot = path.resolve('language-file-tree-project');
+  const excluded = ['target', 'vendor', '.gradle', 'out', '.vs', '.gocache', '.go-build', '__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache', '.tox', '.nox', 'venv', '.venv', '__pypackages__', 'site-packages', '.ipynb_checkpoints', 'coverage', '.nyc_output'];
+  const children: Record<string, FileTreeDirectoryEntry[]> = {
+    '.cargo': [createDirectoryEntry('registry', true), createDirectoryEntry('git', true), createDirectoryEntry('config.toml', false)],
+    '.nuget': [createDirectoryEntry('packages', true), createDirectoryEntry('NuGet.Config', false)],
+    '.m2': [createDirectoryEntry('repository', true), createDirectoryEntry('settings.xml', false)],
+    '.yarn': [createDirectoryEntry('cache', true), createDirectoryEntry('unplugged', true), createDirectoryEntry('config.yml', false)],
+    pkg: [createDirectoryEntry('mod', true), createDirectoryEntry('sumdb', true), createDirectoryEntry('service.go', false)],
+    dotnet: ['bin', 'obj', 'packages', 'TestResults'].map((name) => createDirectoryEntry(name, true)).concat(createDirectoryEntry('app.csproj', false)),
+    source: ['bin', 'packages'].map((name) => createDirectoryEntry(name, true)),
+    '.idea': [createDirectoryEntry('settings.xml', false)],
+  };
+  const visited: string[] = [];
+  const fileSystem = createFakeFileSystem({
+    access: async () => undefined,
+    openDirectory: createDirectoryReader((directoryPath) => {
+      const relative = path.relative(projectRoot, directoryPath);
+      visited.push(relative);
+      if (!relative) return [...excluded, ...Object.keys(children)].map((name) => createDirectoryEntry(name, true));
+      return children[relative] ?? [];
+    }),
+    lstat: async (candidatePath) => createStats(!path.extname(path.basename(candidatePath)) || Object.keys(children).includes(path.basename(candidatePath)), 0o644),
+  });
+  const tree = await createFileTreeService(createDependencies(fileSystem, projectRoot)).listProjectFiles('project-1');
+  assert.deepEqual(new Set(tree.map((entry) => entry.name)), new Set(Object.keys(children)));
+  const names = (folder: string) => tree.find((entry) => entry.name === folder)?.children?.map((entry) => entry.name);
+  assert.deepEqual(names('.cargo'), ['config.toml']);
+  assert.deepEqual(names('.nuget'), ['NuGet.Config']);
+  assert.deepEqual(names('.m2'), ['settings.xml']);
+  assert.deepEqual(names('.yarn'), ['config.yml']);
+  assert.deepEqual(names('pkg'), ['service.go']);
+  assert.deepEqual(names('dotnet'), ['app.csproj']);
+  assert.deepEqual(names('source'), ['bin', 'packages']);
+  for (const folder of [...excluded, '.cargo/registry', '.cargo/git', '.nuget/packages', '.m2/repository', 'pkg/mod', 'pkg/sumdb', 'dotnet/bin', 'dotnet/obj', 'dotnet/packages', 'dotnet/TestResults']) {
+    assert.equal(visited.includes(folder), false, `must not traverse ${folder}`);
+  }
+});
+
 test('listProjectFiles excludes gitignored entries only when requested', async () => {
   const projectRoot = path.resolve('file-tree-test-project');
   const cacheDirectory = path.join(projectRoot, 'cache');
