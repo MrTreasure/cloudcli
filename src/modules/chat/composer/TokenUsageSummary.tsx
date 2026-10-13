@@ -1,7 +1,8 @@
 import { memo } from 'react';
-import { formatContextTokenCount, readContextWindowUsage } from '@/shared/utils';
 import { ActivityIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+import { readContextWindowUsage } from '@/shared/utils';
 
 type TokenUsageSummaryProps = {
   usage: Record<string, unknown> | null;
@@ -14,7 +15,7 @@ type TokenUsageSummaryProps = {
  */
 function TokenUsageSummary({ usage, onClick }: TokenUsageSummaryProps) {
   const { t } = useTranslation();
-  const { used, percentage } = readContextWindowUsage(usage);
+  const { percentage } = readContextWindowUsage(usage);
   const label = percentage === null ? '—' : `${percentage}%`;
 
   return (
@@ -29,10 +30,6 @@ function TokenUsageSummary({ usage, onClick }: TokenUsageSummaryProps) {
         <ActivityIcon className="h-3.5 w-3.5" />
       </span>
       <span className="font-medium text-foreground">{label}</span>
-      {used !== null && <span className="text-muted-foreground/70">· {formatContextTokenCount(used)}</span>}
-      <span className="hidden text-muted-foreground/70 sm:inline">
-        {t('chat:misc.contextLabel')}
-      </span>
     </button>
   );
 }
