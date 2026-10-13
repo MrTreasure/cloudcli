@@ -15,7 +15,7 @@ test('model menu exposes the same controlled Fast intent and keeps reasoning/mod
   const select = vi.fn();
   const view = render(<ComposerModelMenu {...props} codexFast={false} onSelectCodexFast={select} />);
   fireEvent.click(screen.getByRole('button', { name: 'Select model and reasoning effort' }));
-  const fast = screen.getByRole('menuitemcheckbox', { name: /Request Fast/ });
+  const fast = screen.getByRole('switch', { name: /Fast/ });
   expect(fast.getAttribute('aria-checked')).toBe('false');
   expect(screen.getByRole('menuitemradio', { name: 'medium' })).toBeTruthy();
   expect(screen.getByRole('menuitem', { name: 'GPT-6.1 Sol' })).toBeTruthy();
@@ -26,5 +26,5 @@ test('model menu exposes the same controlled Fast intent and keeps reasoning/mod
   expect(fast.getAttribute('aria-checked')).toBe('true');
   expect((fast as HTMLButtonElement).disabled).toBe(true);
   view.rerender(<ComposerModelMenu {...props} />);
-  expect(screen.queryByRole('menuitemcheckbox')).toBeNull();
+  expect(screen.queryByRole('switch')).toBeNull();
 });

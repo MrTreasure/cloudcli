@@ -92,7 +92,7 @@ git add docs/nas/commit-log.md docs/nas/file-index.md
 
 来源：本地产品接入说明 `admin-console/docs/cloudcli-fast-agent-prompt.md`，CloudCLI 自行实现；CPA 总许可与额度保护由已有服务端执行，本次不修改 CPA / Orbit / 凭据。
 
-- 输入区模型按钮旁新增“请求 Fast”，默认关闭，只在 Codex 显示。模型、推理强度和权限选择保留，主模型仍为 `gpt-6.1-sol`。
+- 输入区模型选择菜单新增 Fast 开关（请求 Fast），默认关闭，只在 Codex 显示。模型、推理强度和权限选择保留，主模型仍为 `gpt-6.1-sol`。
 - 元数据保存到 `sessions.codex_fast`（SQLite INTEGER 默认 0）。新、旧、fork 会话均默认关闭；已选会话独立保存，刷新、切换和另一个浏览器重新打开同一应用会话可恢复。历史同步/native thread ID 绑定不覆盖该值。
 - 新会话草稿不会变成全局默认。创建会话的 HTTP 请求携带 `codexFast`，后端分配稳定应用 ID 后保存；首条 WebSocket 请求保留原发送快照，草稿重置为关闭。
 - GET / PATCH `/api/providers/sessions/:sessionId/codex-fast` 使用现有 CloudCLI 鉴权，仅操作会话意图。参数须为 boolean，未知会话或非 Codex 会话拒绝；不调用 CPA 管理写接口、不传管理密钥。
@@ -117,7 +117,7 @@ git add docs/nas/commit-log.md docs/nas/file-index.md
 
 ### 验证与手动入口
 
-1. 在 Codex 输入框底部点击“请求 Fast”；A 打开、B 保持关闭，刷新或使用另一浏览器打开 A，确认仍为开启；新建 C 应保持关闭。
+1. 在 Codex 输入框底部打开模型选择菜单，再切换 Fast 开关；A 打开、B 保持关闭，刷新或使用另一浏览器打开 A，确认仍为开启；新建 C 应保持关闭。
 2. 队列或计划一条 Fast 消息后关掉开关：该条仍按排队时的选择运行，之后的新消息使用关闭值。编辑队列保留原快照，编辑已发送消息重发使用本次提交时的选择。
 3. 正在运行时切换，当前回复应继续，下一轮才应用。实际加速取决于 CPA 许可、额度保护、模型和上游；开关仅声明请求意图。
 4. 如需检查真实请求字段，可执行 `node scripts/verify-codex-fast.mjs`。它使用临时 CODEX_HOME 和 loopback 测试上游，不读取/修改生产认证或 CLI 配置。
@@ -132,6 +132,6 @@ git add docs/nas/commit-log.md docs/nas/file-index.md
 
 ## Fast 菜单入口与技能描述预览
 
-- Codex 的模型/推理菜单增加“请求 Fast”复选项，与输入区开关操作同一会话值，保留加载/保存禁用及失败重试；维护入口为 `ComposerModelMenu.tsx`、`ComposerMenuPrimitives.tsx`、`ChatComposer.tsx`，依赖上述会话 Fast 服务，回退菜单入口不影响底层选择。
+- Codex 的 Fast 控件仅收纳在模型/推理菜单，使用滑动开关，移除输入区独立按钮；开关操作同一会话值，保留加载/保存禁用及失败重试；维护入口为 `ComposerModelMenu.tsx`、`ComposerMenuPrimitives.tsx`、`ChatComposer.tsx`，依赖上述会话 Fast 服务，回退菜单入口不影响底层选择。
 - 技能卡片、命令显示/隐藏设置、快捷命令列表和 composer 命令菜单统一使用 `src/shared/utils.ts` 的 `descriptionPreview`：最多 200 个 Unicode 字符，超出追加省略号，后端元数据、完整描述搜索和技能调用保持完整。源码涉及 `src/modules/skills/ProviderSkills.tsx`、settings/quick-settings-panel 命令列表与 `CommandMenu.tsx`。这是本地 UI 优化，未合入额外上游 PR；回退这些展示调用即可。
 - 核对本机 finesse-ui SKILL.md：YAML 顶层 description 本身包含完整长介绍，metadata.short-description 另有简短描述；CloudCLI 读取的是顶层 description，描述为 4,160 个 Unicode 字符，解析结果与原始 YAML 字段完全一致，没有混入正文。未修改本机技能源文件。

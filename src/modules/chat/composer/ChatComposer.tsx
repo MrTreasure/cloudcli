@@ -11,7 +11,7 @@ import type {
   RefObject,
   TouchEvent,
 } from 'react';
-import { PaperclipIcon, MessageSquareIcon, XIcon, Loader2, ArrowUpIcon, PencilIcon, Minimize2, Zap } from 'lucide-react';
+import { PaperclipIcon, MessageSquareIcon, XIcon, Loader2, ArrowUpIcon, PencilIcon, Minimize2 } from 'lucide-react';
 
 import { useVoiceInput } from '@/modules/chat/hooks/useVoiceInput';
 import { useVoiceAvailable } from '@/modules/chat/hooks/useVoiceAvailable';
@@ -543,25 +543,6 @@ export default function ChatComposer({
               disabled={!input.trim() || !codexFastReady}
               onSchedule={onScheduleMessage}
             />
-
-            {provider === 'codex' && (
-              <button
-                type="button"
-                role="switch"
-                aria-checked={codexFast}
-                aria-label={t('input.fast.label', { defaultValue: 'Request Fast' })}
-                disabled={codexFastBusy}
-                onClick={() => onSelectCodexFast?.(!codexFast)}
-                title={codexFastError
-                  ? t('input.fast.retry', { defaultValue: 'Fast setting could not be saved or loaded. Click to retry.' })
-                  : t('input.fast.hint', { defaultValue: 'Applies to the next turn; subject to server permission and quota protection.' })}
-                className={`inline-flex h-8 shrink-0 items-center gap-1 rounded-md border px-2 text-xs disabled:opacity-50 ${codexFastError ? 'border-destructive text-destructive' : codexFast ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground'}`}
-              >
-                {codexFastBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />}
-                {t('input.fast.label', { defaultValue: 'Request Fast' })}
-                <span aria-hidden="true" className={`h-1.5 w-1.5 rounded-full ${codexFast ? 'bg-primary' : 'bg-muted-foreground/40'}`} />
-              </button>
-            )}
 
             <ComposerModelMenu
               codexFast={codexFast}

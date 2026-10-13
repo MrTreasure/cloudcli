@@ -68,7 +68,7 @@ export function ComposerMenuItem({
   icon?: ReactNode;
   isSelected: boolean;
   onSelect: () => void;
-  role?: 'menuitemradio' | 'menuitemcheckbox' | 'menuitem';
+  role?: 'menuitemradio' | 'switch' | 'menuitem';
   disabled?: boolean;
   trailing?: ReactNode;
   className?: string;

@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`642b476bed7e2645022700e1fcaa5e567f6d469d`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`5fa80f0c03a4b23179b1e9b6235036b4efaf4d71`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -12,16 +12,9 @@
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
 | M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
-| M | [src/modules/chat/composer/CommandMenu.tsx](../../src/modules/chat/composer/CommandMenu.tsx) | — |
 | M | [src/modules/chat/composer/ComposerMenuPrimitives.tsx](../../src/modules/chat/composer/ComposerMenuPrimitives.tsx) | — |
 | M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
-| M | [src/modules/chat/modals/CommandResultModal.tsx](../../src/modules/chat/modals/CommandResultModal.tsx) | — |
-| A | [src/modules/chat/tests/composerFastMenu.test.tsx](../../src/modules/chat/tests/composerFastMenu.test.tsx) | — |
-| M | [src/modules/quick-settings-panel/QuickSettingsCommandsTab.tsx](../../src/modules/quick-settings-panel/QuickSettingsCommandsTab.tsx) | — |
-| M | [src/modules/settings/tabs/CommandsSettingsTab.tsx](../../src/modules/settings/tabs/CommandsSettingsTab.tsx) | — |
-| M | [src/modules/settings/tests/commandVisibilityPanel.test.tsx](../../src/modules/settings/tests/commandVisibilityPanel.test.tsx) | — |
-| M | [src/modules/skills/ProviderSkills.tsx](../../src/modules/skills/ProviderSkills.tsx) | — |
-| M | [src/shared/utils.ts](../../src/shared/utils.ts) | — |
+| M | [src/modules/chat/tests/composerFastMenu.test.tsx](../../src/modules/chat/tests/composerFastMenu.test.tsx) | — |
 
 ## NAS 主线提交
 
@@ -2123,6 +2116,26 @@
   - `src/modules/i18n/locales/zh-CN/chat.json`
   - `src/shared/api.ts`
   - `src/shared/types.ts`
+
+### 5fa80f0c · 2026-10-13 · fix(ui): expose Fast in model menu and shorten skill previews
+
+- 完整提交：`5fa80f0c03a4b23179b1e9b6235036b4efaf4d71`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `src/modules/chat/composer/ChatComposer.tsx`
+  - `src/modules/chat/composer/CommandMenu.tsx`
+  - `src/modules/chat/composer/ComposerMenuPrimitives.tsx`
+  - `src/modules/chat/composer/ComposerModelMenu.tsx`
+  - `src/modules/chat/modals/CommandResultModal.tsx`
+  - `src/modules/chat/tests/composerFastMenu.test.tsx`
+  - `src/modules/quick-settings-panel/QuickSettingsCommandsTab.tsx`
+  - `src/modules/settings/tabs/CommandsSettingsTab.tsx`
+  - `src/modules/settings/tests/commandVisibilityPanel.test.tsx`
+  - `src/modules/skills/ProviderSkills.tsx`
+  - `src/shared/utils.ts`
 
 ## 从 PR / 其他分支合入的提交
 
