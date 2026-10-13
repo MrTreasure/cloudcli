@@ -1,0 +1,16 @@
+{
+  "name": "cloudcli-host-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && esbuild src/index.ts --bundle --format=esm --platform=browser --outfile=dist/index.js && esbuild src/server.ts --bundle --format=esm --platform=node --outfile=dist/server.js",
+    "test": "node --test src/metrics.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.27.4",
+    "typescript": "7.0.2"
+  },
+  "packageManager": "pnpm@12.3.4"
+}
