@@ -16,6 +16,7 @@ import type {
   SessionEstablishedContext,
   SessionNavigationOptions,
 } from '@/shared/types';
+import { useCodexFastState } from '@/modules/chat/hooks/useCodexFastState';
 import { useChatProviderState } from '@/modules/chat/hooks/useChatProviderState';
 import { useScheduledMessages } from '@/modules/chat/composer/useScheduledMessages';
 import { useChatSessionState } from '@/modules/chat/hooks/useChatSessionState';
@@ -178,6 +179,15 @@ function ChatInterface({
     sessionStore,
   });
 
+  const {
+    codexFast, codexFastReady, codexFastBusy, codexFastError,
+    selectCodexFast, bindCodexFastDraft,
+  } = useCodexFastState(
+    selectedSession?.id || currentSessionId || null,
+    `${selectedProject?.fullPath || selectedProject?.path || ''}:${newSessionTrigger ?? 0}`,
+    (selectedSession?.__provider ?? provider) === 'codex',
+  );
+
   // Brand-new conversation: the composer allocated a stable session id via
   // the session gateway before the first send. Record it locally and put it
   // in the URL — this id never changes again, so there is no later handoff.
@@ -241,6 +251,7 @@ function ChatInterface({
     closeCommandModal,
     showCostModal,
     editingAnchorId,
+    buildSendOptions,
     beginEditMessage,
     cancelEditMessage,
   } = useChatComposerState({
@@ -257,6 +268,9 @@ function ChatInterface({
     cyclePermissionMode,
     currentProviderModel,
     currentProviderEffort,
+    codexFast,
+    codexFastReady,
+    onCodexFastSessionCreated: bindCodexFastDraft,
     isLoading: isProcessing,
     processingSessions,
     canAbortSession,
@@ -391,17 +405,17 @@ function ChatInterface({
    */
   const handleScheduleMessage = useCallback(async (scheduledFor: Date) => {
     const content = input.trim();
-    if (!content) return;
+    if (!content || !codexFastReady) return;
 
     const scheduled = await scheduleMessage({
       content,
       scheduledFor,
-      options: { model: currentProviderModel, effort: currentProviderEffort, permissionMode },
+      options: buildSendOptions(content),
     });
     if (scheduled) {
       setInput('');
     }
-  }, [currentProviderEffort, currentProviderModel, input, permissionMode, scheduleMessage, setInput]);
+  }, [buildSendOptions, codexFastReady, input, scheduleMessage, setInput]);
 
   const permissionContextValue = useMemo(() => ({
     pendingPermissionRequests,
@@ -561,6 +575,11 @@ function ChatInterface({
           effort={currentProviderEffort}
           availableEffortOptions={currentProviderEffortOptions}
           onSelectEffort={handleSelectComposerEffort}
+          codexFast={codexFast}
+          codexFastReady={codexFastReady}
+          codexFastBusy={codexFastBusy}
+          codexFastError={codexFastError}
+          onSelectCodexFast={selectCodexFast}
           model={currentProviderModel}
           availableModelOptions={currentProviderModelOptions}
           onSelectModel={handleSelectComposerModel}

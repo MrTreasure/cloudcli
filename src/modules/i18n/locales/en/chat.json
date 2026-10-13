@@ -173,6 +173,11 @@
         "failed": "Failed",
         "unknown": "Delivery unconfirmed"
       }
+    },
+    "fast": {
+      "label": "Request Fast",
+      "hint": "Applies to the next turn; subject to server permission and quota protection.",
+      "retry": "Fast setting could not be saved or loaded. Click to retry."
     }
   },
   "composer": {

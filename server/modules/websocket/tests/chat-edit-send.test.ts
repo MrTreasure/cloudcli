@@ -286,6 +286,7 @@ test('a provider that has to branch to rewind is rewound before the run, not dur
         sessionId: SESSION_ID,
         anchorId: 'turn-b',
         content: 'a better second prompt',
+        options: { codexFast: true },
       }));
       await settle();
     } finally {
@@ -296,6 +297,7 @@ test('a provider that has to branch to rewind is rewound before the run, not dur
     assert.deepEqual(rewindCalls, [{ sessionId: SESSION_ID, keepThroughId: 'turn-a' }]);
     assert.equal(runs.length, 1);
     assert.equal(runs[0].command, 'a better second prompt');
+    assert.equal(runs[0].options.codexFast, true);
     assert.equal(runs[0].options.resumeAnchorId, undefined);
     assert.equal(runs[0].options.resumeFromScratch, undefined);
 

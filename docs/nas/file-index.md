@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`d4d35ba70dbf39838ddee61f05bcf681a37d3cd8`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`5c76762ec39373b067508492d6329d0cede06ec9`。
 
-记录基线与当前暂存树之间的全部净差异，共 482 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 488 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -255,6 +255,7 @@
 | A | [scripts/localization/collect-interface-labels.mjs](../../scripts/localization/collect-interface-labels.mjs) | — |
 | A | [scripts/localization/complete-zh-cn.py](../../scripts/localization/complete-zh-cn.py) | — |
 | A | [scripts/record-nas-changes.mjs](../../scripts/record-nas-changes.mjs) | — |
+| A | [scripts/verify-codex-fast.mjs](../../scripts/verify-codex-fast.mjs) | — |
 | M | [server/index.ts](../../server/index.ts) | — |
 | M | [server/modules/browser-use/browser-use.service.ts](../../server/modules/browser-use/browser-use.service.ts) | — |
 | M | [server/modules/commands/commands.routes.ts](../../server/modules/commands/commands.routes.ts) | — |
@@ -262,6 +263,7 @@
 | M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
 | M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
 | A | [server/modules/database/repositories/queued-messages.db.ts](../../server/modules/database/repositories/queued-messages.db.ts) | — |
+| M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
 | M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
 | M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
 | M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
@@ -286,6 +288,7 @@
 | A | [server/modules/providers/services/provider-context-usage.service.ts](../../server/modules/providers/services/provider-context-usage.service.ts) | — |
 | M | [server/modules/providers/services/provider-models.service.ts](../../server/modules/providers/services/provider-models.service.ts) | — |
 | M | [server/modules/providers/services/provider-runtime.service.ts](../../server/modules/providers/services/provider-runtime.service.ts) | — |
+| A | [server/modules/providers/services/provider-session-settings.service.ts](../../server/modules/providers/services/provider-session-settings.service.ts) | — |
 | M | [server/modules/providers/services/provider-token-usage.service.ts](../../server/modules/providers/services/provider-token-usage.service.ts) | — |
 | M | [server/modules/providers/services/sessions.service.ts](../../server/modules/providers/services/sessions.service.ts) | — |
 | A | [server/modules/providers/tests/claude-runtime-result-text.test.ts](../../server/modules/providers/tests/claude-runtime-result-text.test.ts) | — |
@@ -315,6 +318,7 @@
 | M | [server/modules/user/user.service.ts](../../server/modules/user/user.service.ts) | — |
 | M | [server/modules/websocket/README.md](../../server/modules/websocket/README.md) | — |
 | M | [server/modules/websocket/services/chat-websocket.service.ts](../../server/modules/websocket/services/chat-websocket.service.ts) | — |
+| M | [server/modules/websocket/tests/chat-edit-send.test.ts](../../server/modules/websocket/tests/chat-edit-send.test.ts) | — |
 | A | [server/modules/websocket/tests/chat-steer.test.ts](../../server/modules/websocket/tests/chat-steer.test.ts) | — |
 | M | [server/shared/index.ts](../../server/shared/index.ts) | — |
 | M | [server/shared/interfaces.ts](../../server/shared/interfaces.ts) | — |
@@ -344,6 +348,7 @@
 | M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
 | M | [src/modules/chat/hooks/useChatProviderState.ts](../../src/modules/chat/hooks/useChatProviderState.ts) | — |
 | M | [src/modules/chat/hooks/useChatRealtimeHandlers.ts](../../src/modules/chat/hooks/useChatRealtimeHandlers.ts) | — |
+| A | [src/modules/chat/hooks/useCodexFastState.ts](../../src/modules/chat/hooks/useCodexFastState.ts) | — |
 | A | [src/modules/chat/hooks/useQueuedMessages.ts](../../src/modules/chat/hooks/useQueuedMessages.ts) | — |
 | M | [src/modules/chat/hooks/useSessionStore.ts](../../src/modules/chat/hooks/useSessionStore.ts) | — |
 | M | [src/modules/chat/hooks/useSlashCommands.ts](../../src/modules/chat/hooks/useSlashCommands.ts) | — |
@@ -351,6 +356,7 @@
 | M | [src/modules/chat/modals/ModelLibraryPanel.tsx](../../src/modules/chat/modals/ModelLibraryPanel.tsx) | — |
 | A | [src/modules/chat/tests/asyncQuestionPanel.test.tsx](../../src/modules/chat/tests/asyncQuestionPanel.test.tsx) | — |
 | M | [src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx](../../src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx) | — |
+| A | [src/modules/chat/tests/codexFastState.test.ts](../../src/modules/chat/tests/codexFastState.test.ts) | — |
 | A | [src/modules/chat/tests/composerSendCompactCommand.test.ts](../../src/modules/chat/tests/composerSendCompactCommand.test.ts) | — |
 | M | [src/modules/chat/tests/composerToolsSettingsResolution.test.ts](../../src/modules/chat/tests/composerToolsSettingsResolution.test.ts) | — |
 | A | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |

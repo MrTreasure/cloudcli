@@ -137,3 +137,50 @@ test('declining the background-work confirm does not leave the Compact button st
   assert.equal(sends.length, 1, 'confirming on retry sends exactly one frame');
   assert.equal(sends[0]?.content, '/compact');
 });
+
+test('immediate sends, edited resend and continuation all carry the current Fast snapshot', async () => {
+  for (const codexFast of [true, false]) {
+    const { view, sent } = setup(undefined, 'codex', { codexFast });
+    await act(async () => view.result.current.setInput('continue'));
+    await act(async () => view.result.current.handleSubmit({ preventDefault() {} } as never));
+    assert.equal((sent[0] as unknown as { options: { codexFast: boolean } }).options.codexFast, codexFast);
+    await act(async () => view.result.current.beginEditMessage({ type: 'user', content: 'edited prompt', transcriptAnchorId: 'turn-a', timestamp: new Date() }));
+    await act(async () => view.result.current.handleSubmit({ preventDefault() {} } as never));
+    assert.equal(sent[1]?.type, 'chat.edit-send');
+    assert.equal((sent[1] as unknown as { options: { codexFast: boolean } }).options.codexFast, codexFast);
+    view.unmount();
+  }
+});
+
+test('queued Fast options survive toggles and a queue edit retains its existing choice', async () => {
+  const queued = { id: 'q-fast', sessionId: SESSION.id, content: 'original', options: { codexFast: true }, attachments: [], revision: 1 } as never;
+  const enqueue = vi.fn(async () => queued);
+  const update = vi.fn(async () => queued);
+  const { view } = setup(undefined, 'codex', { codexFast: false, isLoading: true, enqueueQueuedMessage: enqueue, updateQueuedMessage: update });
+  await act(async () => view.result.current.setInput('standard draft'));
+  await act(async () => view.result.current.handleSubmit({ preventDefault() {} } as never));
+  assert.equal((enqueue.mock.calls[0] as unknown as [{ options: { codexFast: boolean } }])[0].options.codexFast, false);
+  await act(async () => view.result.current.editQueuedDraft(queued));
+  await act(async () => view.result.current.setInput('edited queue text'));
+  await act(async () => view.result.current.handleSubmit({ preventDefault() {} } as never));
+  assert.equal((update.mock.calls[0] as unknown as [unknown, { options: { codexFast: boolean } }])[1].options.codexFast, true);
+});
+
+test('a new session binds its draft Fast through HTTP before the first websocket send', async () => {
+  const requests: Array<{ url: string; body: Record<string, unknown> }> = [];
+  vi.stubGlobal('fetch', vi.fn(async (input, init) => {
+    const url = String(input);
+    if (url.endsWith('/api/providers/sessions')) {
+      requests.push({ url, body: JSON.parse(String(init?.body)) });
+      return new Response(JSON.stringify({ success: true, data: { sessionId: 'new-app-session' } }));
+    }
+    return new Response('[]');
+  }));
+  const bind = vi.fn();
+  const { view, sent } = setup(undefined, 'codex', { selectedSession: null, currentSessionId: null, codexFast: true, onCodexFastSessionCreated: bind });
+  await act(async () => view.result.current.setInput('first prompt'));
+  await act(async () => view.result.current.handleSubmit({ preventDefault() {} } as never));
+  assert.equal(requests[0]?.body.codexFast, true);
+  assert.deepEqual(bind.mock.calls[0], ['new-app-session', true]);
+  assert.equal((sent[0] as unknown as { options: { codexFast: boolean } }).options.codexFast, true);
+});

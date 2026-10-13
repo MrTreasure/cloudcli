@@ -86,3 +86,45 @@ git add docs/nas/commit-log.md docs/nas/file-index.md
 ```
 
 若跳过 hooks，也须手动执行。生成器仅读取 Git 和暂存区，不读取运行数据，不访问网络。历史覆盖到生成时的 HEAD；当前 commit 的 SHA 尚未产生，改动先记录于“随本次提交入库”，下次提交自动补齐 SHA。两份生成文档本身不重复列入暂存变更，避免自引用。
+
+
+## Codex 每会话“请求 Fast”
+
+来源：本地产品接入说明 `admin-console/docs/cloudcli-fast-agent-prompt.md`，CloudCLI 自行实现；CPA 总许可与额度保护由已有服务端执行，本次不修改 CPA / Orbit / 凭据。
+
+- 输入区模型按钮旁新增“请求 Fast”，默认关闭，只在 Codex 显示。模型、推理强度和权限选择保留，主模型仍为 `gpt-6.1-sol`。
+- 元数据保存到 `sessions.codex_fast`（SQLite INTEGER 默认 0）。新、旧、fork 会话均默认关闭；已选会话独立保存，刷新、切换和另一个浏览器重新打开同一应用会话可恢复。历史同步/native thread ID 绑定不覆盖该值。
+- 新会话草稿不会变成全局默认。创建会话的 HTTP 请求携带 `codexFast`，后端分配稳定应用 ID 后保存；首条 WebSocket 请求保留原发送快照，草稿重置为关闭。
+- GET / PATCH `/api/providers/sessions/:sessionId/codex-fast` 使用现有 CloudCLI 鉴权，仅操作会话意图。参数须为 boolean，未知会话或非 Codex 会话拒绝；不调用 CPA 管理写接口、不传管理密钥。
+- UI 元数据加载/保存时暂缓新发送，失败时在开关显示错误状态并提供点击重试；旧会话迟到响应不能改变当前会话，保存期间切走再回来会等写入完成再读。
+- `buildSendOptions` 统一捕获 Fast、模型、effort、权限和 SDK/app-server 选择。FIFO 队列、队列编辑、计划消息、编辑重发和问题答复/继续发送保留各自快照；历史队列缺少该字段时按关闭处理。队列执行不会回写最新会话 Fast 选择。
+- 切换只保存选择，不取消或调整当前 turn。插入到当前 turn 的消息继续使用该 turn 的档位；其快照不会被用于偷偷改变当前 turn。若要应用新的档位，等待下一轮请求开始。
+
+### 源码与协议兼容性
+
+| 范围 | 文件 |
+| --- | --- |
+| 会话状态及 UI | `src/modules/chat/hooks/useCodexFastState.ts`、`ChatInterface.tsx`、`composer/ChatComposer.tsx` |
+| 发送/计划快照 | `src/modules/chat/hooks/useChatComposerState.ts`、`src/shared/types.ts`、`src/shared/api.ts` |
+| 会话 API 与服务 | `server/modules/providers/provider.routes.ts`、`services/provider-session-settings.service.ts` |
+| SQLite 持久化/兼容迁移 | `server/modules/database/schema.ts`、`migrations.ts`、`repositories/sessions.db.ts` |
+| 原生运行路径 | `server/modules/providers/list/codex/codex-app-server.runtime.ts`、`codex-runtime.provider.ts` |
+| 实际协议回归脚本 | `scripts/verify-codex-fast.mjs` |
+
+核对本机 CLI / SDK **0.162.0**。通过 `codex app-server generate-ts` 导出的稳定协议确认 thread/start、thread/resume 支持 `serviceTier`，turn/start 支持 `serviceTier` 和 `serviceTierForTurn`，标准档为 `default`。app-server 每次 start/resume/turn 显式发送 priority 或 default，SDK 通过实际存在的 `CodexOptions.config.service_tier` 覆盖，未向 ThreadOptions 添加虚构属性。关闭值 default 在真实 CLI 请求中被消去，而非继续继承全局/native thread priority。
+
+新功能需要同时更新前后端；NAS 使用既有发布流程，后台等待所有正在运行的会话结束后再激活，避免中断当前任务。普通电脑拉取源代码后构建/启动即可，不复制 NAS 配置。最低验证版本为 0.162.0；更早 CLI 若不接受字段，应升级或适配其真实协议，不能静默省略关闭覆盖。
+
+### 验证与手动入口
+
+1. 在 Codex 输入框底部点击“请求 Fast”；A 打开、B 保持关闭，刷新或使用另一浏览器打开 A，确认仍为开启；新建 C 应保持关闭。
+2. 队列或计划一条 Fast 消息后关掉开关：该条仍按排队时的选择运行，之后的新消息使用关闭值。编辑队列保留原快照，编辑已发送消息重发使用本次提交时的选择。
+3. 正在运行时切换，当前回复应继续，下一轮才应用。实际加速取决于 CPA 许可、额度保护、模型和上游；开关仅声明请求意图。
+4. 如需检查真实请求字段，可执行 `node scripts/verify-codex-fast.mjs`。它使用临时 CODEX_HOME 和 loopback 测试上游，不读取/修改生产认证或 CLI 配置。
+5. 可选 `--cpa-binary /path/to/CLIProxyAPI` 会启动隔离的 CPA 测试实例，验证总开关关闭、低额度、额度未知、恢复许可对应的过滤规则。四种真实 CLI wire 快照（app-server / SDK × 开/关）分别经过 CPA 校验。它不调整生产总开关和阈值，也不宣称生产实时额度已验证；生产额度轮询可能延迟 60 秒。
+
+此次验证：会话状态/发送相关前端测试通过，provider/队列/计划/编辑网关相关后端测试通过；真实 0.162.0 CLI 两条路径开启均发送 priority、关闭均不携带 service_tier，且原配置设为 priority 时仍能关闭。隔离 CPA 7.3.12 过滤矩阵通过；同时只读调用现有服务端阈值判定函数，确认 disabled / quota_low / quota_unknown / active 对应规则。生产 CPA 配置及凭据未改动。
+
+### 回退依赖
+
+先移除 UI、发送快照和会话路由，再移除 provider tier 覆盖；若只回退 provider 覆盖，UI 的关闭状态会与实际继承的 priority 不一致。数据库列为新增默认 0、旧代码可忽略，无需破坏性删除；如回退数据库 schema，须同步修改 SELECT 列和元数据服务。CPA 许可/额度保护独立继续生效，不随 CloudCLI 回退改变。功能提交：`feat(codex): add session-scoped Fast requests`；完整涉及文件由 NAS hook 自动归档，提交 SHA 在下一次生成记录时补齐。

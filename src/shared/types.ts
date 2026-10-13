@@ -812,7 +812,10 @@ export type VoicePlayState = 'idle' | 'loading' | 'playing';
  * session's composer had at queue time — even from outside the composer,
  * e.g. the app-level auto-send that fires while another session is viewed.
  */
-export type QueuedSendOptions = Record<string, unknown>;
+export type QueuedSendOptions = Record<string, unknown> & {
+  /** Codex speed intent captured at send/queue/schedule time; false explicitly clears inherited priority. */
+  codexFast?: boolean;
+};
 
 // ---------------------------
 

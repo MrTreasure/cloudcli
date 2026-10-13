@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from 'express';
 
+import { providerSessionSettingsService } from '@/modules/providers/services/provider-session-settings.service.js';
 import { providerAuthService } from '@/modules/providers/services/provider-auth.service.js';
 import { claudeSettingsPermissionsService } from '@/modules/providers/services/claude-settings-permissions.service.js';
 import { providerCapabilitiesService } from '@/modules/providers/services/provider-capabilities.service.js';
@@ -716,6 +717,19 @@ router.post(
   }),
 );
 
+/** Fast intent belongs to the stable application session, not the native thread id. */
+router.get('/sessions/:sessionId/codex-fast', asyncHandler(async (req: Request, res: Response) => {
+  res.json(createApiSuccessResponse(providerSessionSettingsService.getCodexFast(parseSessionId(req.params.sessionId))));
+}));
+router.patch('/sessions/:sessionId/codex-fast', asyncHandler(async (req: Request, res: Response) => {
+  const sessionId = parseSessionId(req.params.sessionId);
+  const codexFast = req.body?.codexFast;
+  if (typeof codexFast !== 'boolean') throw new AppError('codexFast must be a boolean.', {
+    code: 'INVALID_CODEX_FAST', statusCode: 400,
+  });
+  res.json(createApiSuccessResponse(providerSessionSettingsService.setCodexFast(sessionId, codexFast)));
+}));
+
 // ----------------- Skills routes -----------------
 router.get(
   '/:provider/skills',
@@ -853,7 +867,13 @@ router.post(
     const provider = parseProvider(body.provider);
     const projectPath = typeof body.projectPath === 'string' ? body.projectPath : '';
     const initialMessage = typeof body.initialMessage === 'string' ? body.initialMessage : '';
+    if (body.codexFast !== undefined && (provider !== 'codex' || typeof body.codexFast !== 'boolean')) {
+      throw new AppError('codexFast requires a boolean and the Codex provider.', {
+        code: 'INVALID_CODEX_FAST', statusCode: 400,
+      });
+    }
     const result = sessionsService.createAppSession(provider, projectPath, initialMessage);
+    if (provider === 'codex') providerSessionSettingsService.setCodexFast(result.sessionId, body.codexFast === true);
     res.status(201).json(createApiSuccessResponse(result));
   }),
 );

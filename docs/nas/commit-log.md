@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`d4d35ba70dbf39838ddee61f05bcf681a37d3cd8`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`5c76762ec39373b067508492d6329d0cede06ec9`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,17 +10,32 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [.husky/pre-commit](../../.husky/pre-commit) | — |
-| M | [AGENTS.md](../../AGENTS.md) | — |
-| M | [deploy/CHANGELOG.md](../../deploy/CHANGELOG.md) | — |
-| M | [deploy/README.md](../../deploy/README.md) | — |
-| A | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| A | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
-| A | [scripts/record-nas-changes.mjs](../../scripts/record-nas-changes.mjs) | — |
-| M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
-| M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
+| M | [docs/nas/README.md](../../docs/nas/README.md) | — |
+| A | [scripts/verify-codex-fast.mjs](../../scripts/verify-codex-fast.mjs) | — |
+| M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
+| M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
+| M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
+| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
+| M | [server/modules/providers/list/codex/codex-runtime.provider.ts](../../server/modules/providers/list/codex/codex-runtime.provider.ts) | — |
+| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
+| A | [server/modules/providers/services/provider-session-settings.service.ts](../../server/modules/providers/services/provider-session-settings.service.ts) | — |
+| M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
+| M | [server/modules/providers/tests/codex-runtime.test.ts](../../server/modules/providers/tests/codex-runtime.test.ts) | — |
+| M | [server/modules/providers/tests/provider-token-usage.service.test.ts](../../server/modules/providers/tests/provider-token-usage.service.test.ts) | — |
+| M | [server/modules/providers/tests/provider.routes.test.ts](../../server/modules/providers/tests/provider.routes.test.ts) | — |
+| M | [server/modules/scheduled-messages/tests/queued-messages.test.ts](../../server/modules/scheduled-messages/tests/queued-messages.test.ts) | — |
+| M | [server/modules/scheduled-messages/tests/scheduled-messages.test.ts](../../server/modules/scheduled-messages/tests/scheduled-messages.test.ts) | — |
+| M | [server/modules/websocket/tests/chat-edit-send.test.ts](../../server/modules/websocket/tests/chat-edit-send.test.ts) | — |
+| M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
+| M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
+| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
+| A | [src/modules/chat/hooks/useCodexFastState.ts](../../src/modules/chat/hooks/useCodexFastState.ts) | — |
+| A | [src/modules/chat/tests/codexFastState.test.ts](../../src/modules/chat/tests/codexFastState.test.ts) | — |
+| M | [src/modules/chat/tests/composerSendCompactCommand.test.ts](../../src/modules/chat/tests/composerSendCompactCommand.test.ts) | — |
+| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
 | M | [src/shared/api.ts](../../src/shared/api.ts) | — |
-| A | [src/shared/tests/fileTreeBrowsing.test.ts](../../src/shared/tests/fileTreeBrowsing.test.ts) | — |
+| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 
 ## NAS 主线提交
 
@@ -2069,6 +2084,25 @@
 
   - `local-plugins/cloudcli-host-dashboard/README.md`
   - `local-plugins/cloudcli-host-dashboard/src/metrics.ts`
+
+### 5c76762e · 2026-10-13 · fix(files): show hidden configuration and record NAS changes
+
+- 完整提交：`5c76762ec39373b067508492d6329d0cede06ec9`
+- 相对第一父提交涉及文件：
+
+  - `.husky/pre-commit`
+  - `AGENTS.md`
+  - `deploy/CHANGELOG.md`
+  - `deploy/README.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-base.txt`
+  - `scripts/record-nas-changes.mjs`
+  - `server/modules/file-tree/file-tree.service.ts`
+  - `server/modules/file-tree/tests/file-tree.service.test.ts`
+  - `src/shared/api.ts`
+  - `src/shared/tests/fileTreeBrowsing.test.ts`
 
 ## 从 PR / 其他分支合入的提交
 

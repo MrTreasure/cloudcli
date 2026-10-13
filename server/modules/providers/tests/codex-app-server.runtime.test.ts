@@ -1342,3 +1342,28 @@ test('abort before a compact turn id arrives interrupts the observed compact tur
   assert.deepEqual(await operation, { status: 'interrupted' });
   assert.equal(output.messages.some((message) => message.content === '上下文压缩完成。'), false);
 });
+
+for (const sessionId of ['app-new', 'resume-app']) {
+  for (const codexFast of [true, false, undefined]) {
+    test(`Fast ${String(codexFast)} explicitly overrides the tier for ${sessionId}`, async (t) => {
+      const harness = createHarness();
+      const runtime = createRuntime(harness.process);
+
+      const output = createWriter();
+      const run = runtime.run('Test speed selection', { sessionId, codexFast }, output.writer, context);
+      await harness.nextRequest();
+      await harness.nextRequest();
+      const thread = await harness.nextRequest();
+      const turn = await harness.nextRequest();
+      const tier = codexFast === true ? 'priority' : 'default';
+      assert.equal((thread.params as AnyRecord).serviceTier, tier);
+      assert.equal((turn.params as AnyRecord).serviceTier, tier);
+      assert.equal((turn.params as AnyRecord).serviceTierForTurn, tier);
+      harness.notify('turn/completed', {
+        threadId: sessionId === 'resume-app' ? 'thread-existing' : 'thread-new',
+        turn: { id: 'turn-1', status: 'completed' },
+      });
+      assert.deepEqual(await run, { status: 'completed' });
+    });
+  }
+}

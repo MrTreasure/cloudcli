@@ -318,7 +318,12 @@ async function queryLegacyCodex(
   const sessionKey = () => sessionId || capturedSessionId || null;
 
   try {
-    codex = new Codex({ codexPathOverride: resolveCodexExecutable() });
+    codex = new Codex({
+      codexPathOverride: resolveCodexExecutable(),
+      // SDK 0.162.0 exposes tier through CodexOptions.config, not ThreadOptions.
+      // Apply on every exec/resume to override both saved and global priority.
+      config: { service_tier: options.codexFast === true ? 'priority' : 'default' },
+    });
 
     const threadOptions: ThreadOptions = {
       workingDirectory,

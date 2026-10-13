@@ -381,3 +381,24 @@ test('a dispatched turn releases its queue claim before completing so a later me
       assert.deepEqual(queuedMessagesService.list(userId, 'session'), []);
     } finally { release(); await dispatch; }
   }));
+
+test('FIFO and edited queue drafts preserve Fast snapshots after the session switch changes', async () =>
+  isolated(async (userId) => {
+    const first = queuedMessagesService.enqueue(userId, {
+      id: 'fast-on', sessionId: 'session', content: 'fast snapshot', options: { codexFast: true },
+    });
+    queuedMessagesService.enqueue(userId, {
+      id: 'fast-off', sessionId: 'session', content: 'standard snapshot', options: { codexFast: false },
+    });
+    queuedMessagesService.update(userId, first.id, {
+      revision: first.revision, content: 'edited fast snapshot', options: first.options,
+    });
+    sessionsDb.setSessionCodexFast('session', false);
+    const choices: unknown[] = [];
+    const gateway = runtime(async (_provider, _command, options) => { choices.push(options.codexFast); });
+    assert.equal(await dispatchQueuedMessages(gateway), 1);
+    sessionsDb.setSessionCodexFast('session', true);
+    assert.equal(await dispatchQueuedMessages(gateway), 1);
+    assert.deepEqual(choices, [true, false]);
+    assert.equal(sessionsDb.getSessionById('session')?.codex_fast, 1);
+  }));

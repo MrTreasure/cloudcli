@@ -94,3 +94,28 @@ for (const command of ['', '  \n\t']) {
     ]);
   });
 }
+
+for (const resumed of [false, true]) {
+  for (const codexFast of [true, false, undefined]) {
+    test(`SDK Fast ${String(codexFast)} overrides global and resumed tier (${resumed})`, async (t) => {
+      let capturedTier: unknown;
+      t.mock.method(Codex.prototype, resumed ? 'resumeThread' : 'startThread', function (this: Codex) {
+        const options = (this as unknown as { options: { config: { service_tier: unknown } } }).options;
+        capturedTier = options.config.service_tier;
+        return {
+          async runStreamed() {
+            return { events: (async function* () { yield { type: 'thread.started', thread_id: 'native-thread' }; })() };
+          },
+        } as unknown as Thread;
+      });
+      const context: ProviderRuntimeContext = {
+        resolveProviderSessionId: () => resumed ? 'native-thread' : null,
+        resolveResumeModel: async () => 'gpt-6.1-sol',
+        getProviderModels: async () => ({ OPTIONS: [], DEFAULT: 'gpt-6.1-sol' }),
+        normalizeMessage: () => [], isProviderInstalled: async () => true,
+      };
+      await codexRuntime.run('test', { codexRuntimeMode: 'sdk', codexFast }, { send: () => {} }, context);
+      assert.equal(capturedTier, codexFast === true ? 'priority' : 'default');
+    });
+  }
+}

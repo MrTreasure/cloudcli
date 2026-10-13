@@ -563,7 +563,11 @@ export class CodexAppServerRuntime {
         ? effort
         : undefined;
 
+      // 0.162.0 protocol: explicit default clears inherited priority; omission
+      // would reuse the native thread/global tier even with the UI switched off.
+      const serviceTier = options.codexFast === true ? 'priority' : 'default';
       const threadParams = {
+        serviceTier,
         cwd: workingDirectory,
         ...(resolvedModel ? { model: resolvedModel } : {}),
         sandbox: permission.sandbox,
@@ -612,6 +616,8 @@ export class CodexAppServerRuntime {
       }
       const turnParams = {
         threadId,
+        serviceTier,
+        serviceTierForTurn: serviceTier,
         input: buildTurnInput(command, options, workingDirectory),
         cwd: workingDirectory,
         approvalPolicy: permission.approvalPolicy,

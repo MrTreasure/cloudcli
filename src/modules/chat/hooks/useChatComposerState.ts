@@ -47,6 +47,9 @@ type UseChatComposerStateArgs = {
    */
   currentProviderModel: string;
   currentProviderEffort: string;
+  codexFast?: boolean;
+  codexFastReady?: boolean;
+  onCodexFastSessionCreated?: (sessionId: string, enabled: boolean) => void;
   isLoading: boolean;
   processingSessions?: SessionActivityMap;
   canAbortSession: boolean;
@@ -185,6 +188,9 @@ export function useChatComposerState({
   resolvePermissionModeForProvider,
   currentProviderModel,
   currentProviderEffort,
+  codexFast = false,
+  codexFastReady = true,
+  onCodexFastSessionCreated,
   isLoading,
   processingSessions,
   canAbortSession,
@@ -671,13 +677,14 @@ export function useChatComposerState({
       effort: currentProviderEffort,
       permissionMode: resolvePermissionModeForProvider(provider, permissionMode),
       ...(provider === 'codex'
-        ? { codexRuntimeMode: toolsSettings?.runtimeMode === 'sdk' ? 'sdk' : 'app-server' }
+        ? { codexRuntimeMode: toolsSettings?.runtimeMode === 'sdk' ? 'sdk' : 'app-server', codexFast }
         : {}),
       toolsSettings,
       skipPermissions: toolsSettings?.skipPermissions || false,
       sessionSummary: getNotificationSessionSummary(selectedSession, currentInput),
     };
   }, [
+    codexFast,
     currentProviderEffort,
     currentProviderModel,
     permissionMode,
@@ -713,6 +720,7 @@ export function useChatComposerState({
         return;
       }
 
+      if (provider === 'codex' && !codexFastReady) return;
       // New messages append; only explicit edit mode updates an existing queue entry.
       if (isLoading || hasQueuedMessages || editingQueuedMessage) {
         if (queueSubmissionRef.current) return;
@@ -793,6 +801,10 @@ export function useChatComposerState({
         }
       }
 
+      // Capture before uploads/session allocation so every send keeps its
+      // click-time choices even if the switch changes while transport awaits.
+      if (provider === 'codex' && !codexFastReady) return;
+      const submissionOptions = queuedSubmission?.options ?? buildSendOptions(currentInput);
       const messageContent = currentInput;
 
       let uploadedAttachments: unknown[] = previouslyUploadedAttachments;
@@ -826,6 +838,7 @@ export function useChatComposerState({
             provider,
             projectPath: resolvedProjectPath,
             initialMessage: messageContent,
+            ...(provider === 'codex' ? { codexFast: submissionOptions.codexFast === true } : {}),
           });
           if (!response.ok) {
             throw new Error(`Failed to create session (${response.status})`);
@@ -860,6 +873,7 @@ export function useChatComposerState({
           return;
         }
 
+        if (provider === 'codex') onCodexFastSessionCreated?.(targetSessionId, submissionOptions.codexFast === true);
         onSessionEstablished?.(targetSessionId, {
           provider,
           project: selectedProject,
@@ -922,7 +936,7 @@ export function useChatComposerState({
         ...(editingAnchorId ? { anchorId: editingAnchorId } : {}),
         content: messageContent,
         options: {
-          ...(queuedSubmission?.options ?? buildSendOptions(messageContent)),
+          ...submissionOptions,
           attachments: uploadedAttachments,
         },
       });
@@ -960,6 +974,8 @@ export function useChatComposerState({
       attachedFiles,
       setInput,
       buildSendOptions,
+      codexFastReady,
+      onCodexFastSessionCreated,
       currentSessionId,
       editingAnchorId,
       editingQueuedMessage,
@@ -1017,6 +1033,7 @@ export function useChatComposerState({
   }, [handleSubmit]);
 
   const answerAsyncQuestion = useCallback(async (questions: Question[], answers: Record<string, string>) => {
+    if (provider === 'codex' && !codexFastReady) throw new Error('Wait for the session Fast setting to load or save.');
     if (editingAnchorId) throw new Error('Finish editing the message first.');
     const content = questions.map((question) => `${question.question}\n${answers[question.question] || '(skipped)'}`).join('\n\n');
     const options = buildSendOptions(content);
@@ -1027,7 +1044,7 @@ export function useChatComposerState({
     } else {
       await handleSubmit(createFakeSubmitEvent(), { content, options, attachments: [], uploadedAttachments: [] });
     }
-  }, [editingAnchorId, buildSendOptions, isLoading, hasQueuedMessages, enqueueQueuedMessage, canSteerQueuedMessage, steerQueuedMessage, handleSubmit]);
+  }, [provider, codexFastReady, editingAnchorId, buildSendOptions, isLoading, hasQueuedMessages, enqueueQueuedMessage, canSteerQueuedMessage, steerQueuedMessage, handleSubmit]);
 
   const editQueuedDraft = useCallback((message: QueuedMessage) => {
     setEditingQueuedMessage(message);
@@ -1341,6 +1358,7 @@ export function useChatComposerState({
   }, [setInput]);
 
   return {
+    buildSendOptions,
     input,
     setInput,
     editingAnchorId,

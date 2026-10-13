@@ -345,3 +345,20 @@ test('scheduling validates its input', async () => {
     );
   });
 });
+
+test('scheduled Codex messages retain their Fast snapshot independently of later session settings', async () => {
+  await withIsolatedDatabase(async (userId) => {
+    sessionsDb.createAppSession('codex-scheduled', 'codex', '/tmp', 'Codex');
+    scheduledMessagesService.schedule({ userId, sessionId: 'codex-scheduled', content: 'continue',
+      options: { model: 'gpt-6.1-sol', codexFast: true, codexRuntimeMode: 'sdk' },
+      scheduledFor: new Date(Date.now() - 1_000).toISOString(),
+    });
+    sessionsDb.setSessionCodexFast('codex-scheduled', false);
+    const runs: RunCall[] = [];
+    assert.equal(await dispatchDueScheduledMessages(createRuntime(runs)), 1);
+    assert.equal(runs[0].options.codexFast, true);
+    assert.equal(runs[0].options.codexRuntimeMode, 'sdk');
+    assert.equal(runs[0].options.model, 'gpt-6.1-sol');
+    assert.equal(sessionsDb.getSessionById('codex-scheduled')?.codex_fast, 0);
+  });
+});

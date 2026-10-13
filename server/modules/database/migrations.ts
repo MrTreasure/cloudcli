@@ -533,6 +533,9 @@ export const runMigrations = (db: Database) => {
     addProviderSessionIdMapping(db);
     addSessionModelColumn(db);
     addSessionEffortColumn(db);
+    addColumnToTableIfNotExists(db, 'sessions',
+      (db.prepare('PRAGMA table_info(sessions)').all() as { name: string }[]).map((column) => column.name),
+      'codex_fast', 'INTEGER NOT NULL DEFAULT 0');
     addForkedFromSessionIdColumn(db);
     ensureProjectsForSessionPaths(db);
     db.exec(SCHEDULED_MESSAGES_TABLE_SCHEMA_SQL);

@@ -526,3 +526,32 @@ test('the workflow agent route reads an agent\'s timeline and status from its ru
     assert.equal(missing.error.code, 'WORKFLOW_AGENT_NOT_FOUND');
   });
 });
+
+test('Codex Fast persists on stable app ids, defaults off and validates writes', async () => {
+  await withProviderServer(async (baseUrl, workspacePath) => {
+    await mkdir(workspacePath, { recursive: true });
+    const create = async (provider: string, codexFast?: boolean) => {
+      const response = await fetch(`${baseUrl}/api/providers/sessions`, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, projectPath: workspacePath, codexFast }) });
+      assert.equal(response.status, 201);
+      return (await response.json() as { data: { sessionId: string } }).data.sessionId as string;
+    };
+    const a = await create('codex', true);
+    const b = await create('codex');
+    const read = async (id: string) => (await (await fetch(`${baseUrl}/api/providers/sessions/${id}/codex-fast`)).json() as { data: { sessionId: string; codexFast: boolean } }).data;
+    assert.deepEqual(await read(a), { sessionId: a, codexFast: true });
+    assert.deepEqual(await read(b), { sessionId: b, codexFast: false });
+    sessionsDb.assignProviderSessionId(a, 'native-fast-thread');
+    assert.equal((await read(a)).codexFast, true);
+    const patch = async (id: string, value: unknown) => fetch(`${baseUrl}/api/providers/sessions/${id}/codex-fast`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codexFast: value }),
+    });
+    assert.equal((await patch(a, false)).status, 200);
+    assert.equal((await read(a)).codexFast, false);
+    assert.equal((await read(b)).codexFast, false);
+    assert.equal((await patch(a, 'priority')).status, 400);
+    assert.equal((await patch('missing-fast-session', true)).status, 404);
+    const claude = await create('claude');
+    assert.equal((await patch(claude, true)).status, 400);
+  });
+});

@@ -166,6 +166,11 @@
     },
     "compact": {
       "action": "压缩对话"
+    },
+    "fast": {
+      "label": "请求 Fast",
+      "hint": "仅影响下一轮请求；实际加速受服务端总开关和额度保护限制。",
+      "retry": "Fast 设置读取或保存失败，点击重试。"
     }
   },
   "providerSelection": {
