@@ -102,6 +102,9 @@ function ComposerModelMenu({
         aria-label={ariaLabel}
         title={ariaLabel}
       >
+        {onSelectCodexFast && codexFast && (
+          <Zap className="h-3.5 w-3.5 shrink-0 fill-current text-yellow-600 dark:text-yellow-400" aria-hidden="true" />
+        )}
         <span className="truncate">{triggerLabel}</span>
         {hasModelSection && hasEffortSection && effort !== DEFAULT_EFFORT_VALUE && (
           <span className="hidden shrink-0 capitalize text-muted-foreground sm:inline">· {effortLabel}</span>

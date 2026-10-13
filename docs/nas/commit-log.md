@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`59c632fb3fecc840b2f0a0f4befc799327a27605`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`12949e245fc41bbf10b83552d9424b8b0ca5ba72`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,14 +11,7 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [package.json](../../package.json) | — |
-| M | [src/modules/auth/tests/authTokenRefreshRemount.test.tsx](../../src/modules/auth/tests/authTokenRefreshRemount.test.tsx) | — |
-| M | [src/modules/chat/tests/chatProviderModels.test.ts](../../src/modules/chat/tests/chatProviderModels.test.ts) | — |
-| M | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
-| M | [src/modules/chat/tests/messageModelLabel.test.tsx](../../src/modules/chat/tests/messageModelLabel.test.tsx) | — |
-| M | [src/shared/tests/selectedProvider.test.ts](../../src/shared/tests/selectedProvider.test.ts) | — |
-| M | [src/shared/tests/useSelectedProvider.test.tsx](../../src/shared/tests/useSelectedProvider.test.tsx) | — |
-| M | [vitest.setup.ts](../../vitest.setup.ts) | — |
+| M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
 
 ## NAS 主线提交
 
@@ -2165,6 +2158,23 @@
   - `src/modules/chat/composer/ComposerModelMenu.tsx`
   - `src/modules/i18n/locales/en/chat.json`
   - `src/modules/i18n/locales/zh-CN/chat.json`
+
+### 12949e24 · 2026-10-13 · fix(tests): align frontend suite with NAS configuration
+
+- 完整提交：`12949e245fc41bbf10b83552d9424b8b0ca5ba72`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `package.json`
+  - `src/modules/auth/tests/authTokenRefreshRemount.test.tsx`
+  - `src/modules/chat/tests/chatProviderModels.test.ts`
+  - `src/modules/chat/tests/contextUsageDisplay.test.tsx`
+  - `src/modules/chat/tests/messageModelLabel.test.tsx`
+  - `src/shared/tests/selectedProvider.test.ts`
+  - `src/shared/tests/useSelectedProvider.test.tsx`
+  - `vitest.setup.ts`
 
 ## 从 PR / 其他分支合入的提交
 
