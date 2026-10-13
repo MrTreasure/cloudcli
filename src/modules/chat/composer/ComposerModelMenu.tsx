@@ -110,6 +110,28 @@ function ComposerModelMenu({
 
       {isOpen && anchor && createPortal(
         <ComposerMenuSurface anchor={anchor} menuRef={menuRef} ariaLabel={ariaLabel}>
+          {onSelectCodexFast && (
+            <>
+              <ComposerMenuItem
+                role="switch"
+                label="Fast"
+                description={codexFastError
+                  ? t('input.fast.retry', { defaultValue: 'Failed. Click to retry.' })
+                  : t('input.fast.hint', { defaultValue: 'Faster responses · Higher usage' })}
+                icon={<Zap className="h-3.5 w-3.5" />}
+                isSelected={codexFast}
+                disabled={codexFastBusy}
+                trailing={
+                  <span aria-hidden="true" className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${codexFast ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                    <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${codexFast ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </span>
+                }
+                onSelect={() => onSelectCodexFast(!codexFast)}
+              />
+              {(hasEffortSection || hasModelSection) && <ComposerMenuSeparator />}
+            </>
+          )}
+
           {hasEffortSection && (
             <>
               <ComposerMenuHeading>
@@ -128,28 +150,6 @@ function ComposerModelMenu({
                   className="capitalize"
                 />
               ))}
-            </>
-          )}
-
-          {onSelectCodexFast && (
-            <>
-              {hasEffortSection && <ComposerMenuSeparator />}
-              <ComposerMenuItem
-                role="switch"
-                label="Fast"
-                description={codexFastError
-                  ? t('input.fast.retry', { defaultValue: 'Fast setting could not be saved or loaded. Click to retry.' })
-                  : t('input.fast.hint', { defaultValue: 'Applies to the next turn; subject to server permission and quota protection.' })}
-                icon={<Zap className="h-3.5 w-3.5" />}
-                isSelected={codexFast}
-                disabled={codexFastBusy}
-                trailing={
-                  <span aria-hidden="true" className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${codexFast ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
-                    <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${codexFast ? 'translate-x-4' : 'translate-x-0'}`} />
-                  </span>
-                }
-                onSelect={() => onSelectCodexFast(!codexFast)}
-              />
             </>
           )}
 
