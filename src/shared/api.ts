@@ -190,6 +190,55 @@ const fileContentPath = (projectId: string, filePath: string) =>
 const pluginAssetPath = (pluginName: string, assetFile: string) =>
   backendUrl(`/api/plugins/${encodeURIComponent(pluginName)}/assets/${encodeURIComponent(assetFile)}`);
 
+type ReleaseRequestCacheEntry = {
+  expiresAt: number;
+  response: Promise<Response>;
+};
+
+// Sidebar and About share one public lookup, including a cooldown on failures.
+// Each consumer gets a clone so reading JSON never consumes another caller's body.
+const releaseRequestCache = new Map<string, ReleaseRequestCacheEntry>();
+const RELEASE_CACHE_MS = 60 * 60 * 1000;
+const RELEASE_FAILURE_COOLDOWN_MS = 15 * 60 * 1000;
+
+async function fetchLatestRelease(owner: string, repo: string): Promise<Response> {
+  const key = `${owner}/${repo}`;
+  const cached = releaseRequestCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return (await cached.response).clone();
+
+  const lookup = async () => {
+    // The official published package provides the version without GitHub's
+    // anonymous API quota. Release notes remain available through its web page.
+    const isCloudCLI = owner === 'siteboon' && repo === 'claudecodeui';
+    const url = isCloudCLI
+      ? 'https://registry.npmjs.org/@cloudcli-ai/cloudcli/latest'
+      : `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/latest`;
+    const response = await fetch(url, { signal: AbortSignal.timeout(10_000) });
+    if (!isCloudCLI || !response.ok) return response;
+    const metadata = await response.json();
+    const tag = typeof metadata.version === 'string' ? `v${metadata.version}` : null;
+    return new Response(JSON.stringify({
+      tag_name: tag,
+      name: tag ? `CloudCLI ${tag}` : '',
+      body: '',
+      html_url: tag
+        ? `https://github.com/siteboon/claudecodeui/releases/tag/${encodeURIComponent(tag)}`
+        : 'https://github.com/siteboon/claudecodeui/releases',
+    }), { headers: { 'Content-Type': 'application/json' } });
+  };
+  const entry: ReleaseRequestCacheEntry = {
+    expiresAt: Date.now() + RELEASE_FAILURE_COOLDOWN_MS,
+    response: lookup()
+      .catch(() => new Response(null, { status: 503 }))
+      .then((response) => {
+        entry.expiresAt = Date.now() + (response.ok ? RELEASE_CACHE_MS : RELEASE_FAILURE_COOLDOWN_MS);
+        return response;
+      }),
+  };
+  releaseRequestCache.set(key, entry);
+  return (await entry.response).clone();
+}
+
 // ─── API endpoints ──────────────────────────────────────────────────────────
 // Every `/api/...` path the frontend talks to is declared here; components
 // import a named method instead of assembling URLs of their own.
@@ -198,10 +247,7 @@ export const api = {
   // Public version endpoints used by sidebar and About settings checks.
   version: {
     health: () => fetch(backendUrl('/health'), { cache: 'no-store' }),
-    latestRelease: (owner: string, repo: string) => fetch(
-      `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/latest`,
-      { cache: 'no-store' },
-    ),
+    latestRelease: fetchLatestRelease,
   },
   // Auth endpoints (no token required)
   auth: {

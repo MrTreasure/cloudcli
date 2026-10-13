@@ -98,10 +98,10 @@ export const useVersionCheck = (owner: string, repo: string) => {
           setLatestVersion(null);
           setReleaseInfo(null);
         }
-      } catch (error) {
+      } catch {
         if (cancelled) return;
-        console.error('Version check failed:', error);
-        // On error, don't show update notification
+        // Release discovery is optional; a blocked or unavailable upstream
+        // must not flood the console whenever this window regains focus.
         setLatestVersion(null);
         setReleaseInfo(null);
       }

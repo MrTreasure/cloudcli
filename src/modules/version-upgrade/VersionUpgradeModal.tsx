@@ -178,7 +178,7 @@ export function VersionUpgradeModal({
                 </div>
 
                 {/* Changelog */}
-                {releaseInfo?.body && (
+                {(releaseInfo?.body || releaseInfo?.htmlUrl) && (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-medium text-gray-900 dark:text-white">{t('versionUpdate.whatsNew')}</h3>
@@ -196,13 +196,13 @@ export function VersionUpgradeModal({
                                 </a>
                             )}
                         </div>
-                        <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700/50">
+                        {releaseInfo?.body && <div className="max-h-64 overflow-y-auto rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-700/50">
                             <div className="prose prose-sm max-w-none text-sm text-gray-700 dark:prose-invert dark:text-gray-300">
                                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={changelogComponents}>
                                     {cleanChangelog(releaseInfo.body)}
                                 </ReactMarkdown>
                             </div>
-                        </div>
+                        </div>}
                     </div>
                 )}
 

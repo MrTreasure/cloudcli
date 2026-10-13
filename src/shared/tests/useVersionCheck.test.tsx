@@ -72,3 +72,13 @@ test('a failed health check falls back to the frontend version', async () => {
   expect(result.current.updateAvailable).toBe(true);
   expect(result.current.restartRequired).toBe(false);
 });
+
+test('an unavailable release check stays quiet and does not claim an update exists', async () => {
+  vi.mocked(api.version.latestRelease).mockResolvedValue(new Response('', { status: 403 }));
+  const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  const { result } = renderHook(() => useVersionCheck('siteboon', 'claudecodeui'));
+  await waitFor(() => expect(result.current.runningVersion).toBe('1.37.4'));
+  expect(result.current.updateAvailable).toBe(false);
+  expect(result.current.latestVersion).toBeNull();
+  expect(consoleError).not.toHaveBeenCalled();
+});
