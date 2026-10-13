@@ -102,7 +102,7 @@ export function mount(container: HTMLElement, api: PluginAPI): void {
   root.className = 'hd-root';
   root.dataset.theme = api.context.theme;
   root.innerHTML = `<style>${styles}</style><main class="hd-shell">
-    <header class="hd-head"><div><div class="hd-kicker"><span class="hd-dot"></span>主机实时监控</div><h1 class="hd-title">本机仪表盘</h1><p class="hd-subtitle" data-platform>正在读取主机信息…</p></div><div class="hd-actions"><span class="hd-time" data-time>—</span><button class="hd-refresh" type="button" aria-label="刷新主机数据" title="刷新主机数据">${icon('refresh')}</button></div></header>
+    <header class="hd-head"><div><div class="hd-kicker"><span class="hd-dot"></span>主机实时监控</div><h1 class="hd-title">仪表盘</h1><p class="hd-subtitle" data-platform>正在读取主机信息…</p></div><div class="hd-actions"><span class="hd-time" data-time>—</span><button class="hd-refresh" type="button" aria-label="刷新主机数据" title="刷新主机数据">${icon('refresh')}</button></div></header>
     <section class="hd-grid" aria-label="主机资源"><article class="hd-card hd-cpu"><div class="hd-card-head"><span class="hd-card-icon">${icon('cpu')}</span>CPU 占用</div><div class="hd-number"><span data-cpu>—</span><small>%</small></div><div class="hd-meta" data-cpu-detail>采样中…</div><div class="hd-track" role="meter" aria-label="CPU 占用" aria-valuemin="0" aria-valuemax="100"><div class="hd-fill" data-cpu-bar></div></div><svg class="hd-spark" viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true"><polyline points=""/></svg></article>
     <article class="hd-card hd-memory"><div class="hd-card-head"><span class="hd-card-icon">${icon('memory')}</span>内存占用</div><div class="hd-number"><span data-memory>—</span><small>%</small></div><div class="hd-meta" data-memory-detail>读取中…</div><div class="hd-track" role="meter" aria-label="内存占用" aria-valuemin="0" aria-valuemax="100"><div class="hd-fill" data-memory-bar></div></div><p class="hd-foot">可用内存包含系统可回收缓存</p></article>
     <article class="hd-card hd-disk"><div class="hd-card-head"><span class="hd-card-icon">${icon('disk')}</span>磁盘占用</div><div class="hd-meta" data-disk-state style="margin-top:8px">读取中…</div><div class="hd-volumes" data-volumes></div></article></section>
@@ -115,7 +115,9 @@ export function mount(container: HTMLElement, api: PluginAPI): void {
   const history: number[] = [];
   const error = root.querySelector<HTMLElement>('[data-error]');
   const refresh = async () => {
-    if (!active || loading) return;
+    // The host mounts only the selected plugin tab. Also pause when the
+    // browser tab or the workspace surface is hidden (e.g. an expanded editor).
+    if (!active || loading || document.visibilityState === 'hidden' || root.getClientRects().length === 0) return;
     loading = true;
     try {
       const snapshot = await api.rpc('GET', '/metrics') as ResourceSnapshot;
@@ -130,10 +132,24 @@ export function mount(container: HTMLElement, api: PluginAPI): void {
     }
   };
   root.querySelector<HTMLButtonElement>('.hd-refresh')?.addEventListener('click', refresh);
-  const timer = window.setInterval(() => { void refresh(); }, 2000);
+  let timer: number | null = null;
+  const resumePolling = () => {
+    if (timer !== null) window.clearInterval(timer);
+    timer = null;
+    if (!active || document.visibilityState === 'hidden') return;
+    void refresh();
+    timer = window.setInterval(() => { void refresh(); }, 2000);
+  };
+  document.addEventListener('visibilitychange', resumePolling);
   const unsubscribe = api.onContextChange(context => { root.dataset.theme = context.theme; });
-  cleanups.set(container, () => { active = false; window.clearInterval(timer); unsubscribe(); root.remove(); });
-  void refresh();
+  cleanups.set(container, () => {
+    active = false;
+    if (timer !== null) window.clearInterval(timer);
+    document.removeEventListener('visibilitychange', resumePolling);
+    unsubscribe();
+    root.remove();
+  });
+  resumePolling();
 }
 
 /** Releases the polling timer and context subscription when the tab closes. */

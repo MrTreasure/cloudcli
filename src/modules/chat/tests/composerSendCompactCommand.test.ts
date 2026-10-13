@@ -36,14 +36,14 @@ const backgroundOnly: SessionActivityMap = new Map([[
   },
 ]]);
 
-const setup = (processingSessions?: SessionActivityMap) => {
+const setup = (processingSessions?: SessionActivityMap, provider: 'claude' | 'codex' = 'claude') => {
   const sent: Array<{ type: string; content?: string }> = [];
   const view = renderHook(() =>
     useChatComposerState({
       selectedProject: PROJECT,
       selectedSession: SESSION,
       currentSessionId: SESSION.id,
-      provider: 'claude',
+      provider,
       permissionMode: 'default',
       cyclePermissionMode: () => undefined,
       resolvePermissionModeForProvider: () => 'default' as PermissionMode,
@@ -73,8 +73,8 @@ afterEach(() => {
   localStorage.clear();
 });
 
-test('the compact action sends /compact without touching the draft', async () => {
-  const { sent, view } = setup();
+test.each(['claude', 'codex'] as const)('the %s compact action sends /compact without touching the draft', async (provider) => {
+  const { sent, view } = setup(undefined, provider);
   await act(async () => { view.result.current.setInput('my draft'); });
 
   await act(async () => { view.result.current.sendCompactCommand(); });

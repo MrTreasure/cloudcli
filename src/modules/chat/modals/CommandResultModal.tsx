@@ -1,6 +1,3 @@
-import { formatContextTokenCount, readContextWindowUsage } from '@/shared/utils';
-import { LocalizedText } from '@/shared/ui/LocalizedText';
-import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -18,9 +15,13 @@ import {
   TerminalSquare,
   Timer,
   Loader2,
+  Minimize2,
   X,
 } from 'lucide-react';
 
+import { formatContextTokenCount, readContextWindowUsage } from '@/shared/utils';
+import { LocalizedText } from '@/shared/ui/LocalizedText';
+import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { Badge, Button, Dialog, DialogContent, DialogTitle, Input } from '@/shared/ui';
 import type {
   LLMProvider,
@@ -38,6 +39,8 @@ type CommandResultModalProps = {
   activeProvider: LLMProvider;
   activeProviderModel: string;
   currentSessionId: string | null;
+  canCompactContext: boolean;
+  onCompactContext: () => void;
   onSelectProviderModel: (
     provider: LLMProvider,
     model: string,
@@ -77,13 +80,6 @@ const getProviderLabel = (provider: string | undefined, fallback = 'Unknown') =>
   }
 
   return PROVIDER_LABELS[provider] || provider;
-};
-
-const formatNumber = (value: number) => {
-  if (!Number.isFinite(value)) {
-    return '0';
-  }
-  return value.toLocaleString();
 };
 
 function MetricCard({
@@ -476,7 +472,7 @@ function CostContent({ data }: { data: CostCommandData }) {
                 <Icon className="h-4 w-4 text-primary" />
                 <span>{row.label}</span>
               </div>
-              <div className="grid gap-x-4 gap-y-2 grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 lg:grid-cols-3">
                 {row.metrics.map((metric) => (
                   <div key={metric.label} className="min-w-0">
                     <p className="truncate text-xs text-muted-foreground">{metric.label}</p>
@@ -557,6 +553,8 @@ function CommandResultModal({
   activeProvider,
   activeProviderModel,
   currentSessionId,
+  canCompactContext,
+  onCompactContext,
   onSelectProviderModel,
 }: CommandResultModalProps) {
   const { t } = useTranslation();
@@ -659,9 +657,22 @@ function CommandResultModal({
             <Gauge className="h-3.5 w-3.5" />
             {t('chat:misc.escClosesModal')}
           </div>
-          <Button type="button" variant="outline" size="sm" onClick={onClose} className="rounded-xl">
-            {t('chat:misc.close')}
-          </Button>
+          <div className="flex items-center justify-end gap-2">
+            {kind === 'cost' && (activeProvider === 'claude' || activeProvider === 'codex') && (
+              <Button type="button" size="sm" disabled={!canCompactContext} className="rounded-xl"
+                onClick={() => {
+                  if (!canCompactContext) return;
+                  onClose();
+                  onCompactContext();
+                }}>
+                <Minimize2 className="mr-1.5 h-4 w-4" />
+                {t('chat:misc.compactContext')}
+              </Button>
+            )}
+            <Button type="button" variant="outline" size="sm" onClick={onClose} className="rounded-xl">
+              {t('chat:misc.close')}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

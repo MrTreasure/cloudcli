@@ -416,6 +416,7 @@
     "configuredValues": "设定值",
     "actualValues": "当前值",
     "compactStage": "自动压缩",
+    "compactContext": "压缩上下文",
     "contextUnknown": "尚未获取",
     "contextOccupancy": "上下文占用：{{percentage}}",
     "contextInput": "输入 Token",

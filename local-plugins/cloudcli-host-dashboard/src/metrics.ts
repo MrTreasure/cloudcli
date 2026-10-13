@@ -49,7 +49,7 @@ export function availableMacMemory(vmStat: string, fallback: number): number {
   for (const label of ['Pages free', 'Pages inactive', 'Pages speculative']) {
     const match = new RegExp(`^${label}:\\s+([0-9.]+)\\.?$`, 'm').exec(vmStat);
     if (!match) return fallback;
-    pages += Number(match[1].replaceAll('.', ''));
+    pages += Number(match[1].replace(/\./g, ''));
   }
   return pages * pageSize;
 }

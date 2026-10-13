@@ -1,6 +1,6 @@
 {
   "name": "host-dashboard",
-  "displayName": "本机仪表盘",
+  "displayName": "仪表盘",
   "version": "1.0.0",
   "description": "实时查看本机 CPU、内存和磁盘占用。",
   "author": "MrTreasure",

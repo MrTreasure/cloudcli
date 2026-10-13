@@ -350,6 +350,7 @@
     "configuredValues": "設定值",
     "actualValues": "目前值",
     "compactStage": "自動壓縮",
+    "compactContext": "壓縮上下文",
     "contextUnknown": "尚未取得",
     "contextOccupancy": "上下文佔用：{{percentage}}",
     "contextInput": "輸入 Token",

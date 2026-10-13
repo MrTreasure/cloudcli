@@ -1,5 +1,6 @@
-import { render, screen, cleanup } from '@testing-library/react';
-import { afterEach, expect, test } from 'vitest';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { afterEach, expect, test, vi } from 'vitest';
+
 import '@/modules/i18n';
 import TokenUsageSummary from '@/modules/chat/composer/TokenUsageSummary';
 import CommandResultModal from '@/modules/chat/modals/CommandResultModal';
@@ -47,6 +48,8 @@ test('Codex details mark the real automatic compaction threshold on the usage ba
     activeProvider="codex"
     activeProviderModel="gpt-6.1-sol"
     currentSessionId="session"
+    canCompactContext={true}
+    onCompactContext={() => undefined}
     onSelectProviderModel={async () => ({ scope: 'session', model: 'gpt-6.1-sol' })}
   />);
   expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('50');
@@ -54,4 +57,32 @@ test('Codex details mark the real automatic compaction threshold on the usage ba
   expect(screen.getByText(/misc\.configuredValues|设定值|Configured/)).toBeTruthy();
   expect(screen.getByText(/misc\.actualValues|当前值|Current/)).toBeTruthy();
   expect(screen.queryByText(/摘要|summary/i)).toBeNull();
+});
+
+test.each(['codex', 'claude'] as const)('the %s token modal closes and starts native context compaction', (provider) => {
+  const onClose = vi.fn();
+  const onCompact = vi.fn();
+  const props = {
+    payload: { kind: 'cost' as const, data: { provider, tokenUsage: { used: 1000, total: 200000 } } },
+    onClose,
+    providerModelCatalog: {},
+    providerModelActions: {} as ProviderModelActions,
+    activeProvider: provider,
+    activeProviderModel: 'test-model',
+    currentSessionId: 'session',
+    canCompactContext: true,
+    onCompactContext: onCompact,
+    onSelectProviderModel: async () => ({ scope: 'session' as const, model: 'test-model' }),
+  };
+  const view = render(<CommandResultModal {...props} />);
+  const button = screen.getByRole('button', { name: /压缩上下文|Compact context/ });
+  fireEvent.click(button);
+  expect(onClose).toHaveBeenCalledTimes(1);
+  expect(onCompact).toHaveBeenCalledTimes(1);
+  expect(onClose.mock.invocationCallOrder[0]).toBeLessThan(onCompact.mock.invocationCallOrder[0]);
+
+  view.rerender(<CommandResultModal {...props} canCompactContext={false} />);
+  expect((button as HTMLButtonElement).disabled).toBe(true);
+  fireEvent.click(button);
+  expect(onCompact).toHaveBeenCalledTimes(1);
 });

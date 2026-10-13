@@ -632,6 +632,8 @@ function ChatInterface({
         activeProvider={provider}
         activeProviderModel={currentProviderModel}
         currentSessionId={currentSessionId || selectedSession?.id || null}
+        canCompactContext={Boolean(currentSessionId || selectedSession?.id) && !isProcessing && !editingAnchorId && queueItems.length === 0}
+        onCompactContext={sendCompactCommand}
         onSelectProviderModel={selectProviderModel}
       />
     </PermissionContext.Provider>
