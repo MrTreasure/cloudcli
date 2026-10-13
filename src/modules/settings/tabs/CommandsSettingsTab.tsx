@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { descriptionPreview } from '@/shared/utils';
 import { ENABLED_AGENT_PROVIDERS } from '@/shared/constants';
 import { readSelectedProvider } from '@/shared/selectedProvider';
 import { useProjectSlashCommands } from '@/shared/hooks/useProjectSlashCommands';
@@ -62,7 +63,7 @@ export default function CommandsSettingsTab({ projects }: { projects: AgentSetti
     {isLoading && <p role="status" className="text-sm text-muted-foreground">{t('commandVisibility.loading')}</p>}
     {!isLoading && !error && filtered.length === 0 && <p className="py-6 text-center text-sm text-muted-foreground">{t('commandVisibility.empty')}</p>}
     <SettingsCard divided>
-      {filtered.map((command) => <SettingsRow key={command.name} label={command.name} description={command.description}>
+      {filtered.map((command) => <SettingsRow key={command.name} label={command.name} description={descriptionPreview(command.description)}>
         <SettingsToggle checked={!hiddenCommands.has(command.name)} onChange={(visible) => setCommandsVisible([command.name], visible)} ariaLabel={command.name} />
       </SettingsRow>)}
     </SettingsCard>

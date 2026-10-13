@@ -564,6 +564,10 @@ export default function ChatComposer({
             )}
 
             <ComposerModelMenu
+              codexFast={codexFast}
+              codexFastBusy={codexFastBusy}
+              codexFastError={codexFastError}
+              onSelectCodexFast={provider === 'codex' ? onSelectCodexFast : undefined}
               effort={effort}
               effortOptions={availableEffortOptions}
               onSelectEffort={onSelectEffort}

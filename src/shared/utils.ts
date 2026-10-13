@@ -45,6 +45,17 @@ export function interfaceTextKey(text: string): string {
 
 // ---------------------------
 
+//----------------- DESCRIPTION PREVIEWS ------------
+
+/** Skills and command lists show at most 200 Unicode characters plus an ellipsis; full metadata stays available for search and execution. */
+export function descriptionPreview(description?: string | null): string {
+  if (!description) return '';
+  const characters = Array.from(description);
+  return characters.length > 200 ? `${characters.slice(0, 200).join('').trimEnd()}…` : description;
+}
+
+// ---------------------------
+
 //----------------- TAILWIND CLASS COMPOSITION ------------
 
 /**

@@ -19,7 +19,7 @@ import {
   X,
 } from 'lucide-react';
 
-import { formatContextTokenCount, readContextWindowUsage } from '@/shared/utils';
+import { descriptionPreview, formatContextTokenCount, readContextWindowUsage } from '@/shared/utils';
 import { LocalizedText } from '@/shared/ui/LocalizedText';
 import { useInterfaceText } from '@/shared/hooks/useInterfaceText';
 import { Badge, Button, Dialog, DialogContent, DialogTitle, Input } from '@/shared/ui';
@@ -184,8 +184,8 @@ function HelpContent({ data }: { data: HelpCommandData }) {
                   </Badge>
                 </div>
                 <p className="mt-3 text-sm leading-5 text-muted-foreground">
-                  {command.description
-                    || (command.descriptionKey ? t(command.descriptionKey) : t('chat:misc.noDescription'))}
+                  {descriptionPreview(command.description
+                    || (command.descriptionKey ? t(command.descriptionKey) : t('chat:misc.noDescription')))}
                 </p>
               </div>
             ))}

@@ -3,7 +3,7 @@ import { Search } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import type { SlashCommand } from '@/shared/types';
-import { isSkillCommand } from '@/shared/utils';
+import { isSkillCommand, descriptionPreview } from '@/shared/utils';
 
 type CommandGroupKey = 'builtIn' | 'custom' | 'skills';
 
@@ -96,7 +96,7 @@ export default function QuickSettingsCommandsTab({
           >
             <span className="font-mono text-sm text-foreground">{command.name}</span>
             {command.description && (
-              <span className="line-clamp-2 text-xs text-muted-foreground">{command.description}</span>
+              <span className="line-clamp-2 text-xs text-muted-foreground">{descriptionPreview(command.description)}</span>
             )}
           </button>
         ))}

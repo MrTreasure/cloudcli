@@ -128,3 +128,10 @@ git add docs/nas/commit-log.md docs/nas/file-index.md
 ### 回退依赖
 
 先移除 UI、发送快照和会话路由，再移除 provider tier 覆盖；若只回退 provider 覆盖，UI 的关闭状态会与实际继承的 priority 不一致。数据库列为新增默认 0、旧代码可忽略，无需破坏性删除；如回退数据库 schema，须同步修改 SELECT 列和元数据服务。CPA 许可/额度保护独立继续生效，不随 CloudCLI 回退改变。功能提交：`feat(codex): add session-scoped Fast requests`；完整涉及文件由 NAS hook 自动归档，提交 SHA 在下一次生成记录时补齐。
+
+
+## Fast 菜单入口与技能描述预览
+
+- Codex 的模型/推理菜单增加“请求 Fast”复选项，与输入区开关操作同一会话值，保留加载/保存禁用及失败重试；维护入口为 `ComposerModelMenu.tsx`、`ComposerMenuPrimitives.tsx`、`ChatComposer.tsx`，依赖上述会话 Fast 服务，回退菜单入口不影响底层选择。
+- 技能卡片、命令显示/隐藏设置、快捷命令列表和 composer 命令菜单统一使用 `src/shared/utils.ts` 的 `descriptionPreview`：最多 200 个 Unicode 字符，超出追加省略号，后端元数据、完整描述搜索和技能调用保持完整。源码涉及 `src/modules/skills/ProviderSkills.tsx`、settings/quick-settings-panel 命令列表与 `CommandMenu.tsx`。这是本地 UI 优化，未合入额外上游 PR；回退这些展示调用即可。
+- 核对本机 finesse-ui SKILL.md：YAML 顶层 description 本身包含完整长介绍，metadata.short-description 另有简短描述；CloudCLI 读取的是顶层 description，描述为 4,160 个 Unicode 字符，解析结果与原始 YAML 字段完全一致，没有混入正文。未修改本机技能源文件。

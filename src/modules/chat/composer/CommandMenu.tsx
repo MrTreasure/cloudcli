@@ -14,6 +14,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 
+import { descriptionPreview } from '@/shared/utils';
+
 type CommandMenuCommand = {
   name: string;
   description?: string;
@@ -308,9 +310,9 @@ export default function CommandMenu({
                   {command.description && (
                     <div
                       className="truncate whitespace-nowrap text-[12px] leading-4 text-muted-foreground"
-                      title={command.description}
+                      title={descriptionPreview(command.description)}
                     >
-                      {command.description}
+                      {descriptionPreview(command.description)}
                     </div>
                   )}
                 </div>

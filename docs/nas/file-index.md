@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`5c76762ec39373b067508492d6329d0cede06ec9`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`642b476bed7e2645022700e1fcaa5e567f6d469d`。
 
-记录基线与当前暂存树之间的全部净差异，共 488 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 493 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -340,6 +340,8 @@
 | M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
 | M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
 | M | [src/modules/chat/composer/CommandMenu.tsx](../../src/modules/chat/composer/CommandMenu.tsx) | — |
+| M | [src/modules/chat/composer/ComposerMenuPrimitives.tsx](../../src/modules/chat/composer/ComposerMenuPrimitives.tsx) | — |
+| M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
 | M | [src/modules/chat/composer/ModelGroupList.tsx](../../src/modules/chat/composer/ModelGroupList.tsx) | — |
 | M | [src/modules/chat/composer/PermissionRequestsBanner.tsx](../../src/modules/chat/composer/PermissionRequestsBanner.tsx) | — |
 | M | [src/modules/chat/composer/QueuedMessageCard.tsx](../../src/modules/chat/composer/QueuedMessageCard.tsx) | — |
@@ -357,6 +359,7 @@
 | A | [src/modules/chat/tests/asyncQuestionPanel.test.tsx](../../src/modules/chat/tests/asyncQuestionPanel.test.tsx) | — |
 | M | [src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx](../../src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx) | — |
 | A | [src/modules/chat/tests/codexFastState.test.ts](../../src/modules/chat/tests/codexFastState.test.ts) | — |
+| A | [src/modules/chat/tests/composerFastMenu.test.tsx](../../src/modules/chat/tests/composerFastMenu.test.tsx) | — |
 | A | [src/modules/chat/tests/composerSendCompactCommand.test.ts](../../src/modules/chat/tests/composerSendCompactCommand.test.ts) | — |
 | M | [src/modules/chat/tests/composerToolsSettingsResolution.test.ts](../../src/modules/chat/tests/composerToolsSettingsResolution.test.ts) | — |
 | A | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
@@ -438,6 +441,7 @@
 | M | [src/modules/project-workspace/hooks/useProjectsState.ts](../../src/modules/project-workspace/hooks/useProjectsState.ts) | — |
 | M | [src/modules/project-workspace/WorkspaceErrorBoundary.tsx](../../src/modules/project-workspace/WorkspaceErrorBoundary.tsx) | — |
 | M | [src/modules/provider-auth/hooks/useProviderAuthStatus.ts](../../src/modules/provider-auth/hooks/useProviderAuthStatus.ts) | — |
+| M | [src/modules/quick-settings-panel/QuickSettingsCommandsTab.tsx](../../src/modules/quick-settings-panel/QuickSettingsCommandsTab.tsx) | — |
 | M | [src/modules/settings/hooks/useSettingsController.ts](../../src/modules/settings/hooks/useSettingsController.ts) | — |
 | M | [src/modules/settings/Settings.tsx](../../src/modules/settings/Settings.tsx) | — |
 | M | [src/modules/settings/SettingsSidebar.tsx](../../src/modules/settings/SettingsSidebar.tsx) | — |
@@ -463,6 +467,7 @@
 | M | [src/modules/sidebar/SidebarRecentConversations.tsx](../../src/modules/sidebar/SidebarRecentConversations.tsx) | — |
 | M | [src/modules/sidebar/SidebarSessionItem.tsx](../../src/modules/sidebar/SidebarSessionItem.tsx) | — |
 | M | [src/modules/sidebar/tests/recentConversationTitleSync.test.ts](../../src/modules/sidebar/tests/recentConversationTitleSync.test.ts) | — |
+| M | [src/modules/skills/ProviderSkills.tsx](../../src/modules/skills/ProviderSkills.tsx) | — |
 | M | [src/modules/task-master/modals/CreateTaskModal.tsx](../../src/modules/task-master/modals/CreateTaskModal.tsx) | — |
 | M | [src/modules/task-master/modals/TaskDetailModal.tsx](../../src/modules/task-master/modals/TaskDetailModal.tsx) | — |
 | M | [src/modules/task-master/modals/TaskHelpModal.tsx](../../src/modules/task-master/modals/TaskHelpModal.tsx) | — |

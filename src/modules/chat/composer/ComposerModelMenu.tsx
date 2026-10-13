@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Zap } from 'lucide-react';
 
 import type { ProviderModelOption } from '@/shared/types';
 import { DEFAULT_EFFORT_VALUE } from '@/shared/constants';
@@ -25,6 +25,11 @@ type ComposerModelMenuProps = {
   modelOptions: ProviderModelOption[];
   onSelectModel: (model: string) => void;
   modelsLoading: boolean;
+  /** Only Codex exposes this independent per-session speed intent. */
+  codexFast?: boolean;
+  codexFastBusy?: boolean;
+  codexFastError?: string | null;
+  onSelectCodexFast?: (enabled: boolean) => void;
 };
 
 /**
@@ -39,6 +44,10 @@ function ComposerModelMenu({
   modelOptions,
   onSelectModel,
   modelsLoading,
+  codexFast = false,
+  codexFastBusy = false,
+  codexFastError,
+  onSelectCodexFast,
 }: ComposerModelMenuProps) {
   const { t } = useTranslation('chat');
   const [isOpen, setIsOpen] = useState(false);
@@ -119,6 +128,23 @@ function ComposerModelMenu({
                   className="capitalize"
                 />
               ))}
+            </>
+          )}
+
+          {onSelectCodexFast && (
+            <>
+              {hasEffortSection && <ComposerMenuSeparator />}
+              <ComposerMenuItem
+                role="menuitemcheckbox"
+                label={t('input.fast.label', { defaultValue: 'Request Fast' })}
+                description={codexFastError
+                  ? t('input.fast.retry', { defaultValue: 'Fast setting could not be saved or loaded. Click to retry.' })
+                  : t('input.fast.hint', { defaultValue: 'Applies to the next turn; subject to server permission and quota protection.' })}
+                icon={<Zap className="h-3.5 w-3.5" />}
+                isSelected={codexFast}
+                disabled={codexFastBusy}
+                onSelect={() => onSelectCodexFast(!codexFast)}
+              />
             </>
           )}
 

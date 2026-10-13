@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { cn } from '@/shared/utils';
+import { cn, descriptionPreview } from '@/shared/utils';
 import {
   Badge,
   Button,
@@ -708,7 +708,7 @@ export default function ProviderSkills({ selectedProvider, currentProjects }: Pr
                   </div>
 
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-                    {skill.description || t('skillsPage.noDescription')}
+                    {descriptionPreview(skill.description) || t('skillsPage.noDescription')}
                   </p>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">

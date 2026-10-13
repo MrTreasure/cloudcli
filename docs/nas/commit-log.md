@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`5c76762ec39373b067508492d6329d0cede06ec9`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`642b476bed7e2645022700e1fcaa5e567f6d469d`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,31 +11,17 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| A | [scripts/verify-codex-fast.mjs](../../scripts/verify-codex-fast.mjs) | — |
-| M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
-| M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
-| M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
-| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
-| M | [server/modules/providers/list/codex/codex-runtime.provider.ts](../../server/modules/providers/list/codex/codex-runtime.provider.ts) | — |
-| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
-| A | [server/modules/providers/services/provider-session-settings.service.ts](../../server/modules/providers/services/provider-session-settings.service.ts) | — |
-| M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
-| M | [server/modules/providers/tests/codex-runtime.test.ts](../../server/modules/providers/tests/codex-runtime.test.ts) | — |
-| M | [server/modules/providers/tests/provider-token-usage.service.test.ts](../../server/modules/providers/tests/provider-token-usage.service.test.ts) | — |
-| M | [server/modules/providers/tests/provider.routes.test.ts](../../server/modules/providers/tests/provider.routes.test.ts) | — |
-| M | [server/modules/scheduled-messages/tests/queued-messages.test.ts](../../server/modules/scheduled-messages/tests/queued-messages.test.ts) | — |
-| M | [server/modules/scheduled-messages/tests/scheduled-messages.test.ts](../../server/modules/scheduled-messages/tests/scheduled-messages.test.ts) | — |
-| M | [server/modules/websocket/tests/chat-edit-send.test.ts](../../server/modules/websocket/tests/chat-edit-send.test.ts) | — |
-| M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
 | M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
-| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
-| A | [src/modules/chat/hooks/useCodexFastState.ts](../../src/modules/chat/hooks/useCodexFastState.ts) | — |
-| A | [src/modules/chat/tests/codexFastState.test.ts](../../src/modules/chat/tests/codexFastState.test.ts) | — |
-| M | [src/modules/chat/tests/composerSendCompactCommand.test.ts](../../src/modules/chat/tests/composerSendCompactCommand.test.ts) | — |
-| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
-| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
-| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
+| M | [src/modules/chat/composer/CommandMenu.tsx](../../src/modules/chat/composer/CommandMenu.tsx) | — |
+| M | [src/modules/chat/composer/ComposerMenuPrimitives.tsx](../../src/modules/chat/composer/ComposerMenuPrimitives.tsx) | — |
+| M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
+| M | [src/modules/chat/modals/CommandResultModal.tsx](../../src/modules/chat/modals/CommandResultModal.tsx) | — |
+| A | [src/modules/chat/tests/composerFastMenu.test.tsx](../../src/modules/chat/tests/composerFastMenu.test.tsx) | — |
+| M | [src/modules/quick-settings-panel/QuickSettingsCommandsTab.tsx](../../src/modules/quick-settings-panel/QuickSettingsCommandsTab.tsx) | — |
+| M | [src/modules/settings/tabs/CommandsSettingsTab.tsx](../../src/modules/settings/tabs/CommandsSettingsTab.tsx) | — |
+| M | [src/modules/settings/tests/commandVisibilityPanel.test.tsx](../../src/modules/settings/tests/commandVisibilityPanel.test.tsx) | — |
+| M | [src/modules/skills/ProviderSkills.tsx](../../src/modules/skills/ProviderSkills.tsx) | — |
+| M | [src/shared/utils.ts](../../src/shared/utils.ts) | — |
 
 ## NAS 主线提交
 
@@ -2103,6 +2089,40 @@
   - `server/modules/file-tree/tests/file-tree.service.test.ts`
   - `src/shared/api.ts`
   - `src/shared/tests/fileTreeBrowsing.test.ts`
+
+### 642b476b · 2026-10-13 · feat(codex): add session-scoped Fast requests
+
+- 完整提交：`642b476bed7e2645022700e1fcaa5e567f6d469d`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `scripts/verify-codex-fast.mjs`
+  - `server/modules/database/migrations.ts`
+  - `server/modules/database/repositories/sessions.db.ts`
+  - `server/modules/database/schema.ts`
+  - `server/modules/providers/list/codex/codex-app-server.runtime.ts`
+  - `server/modules/providers/list/codex/codex-runtime.provider.ts`
+  - `server/modules/providers/provider.routes.ts`
+  - `server/modules/providers/services/provider-session-settings.service.ts`
+  - `server/modules/providers/tests/codex-app-server.runtime.test.ts`
+  - `server/modules/providers/tests/codex-runtime.test.ts`
+  - `server/modules/providers/tests/provider-token-usage.service.test.ts`
+  - `server/modules/providers/tests/provider.routes.test.ts`
+  - `server/modules/scheduled-messages/tests/queued-messages.test.ts`
+  - `server/modules/scheduled-messages/tests/scheduled-messages.test.ts`
+  - `server/modules/websocket/tests/chat-edit-send.test.ts`
+  - `src/modules/chat/ChatInterface.tsx`
+  - `src/modules/chat/composer/ChatComposer.tsx`
+  - `src/modules/chat/hooks/useChatComposerState.ts`
+  - `src/modules/chat/hooks/useCodexFastState.ts`
+  - `src/modules/chat/tests/codexFastState.test.ts`
+  - `src/modules/chat/tests/composerSendCompactCommand.test.ts`
+  - `src/modules/i18n/locales/en/chat.json`
+  - `src/modules/i18n/locales/zh-CN/chat.json`
+  - `src/shared/api.ts`
+  - `src/shared/types.ts`
 
 ## 从 PR / 其他分支合入的提交
 

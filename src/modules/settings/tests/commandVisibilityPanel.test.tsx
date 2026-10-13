@@ -27,3 +27,15 @@ test('settings switches and bulk actions persist command visibility', async () =
   fireEvent.click(screen.getByRole('button', { name: /全部隐藏|Hide all/ }));
   expect(screen.getByRole('switch', { name: '/goal' }).getAttribute('aria-checked')).toBe('false');
 });
+
+test('long skill descriptions show only 200 characters but search still uses the complete metadata', async () => {
+  const preview = '界'.repeat(200);
+  vi.mocked(api.providers.skills).mockResolvedValue(new Response(JSON.stringify({ data: { skills: [{
+    name: 'long-skill', command: '$long-skill', description: `${preview}tail-search-match`, sourcePath: '/tmp/SKILL.md', scope: 'global',
+  }] } })));
+  render(<CommandsSettingsTab projects={[{ name: 'project', fullPath: '/tmp/project' }]} />);
+  expect(await screen.findByText(`${preview}…`)).toBeTruthy();
+  expect(screen.queryByText(`${preview}tail-search-match`)).toBeNull();
+  fireEvent.change(screen.getByRole('textbox', { name: /搜索命令|Search commands/ }), { target: { value: 'tail-search-match' } });
+  await waitFor(() => expect(screen.getByRole('switch', { name: '$long-skill' })).toBeTruthy());
+});
