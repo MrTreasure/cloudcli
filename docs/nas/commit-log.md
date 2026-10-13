@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`12949e245fc41bbf10b83552d9424b8b0ca5ba72`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`7a79aa695d1583391d41f31f20beac63628e8c33`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,7 +11,8 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
+| M | [src/modules/chat/tests/asyncQuestionPanel.test.tsx](../../src/modules/chat/tests/asyncQuestionPanel.test.tsx) | — |
+| M | [src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx](../../src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx) | — |
 
 ## NAS 主线提交
 
@@ -2175,6 +2176,16 @@
   - `src/shared/tests/selectedProvider.test.ts`
   - `src/shared/tests/useSelectedProvider.test.tsx`
   - `vitest.setup.ts`
+
+### 7a79aa69 · 2026-10-13 · feat(chat): show yellow lightning icon when Fast is enabled
+
+- 完整提交：`7a79aa695d1583391d41f31f20beac63628e8c33`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `src/modules/chat/composer/ComposerModelMenu.tsx`
 
 ## 从 PR / 其他分支合入的提交
 

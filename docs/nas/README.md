@@ -161,3 +161,12 @@ Fast 滑动开关移到模型/推理菜单最顶部，正常文案仅“更快�
 - 模型选择按钮在当前 Codex 会话开启 Fast 时，于模型文字前显示黄色实心闪电，深浅主题分别使用 yellow-400 / yellow-600；关闭或切换到不支持 Fast 的 Provider 时隐藏。
 - 维护路径：`src/modules/chat/composer/ComposerModelMenu.tsx`，复用现有 Zap 图标及受控会话状态；来源为 NAS 本地 UI 调整，无额外上游 PR。
 - 回退仅需移除按钮内的条件图标，依赖已有 Fast 会话状态，菜单开关与请求行为由原功能负责。
+
+
+## 用户选择卡片简化
+
+- 目的：精简聊天中的用户提问卡片，统一使用主题色、轻边框、小圆角和清楚的选项/操作层次；移除渐变顶线、脉冲圆点、入场位移动画与重复 Enter 提示，兼容深浅主题和长问题换行。
+- 没有预设选项的问题直接展示并聚焦自由输入，不再要求先选择“0 / 其他”；有选项时继续支持单选、多选和自定义答案，多题切换保留各题选择和草稿。空回答的 Enter 与禁用提交按钮保持一致，跳过操作继续独立可用。
+- 维护路径：`src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx`、`src/modules/chat/tests/asyncQuestionPanel.test.tsx`；Claude 权限提问和 Codex 异步提问复用同一卡片，回答仍由既有权限/异步通道处理。
+- 验证：816 项全量前端测试通过，覆盖无选项直接输入、空回答 Enter 不发送、多题返回后保留多选和草稿；类型检查、构建及涉及文件 lint 通过。NAS 前端已增量发布，未运行浏览器自动化。
+- 来源：NAS 本地 UI 优化，无额外上游 PR。回退卡片组件及对应测试即可恢复旧交互，依赖既有 Question 类型及 AsyncQuestionPanel，不涉及数据库或后端迁移。
