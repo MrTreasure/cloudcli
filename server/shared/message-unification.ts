@@ -1,5 +1,5 @@
 import type { AnyRecord, NormalizedMessage } from '@/shared/types.js';
-import { readObjectRecord } from '@/shared/utils.js';
+import { readObjectRecord, normalizeUserQuestions } from '@/shared/utils.js';
 
 /**
  * Cross-provider unification of the two interaction surfaces that Claude and
@@ -27,7 +27,7 @@ const CHECKLIST_TOOL = 'TodoWrite';
 const ASK_TOOL = 'AskUserQuestion';
 
 /** Provider spellings of the ask-the-user tool. Codex calls it `request_user_input`. */
-const ASK_TOOL_ALIASES = new Set([ASK_TOOL, 'request_user_input']);
+const ASK_TOOL_ALIASES = new Set([ASK_TOOL, 'request_user_input', 'request_user_input_async']);
 
 /**
  * Claude's incremental task tracker. Each call mutates one entry of a list the
@@ -164,6 +164,7 @@ function readAskAnswers(message: NormalizedMessage): AnyRecord | null {
  * question card followed by an unreadable result blob.
  */
 function unifyAskCall(message: NormalizedMessage): void {
+  const delivery = message.toolName === 'request_user_input_async' ? 'async' : undefined;
   message.toolName = ASK_TOOL;
 
   const input = readToolPayload(message.toolInput);
@@ -172,9 +173,10 @@ function unifyAskCall(message: NormalizedMessage): void {
   }
 
   const rawAnswers = readAskAnswers(message);
+  const questions = normalizeUserQuestions(input.questions);
   message.toolInput = rawAnswers
-    ? { ...input, answers: keyAnswersByQuestion(input.questions, rawAnswers) }
-    : input;
+    ? { ...input, questions, ...(delivery ? { delivery } : {}), answers: keyAnswersByQuestion(input.questions, rawAnswers) }
+    : { ...input, questions, ...(delivery ? { delivery } : {}) };
 }
 
 //----------------- RUNNING CHECKLIST ------------

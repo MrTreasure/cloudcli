@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { api } from '@/shared/api';
 import { PROVIDER_PERMISSION_PREFERENCE_KEYS } from '@/shared/constants';
 import { readUserPreference } from '@/shared/userSettings';
-import type { CommandModalPayload, CostCommandData, CodexRuntimeMode, HelpCommandData, MarkSessionProcessing, ModelCommandData, QueuedMessage,QueueMessageInput, SessionActivityMap, StatusCommandData,QueuedSendOptions,ChatAttachment,ChatMessage,PendingPermissionRequest,PermissionMode,SessionEstablishedContext,Project,ProjectSession,LLMProvider,SlashCommand } from '@/shared/types';
+import type { CommandModalPayload, CostCommandData, CodexRuntimeMode, HelpCommandData, MarkSessionProcessing, ModelCommandData, QueuedMessage,QueueMessageInput, SessionActivityMap, StatusCommandData,QueuedSendOptions,ChatAttachment,ChatMessage,PendingPermissionRequest,PermissionMode,SessionEstablishedContext,Project,ProjectSession,LLMProvider,SlashCommand,Question } from '@/shared/types';
 import { grantClaudeToolPermission } from '@/modules/chat/utils/chatPermissions';
 import {
   readDraftText,
@@ -32,6 +32,8 @@ type UseChatComposerStateArgs = {
   hasQueuedMessages?: boolean;
   enqueueQueuedMessage?: (input: QueueMessageInput) => Promise<QueuedMessage>;
   updateQueuedMessage?: (message: QueuedMessage, input: QueueMessageInput) => Promise<QueuedMessage>;
+  steerQueuedMessage?: (message: QueuedMessage) => void;
+  canSteerQueuedMessage?: boolean;
   selectedProject: Project | null;
   selectedSession: ProjectSession | null;
   currentSessionId: string | null;
@@ -171,6 +173,8 @@ const SAFARI_IME_RACE_WINDOW_MS = 30;
 export function useChatComposerState({
   enqueueQueuedMessage,
   updateQueuedMessage,
+  steerQueuedMessage,
+  canSteerQueuedMessage = false,
   hasQueuedMessages = false,
   selectedProject,
   selectedSession,
@@ -1012,6 +1016,19 @@ export function useChatComposerState({
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
+  const answerAsyncQuestion = useCallback(async (questions: Question[], answers: Record<string, string>) => {
+    if (editingAnchorId) throw new Error('Finish editing the message first.');
+    const content = questions.map((question) => `${question.question}\n${answers[question.question] || '(skipped)'}`).join('\n\n');
+    const options = buildSendOptions(content);
+    if (isLoading || hasQueuedMessages) {
+      if (!enqueueQueuedMessage) throw new Error('Queueing is unavailable.');
+      const message = await enqueueQueuedMessage({ content, options, attachments: [] });
+      if (canSteerQueuedMessage) steerQueuedMessage?.(message);
+    } else {
+      await handleSubmit(createFakeSubmitEvent(), { content, options, attachments: [], uploadedAttachments: [] });
+    }
+  }, [editingAnchorId, buildSendOptions, isLoading, hasQueuedMessages, enqueueQueuedMessage, canSteerQueuedMessage, steerQueuedMessage, handleSubmit]);
+
   const editQueuedDraft = useCallback((message: QueuedMessage) => {
     setEditingQueuedMessage(message);
     setInput(message.content);
@@ -1354,6 +1371,7 @@ export function useChatComposerState({
     isDragActive,
     openAttachmentPicker: open,
     handleSubmit,
+    answerAsyncQuestion,
     editingQueuedMessage,
     sendCompactCommand,
     editQueuedDraft,

@@ -133,7 +133,8 @@
     "browser": "Browser",
     "notifications": "Notifications",
     "plugins": "Plugins",
-    "about": "About"
+    "about": "About",
+    "commands": "Commands"
   },
   "notifications": {
     "title": "Notifications",
@@ -898,5 +899,20 @@
     "teamManagementDescription": "Multiple users, role-based access, and shared projects for your team.",
     "licensed": "Licensed under AGPL-3.0",
     "proCta": "Available with CloudCLI Pro"
+  },
+  "commandVisibility": {
+    "title": "Command visibility",
+    "description": "Choose which commands appear in the input menu. Visibility is saved separately for each provider; hidden commands can still be typed manually.",
+    "provider": "Provider",
+    "project": "Project catalogue",
+    "count": "{{visible}} of {{total}} commands shown",
+    "showAll": "Show all",
+    "hideAll": "Hide all",
+    "search": "Search commands",
+    "error": "Unable to load commands.",
+    "retry": "Retry",
+    "loading": "Loading commands…",
+    "empty": "No matching commands.",
+    "saved": "Changes save automatically to your account and apply immediately."
   }
 }

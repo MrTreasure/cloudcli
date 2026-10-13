@@ -351,6 +351,8 @@
     "actualValues": "目前值",
     "compactStage": "自動壓縮",
     "compactContext": "壓縮上下文",
+    "needsYourInput": "{{provider}} 需要你的選擇",
+    "questionSendFailed": "回答傳送失敗，請重試。",
     "contextUnknown": "尚未取得",
     "contextOccupancy": "上下文佔用：{{percentage}}",
     "contextInput": "輸入 Token",

@@ -119,6 +119,18 @@ test("Codex's request_user_input becomes an answered AskUserQuestion", () => {
   assert.deepEqual((unified.toolInput as { answers: unknown }).answers, { 'Which season?': 'Summer' });
 });
 
+test('request_user_input_async accepts title and string options without interpreting acceptance as an answer', () => {
+  const [unified] = prepareTranscriptMessages([message({ provider: 'codex', kind: 'tool_use', toolName: 'request_user_input_async', toolId: 'ask-1',
+    toolInput: JSON.stringify({ questions: [{ title: 'Which commands?', options: ['slash', 'toolbar'] }] }),
+    toolResult: { content: '{"accepted":true}' } })]);
+  assert.equal(unified.toolName, 'AskUserQuestion');
+  const input = unified.toolInput as { delivery: string; answers?: unknown; questions: Array<{ question: string; options: Array<{ label: string }> }> };
+  assert.equal(input.delivery, 'async');
+  assert.equal(input.questions[0].question, 'Which commands?');
+  assert.equal(input.questions[0].options[0].label, 'slash');
+  assert.equal(input.answers, undefined);
+});
+
 test('a multi-select Codex answer keeps every label it picked', () => {
   const [unified] = prepareTranscriptMessages([
     message({

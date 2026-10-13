@@ -8,6 +8,7 @@ import {
   MonitorPlay,
   Palette,
   Plug,
+  TerminalSquare,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
@@ -70,6 +71,7 @@ type SettingsMainTabMeta = {
 export const SETTINGS_MAIN_TABS: SettingsMainTabMeta[] = [
   { id: 'agents', label: 'Agents', keywords: 'agents subagents claude code', icon: Bot },
   { id: 'appearance', label: 'Appearance', keywords: 'appearance theme dark light language', icon: Palette },
+  { id: 'commands', label: 'Commands', keywords: 'commands slash visibility menu 命令 显示 隐藏', icon: TerminalSquare },
   { id: 'git', label: 'Git', keywords: 'git github commits', icon: GitBranch },
   { id: 'api', label: 'API Tokens', keywords: 'api tokens auth keys', icon: KeyRound },
   { id: 'tasks', label: 'Tasks', keywords: 'tasks taskmaster', icon: ListChecks },

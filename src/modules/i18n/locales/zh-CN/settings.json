@@ -133,7 +133,8 @@
     "browser": "浏览器",
     "notifications": "通知",
     "plugins": "插件",
-    "about": "关于"
+    "about": "关于",
+    "commands": "命令"
   },
   "notifications": {
     "title": "通知",
@@ -898,5 +899,20 @@
     "teamManagementDescription": "多用户、基于角色的访问权限以及团队共享项目。",
     "licensed": "基于 AGPL-3.0 许可",
     "proCta": "CloudCLI Pro 提供"
+  },
+  "commandVisibility": {
+    "title": "命令显示管理",
+    "description": "控制输入框命令菜单中的显示项。按服务商分别保存；隐藏的命令仍可手动输入执行。",
+    "provider": "服务商",
+    "project": "项目命令目录",
+    "count": "已显示 {{visible}} / {{total}} 个命令",
+    "showAll": "全部显示",
+    "hideAll": "全部隐藏",
+    "search": "搜索命令",
+    "error": "命令加载失败。",
+    "retry": "重试",
+    "loading": "正在加载命令…",
+    "empty": "没有匹配的命令。",
+    "saved": "修改自动保存到当前账号，并立即生效。"
   }
 }

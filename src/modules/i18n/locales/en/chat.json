@@ -412,6 +412,8 @@
     "actualValues": "Current",
     "compactStage": "Auto compact",
     "compactContext": "Compact context",
+    "needsYourInput": "{{provider}} needs your input",
+    "questionSendFailed": "Unable to send the answer. Please try again.",
     "contextUnknown": "Not reported",
     "contextOccupancy": "Context occupancy: {{percentage}}",
     "contextInput": "Input tokens",

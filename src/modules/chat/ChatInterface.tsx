@@ -218,6 +218,7 @@ function ChatInterface({
     isDragActive,
     openAttachmentPicker,
     handleSubmit,
+    answerAsyncQuestion,
     editingQueuedMessage,
     sendCompactCommand,
     editQueuedDraft,
@@ -246,6 +247,8 @@ function ChatInterface({
     hasQueuedMessages: queueItems.length > 0,
     enqueueQueuedMessage: enqueue,
     updateQueuedMessage: update,
+    steerQueuedMessage: steer,
+    canSteerQueuedMessage: canSteer,
     selectedProject,
     selectedSession,
     currentSessionId,
@@ -403,7 +406,8 @@ function ChatInterface({
   const permissionContextValue = useMemo(() => ({
     pendingPermissionRequests,
     handlePermissionDecision,
-  }), [pendingPermissionRequests, handlePermissionDecision]);
+    answerAsyncQuestion,
+  }), [pendingPermissionRequests, handlePermissionDecision, answerAsyncQuestion]);
 
   // Lets markdown image paths in the transcript resolve against this project.
   const markdownWorkspaceValue = useMemo(() => ({

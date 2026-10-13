@@ -417,6 +417,8 @@
     "actualValues": "当前值",
     "compactStage": "自动压缩",
     "compactContext": "压缩上下文",
+    "needsYourInput": "{{provider}} 需要你的选择",
+    "questionSendFailed": "回答发送失败，请重试。",
     "contextUnknown": "尚未获取",
     "contextOccupancy": "上下文占用：{{percentage}}",
     "contextInput": "输入 Token",

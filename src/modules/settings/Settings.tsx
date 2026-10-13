@@ -15,6 +15,7 @@ import NotificationsSettingsTab from '@/modules/settings/tabs/NotificationsSetti
 import TasksSettingsTab from '@/modules/settings/tabs/tasks-settings/TasksSettingsTab';
 import { PluginSettingsTab } from '@/modules/plugins';
 import AboutTab from '@/modules/settings/tabs/AboutTab';
+import CommandsSettingsTab from '@/modules/settings/tabs/CommandsSettingsTab';
 import { useSettingsController } from '@/modules/settings/hooks/useSettingsController';
 import { useWebPush } from '@/modules/settings/hooks/useWebPush';
 import type { AgentSettingsProject } from '@/shared/types';
@@ -235,6 +236,7 @@ function Settings({ isOpen, onClose, projects = [], initialTab = 'agents' }: Set
               )}
 
               {activeTab === 'git' && <GitSettingsTab />}
+              {activeTab === 'commands' && <CommandsSettingsTab projects={projects} />}
 
               {activeTab === 'agents' && (
                 <AgentsSettingsTab

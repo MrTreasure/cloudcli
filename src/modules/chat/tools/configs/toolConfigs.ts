@@ -663,7 +663,8 @@ export const TOOL_CONFIGS: Record<string, ToolDisplayConfig> = {
       contentType: 'question-answer',
       getContentProps: (input: any) => ({
         questions: input.questions || [],
-        answers: input.answers || {}
+        answers: input.answers || {},
+        delivery: input.delivery,
       }),
     },
     // The result only restates the selection the input now carries.

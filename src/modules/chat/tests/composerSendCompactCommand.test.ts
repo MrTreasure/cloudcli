@@ -36,7 +36,7 @@ const backgroundOnly: SessionActivityMap = new Map([[
   },
 ]]);
 
-const setup = (processingSessions?: SessionActivityMap, provider: 'claude' | 'codex' = 'claude') => {
+const setup = (processingSessions?: SessionActivityMap, provider: 'claude' | 'codex' = 'claude', overrides: Partial<Parameters<typeof useChatComposerState>[0]> = {}) => {
   const sent: Array<{ type: string; content?: string }> = [];
   const view = renderHook(() =>
     useChatComposerState({
@@ -58,6 +58,7 @@ const setup = (processingSessions?: SessionActivityMap, provider: 'claude' | 'co
       addMessage: () => undefined,
       setIsUserScrolledUp: () => undefined,
       setPendingPermissionRequests: () => undefined,
+      ...overrides,
     }),
   );
   return { sent, view };
@@ -66,6 +67,20 @@ const setup = (processingSessions?: SessionActivityMap, provider: 'claude' | 'co
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(async () => new Response('[]', { status: 200, headers: { 'Content-Type': 'application/json' } })));
   localStorage.clear();
+});
+
+test('an async question answer steers a busy Codex turn without changing the draft', async () => {
+  const item = { id: 'answer-1', sessionId: SESSION.id } as Awaited<ReturnType<NonNullable<Parameters<typeof useChatComposerState>[0]['enqueueQueuedMessage']>>>;
+  const enqueue = vi.fn(async () => item);
+  const steer = vi.fn();
+  const { sent, view } = setup(undefined, 'codex', { isLoading: true, enqueueQueuedMessage: enqueue, steerQueuedMessage: steer, canSteerQueuedMessage: true });
+  await act(async () => view.result.current.setInput('unsent draft'));
+  await act(async () => view.result.current.answerAsyncQuestion([{ question: 'Which commands?', options: [] }], { 'Which commands?': 'slash commands' }));
+  assert.equal(enqueue.mock.calls.length, 1);
+  assert.equal(steer.mock.calls.length, 1);
+  assert.deepEqual(steer.mock.calls[0], [item]);
+  assert.equal(sent.length, 0);
+  assert.equal(view.result.current.input, 'unsent draft');
 });
 
 afterEach(() => {

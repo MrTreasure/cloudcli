@@ -3,6 +3,7 @@ import type { Dispatch, KeyboardEvent, RefObject, SetStateAction } from 'react';
 
 import { safeLocalStorage } from '@/modules/chat/utils/chatStorage';
 import { useProjectSlashCommands } from '@/shared/hooks/useProjectSlashCommands';
+import { useCommandVisibility } from '@/shared/hooks/useCommandVisibility';
 import type { LLMProvider, Project, SlashCommand } from '@/shared/types';
 import { isSkillCommand } from '@/shared/utils';
 
@@ -91,6 +92,7 @@ export function useSlashCommands({
   textareaRef,
   onExecuteCommand,
 }: UseSlashCommandsOptions) {
+  const { hiddenCommands } = useCommandVisibility(provider);
   const { commands: projectCommands, refresh: refreshProjectCommands } = useProjectSlashCommands(
     selectedProject,
     provider,
@@ -132,22 +134,26 @@ export function useSlashCommands({
     });
   }, [projectCommands, selectedProject]);
 
+  // Keep the full catalogue for manually typed commands; only menu entries
+  // and frequent suggestions obey the user's display preferences.
+  const visibleCommands = useMemo(() => slashCommands.filter((command) => !hiddenCommands.has(command.name)), [slashCommands, hiddenCommands]);
+
   // Derived, not stored: the filtered view is a pure function of the full
   // list and the typed query, so keeping it in state would only risk the two
   // drifting apart.
   const filteredCommands = useMemo(
-    () => filterSlashCommands(slashCommands, commandQuery),
-    [slashCommands, commandQuery],
+    () => filterSlashCommands(visibleCommands, commandQuery),
+    [visibleCommands, commandQuery],
   );
 
   const frequentCommands = useMemo(() => {
-    if (!selectedProject || slashCommands.length === 0) {
+    if (!selectedProject || visibleCommands.length === 0) {
       return [];
     }
 
     const parsedHistory = readCommandHistory(selectedProject.projectId);
 
-    return slashCommands
+    return visibleCommands
       .map((command) => ({
         ...command,
         usageCount: parsedHistory[command.name] || 0,
@@ -155,7 +161,7 @@ export function useSlashCommands({
       .filter((command) => command.usageCount > 0)
       .sort((commandA, commandB) => commandB.usageCount - commandA.usageCount)
       .slice(0, 5);
-  }, [selectedProject, slashCommands]);
+  }, [selectedProject, visibleCommands]);
 
   const trackCommandUsage = useCallback(
     (command: SlashCommand) => {
@@ -397,7 +403,7 @@ export function useSlashCommands({
 
   return {
     slashCommands,
-    slashCommandsCount: slashCommands.length,
+    slashCommandsCount: visibleCommands.length,
     filteredCommands,
     frequentCommands,
     commandQuery,

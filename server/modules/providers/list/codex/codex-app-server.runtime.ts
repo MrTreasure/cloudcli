@@ -10,6 +10,7 @@ import {
   createCompleteMessage,
   createNormalizedMessage,
   readObjectRecord,
+  normalizeUserQuestions,
 } from '@/shared/index.js';
 import type {
   AnyRecord,
@@ -315,13 +316,18 @@ export function transformCodexAppServerItem(item: AnyRecord): AnyRecord {
         images: input.images,
       };
     }
-    case 'agent_message':
+    case 'agent_message': {
+      const questions = normalizeUserQuestions(item.questions);
+      if (questions.length > 0) {
+        return { type: 'item', itemType: 'user_question', uuid, questions, delivery: 'async' };
+      }
       return {
         type: 'item',
         itemType,
         uuid,
         message: { role: 'assistant', content: readString(item.text) ?? '' },
       };
+    }
     case 'reasoning':
       return {
         type: 'item',

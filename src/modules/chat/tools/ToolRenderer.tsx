@@ -13,6 +13,7 @@ import { TodoListContent } from '@/modules/chat/tools/ContentRenderers/TodoListC
 import { TaskListContent } from '@/modules/chat/tools/ContentRenderers/TaskListContent';
 import { TextContent } from '@/modules/chat/tools/ContentRenderers/TextContent';
 import { QuestionAnswerContent } from '@/modules/chat/tools/ContentRenderers/QuestionAnswerContent';
+import { AsyncQuestionPanel } from '@/modules/chat/tools/InteractiveRenderers/AsyncQuestionPanel';
 import { PlanDisplay } from '@/modules/chat/tools/PlanDisplay';
 import { ToolStatusBadge } from '@/modules/chat/tools/ToolStatusBadge';
 import { DiffStatsBadge } from '@/modules/chat/tools/DiffStatsBadge';
@@ -268,7 +269,9 @@ export const ToolRenderer: React.FC<ToolRendererProps> = memo(({
         break;
 
       case 'question-answer':
-        contentComponent = (
+        contentComponent = contentProps.delivery === 'async' ? (
+          <AsyncQuestionPanel questions={contentProps.questions || []} questionId={toolId || 'async-question'} />
+        ) : (
           <QuestionAnswerContent
             questions={contentProps.questions || []}
             answers={contentProps.answers || {}}

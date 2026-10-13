@@ -4,6 +4,25 @@ import test from 'node:test';
 import { CodexSessionsProvider } from '@/modules/providers/list/codex/codex-sessions.provider.js';
 import { transformCodexAppServerItem } from '@/modules/providers/list/codex/codex-app-server.runtime.js';
 
+test('async AgentMessage questions retain selectable structure in live events and history', async () => {
+  const item = { type: 'agentMessage', id: 'question-1', text: 'Which commands?\n- slash\n- toolbar', delivery: 'async',
+    questions: [{ title: 'Which commands?', options: ['slash', 'toolbar'] }] };
+  const provider = new CodexSessionsProvider({ readRuntimeMode: () => 'app-server', appServer: { async readThread() {
+    return { thread: { turns: [{ id: 'turn-1', itemsView: 'full', startedAt: 1_786_100_010, items: [item] }] } };
+  } } });
+  const live = provider.normalizeMessage(transformCodexAppServerItem(item), 'session');
+  const history = await provider.fetchHistory('session', { providerSessionId: 'thread' });
+  for (const messages of [live, history.messages]) {
+    assert.equal(messages.length, 1);
+    assert.equal(messages[0].toolName, 'AskUserQuestion');
+    assert.equal(messages[0].toolId, 'question-1');
+    const input = messages[0].toolInput as { delivery: string; questions: Array<{ question: string; options: Array<{ label: string }> }> };
+    assert.equal(input.delivery, 'async');
+    assert.equal(input.questions[0].question, 'Which commands?');
+    assert.deepEqual(input.questions[0].options.map((option) => option.label), ['slash', 'toolbar']);
+  }
+});
+
 for (const change of [
   { kind: { type: 'add' }, diff: '+literal\nadded\n', oldText: '', newText: '+literal\nadded\n', toolName: 'Write' },
   { kind: { type: 'delete' }, diff: '-literal\nremoved\n', oldText: '-literal\nremoved\n', newText: '', toolName: 'Edit' },

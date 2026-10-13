@@ -115,7 +115,8 @@
     "computer": "電腦使用",
     "notifications": "通知",
     "plugins": "外掛",
-    "about": "關於"
+    "about": "關於",
+    "commands": "命令"
   },
   "notifications": {
     "title": "通知",
@@ -573,5 +574,20 @@
     "installAriaLabel": "外掛 git 儲存庫 URL",
     "tab": "分頁",
     "runningStatus": "執行中"
+  },
+  "commandVisibility": {
+    "title": "命令顯示管理",
+    "description": "控制輸入框命令選單中的顯示項目。依服務商分別儲存；隱藏的命令仍可手動輸入執行。",
+    "provider": "服務商",
+    "project": "專案命令目錄",
+    "count": "已顯示 {{visible}} / {{total}} 個命令",
+    "showAll": "全部顯示",
+    "hideAll": "全部隱藏",
+    "search": "搜尋命令",
+    "error": "命令載入失敗。",
+    "retry": "重試",
+    "loading": "正在載入命令…",
+    "empty": "沒有符合的命令。",
+    "saved": "修改自動儲存到目前帳號，並立即生效。"
   }
 }

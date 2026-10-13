@@ -2141,6 +2141,14 @@ export class CodexSessionsProvider implements IProviderSessions {
       const itemId = readNonEmptyString(raw.itemId as string | undefined) ?? baseId;
 
       switch (raw.itemType) {
+        case 'user_question':
+          return [createNormalizedMessage({
+            id: itemId, sessionId, timestamp: ts, provider: PROVIDER,
+            kind: 'tool_use', toolName: 'AskUserQuestion', toolId: itemId,
+            toolInput: { questions: raw.questions, delivery: 'async' },
+            toolResult: { content: '', isError: false },
+            status: 'completed',
+          })];
         case 'user_message':
           return this.normalizeHistoryEntry(raw, sessionId);
         case 'agent_message': {

@@ -1345,3 +1345,31 @@ export function findApplicationRoot(startDirectory: string): string {
 export function resolveCodexExecutable(): string {
   return process.env.CODEX_CLI_PATH?.trim() || 'codex';
 }
+
+// ---------------------------
+
+//----------------- USER QUESTION PAYLOADS ------------
+
+/**
+ * Used by Codex live adaptation and transcript unification to normalize both
+ * blocking question objects and asynchronous title/string-option payloads.
+ * Invalid questions and options are skipped so malformed tool input cannot
+ * break the question UI; no answer is inferred or preselected here.
+ */
+export function normalizeUserQuestions(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    const record = readObjectRecord(entry);
+    const question = typeof record?.question === 'string' ? record.question : record?.title;
+    if (typeof question !== 'string' || !question.trim()) return [];
+    const options = Array.isArray(record?.options) ? record.options.flatMap((option) => {
+      if (typeof option === 'string') return [{ label: option, description: '' }];
+      const item = readObjectRecord(option);
+      return typeof item?.label === 'string'
+        ? [{ label: item.label, description: typeof item.description === 'string' ? item.description : '' }]
+        : [];
+    }) : [];
+    return [{ question, header: typeof record?.header === 'string' ? record.header : undefined,
+      options, multiSelect: record?.multiSelect === true }];
+  });
+}
