@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import os from 'node:os';
-import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 export type CpuTimes = { user: number; nice: number; sys: number; idle: number; irq: number };
@@ -71,18 +70,7 @@ function diskMounts(): Array<{ path: string; label: string }> {
     ];
   }
   if (process.platform === 'darwin') {
-    const mounts = [{ path: '/', label: '启动盘' }];
-    try {
-      const rootDevice = fs.statSync('/').dev;
-      for (const name of fs.readdirSync('/Volumes')) {
-        const mount = path.join('/Volumes', name);
-        try {
-          const stat = fs.statSync(mount);
-          if (stat.isDirectory() && stat.dev !== rootDevice) mounts.push({ path: mount, label: name });
-        } catch { /* Skip only the unreadable volume. */ }
-      }
-    } catch { /* A missing or unreadable /Volumes leaves the startup disk. */ }
-    return mounts;
+    return [{ path: '/', label: '启动盘' }];
   }
   return [{ path: os.homedir(), label: '本机磁盘' }];
 }

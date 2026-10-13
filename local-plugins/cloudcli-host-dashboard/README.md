@@ -5,7 +5,7 @@ CloudCLI 独立标签页插件，选中仪表盘时每 2 秒刷新运行 CloudCL
 ## 平台口径
 
 - Linux / NAS：CPU 使用两次 `os.cpus()` 采样的忙碌时间；内存使用 `/proc/meminfo` 的 `MemAvailable`，避免把可回收缓存算作已用；磁盘显示系统盘 `/`，存在时优先显示 `/vol1` 数据卷。
-- macOS：CPU 使用相同采样；内存使用 `vm_stat` 的空闲、非活跃及 speculative 页面估算可用内存；磁盘显示启动盘及 `/Volumes` 下设备号不同的独立挂载卷。若 `vm_stat` 无法读取，回退到 Node 的空闲内存值。
+- macOS：CPU 使用相同采样；内存使用 `vm_stat` 的空闲、非活跃及 speculative 页面估算可用内存；磁盘仅显示启动盘 `/`。若 `vm_stat` 无法读取，回退到 Node 的空闲内存值。
 - 其他平台：显示 Node 可读取的 CPU、内存，以及用户目录所在磁盘。
 
 百分比为瞬时观测值。磁盘百分比按可供普通用户使用的空间计算，与 `df` 的 Capacity 列保持同一口径。
