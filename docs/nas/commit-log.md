@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`19474bd7cb4f8b8edf6572f5423e6e4c3b7bbfd0`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`59c632fb3fecc840b2f0a0f4befc799327a27605`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,9 +11,14 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
-| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
+| M | [package.json](../../package.json) | — |
+| M | [src/modules/auth/tests/authTokenRefreshRemount.test.tsx](../../src/modules/auth/tests/authTokenRefreshRemount.test.tsx) | — |
+| M | [src/modules/chat/tests/chatProviderModels.test.ts](../../src/modules/chat/tests/chatProviderModels.test.ts) | — |
+| M | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
+| M | [src/modules/chat/tests/messageModelLabel.test.tsx](../../src/modules/chat/tests/messageModelLabel.test.tsx) | — |
+| M | [src/shared/tests/selectedProvider.test.ts](../../src/shared/tests/selectedProvider.test.ts) | — |
+| M | [src/shared/tests/useSelectedProvider.test.tsx](../../src/shared/tests/useSelectedProvider.test.tsx) | — |
+| M | [vitest.setup.ts](../../vitest.setup.ts) | — |
 
 ## NAS 主线提交
 
@@ -2148,6 +2153,18 @@
   - `src/modules/chat/composer/ComposerMenuPrimitives.tsx`
   - `src/modules/chat/composer/ComposerModelMenu.tsx`
   - `src/modules/chat/tests/composerFastMenu.test.tsx`
+
+### 59c632fb · 2026-10-13 · fix(chat): move Fast to menu top and shorten its copy
+
+- 完整提交：`59c632fb3fecc840b2f0a0f4befc799327a27605`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `src/modules/chat/composer/ComposerModelMenu.tsx`
+  - `src/modules/i18n/locales/en/chat.json`
+  - `src/modules/i18n/locales/zh-CN/chat.json`
 
 ## 从 PR / 其他分支合入的提交
 

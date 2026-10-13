@@ -10,7 +10,8 @@ import { resetUserPreferences, writeUserPreference } from '@/shared/userSettings
  * copy-pasted reconciliation effects and a four-branch setter. They are now one
  * Record with one loop. These tests pin the behaviour that has to survive that:
  * each provider keeps its own model, under its own storage key, and choosing a
- * model persists it.
+ * model persists it. NAS enables Claude and Codex; old preferences for disabled
+ * providers must not restore them into the model record.
  */
 
 const okJson = (data: unknown) => Promise.resolve({
@@ -59,7 +60,7 @@ afterEach(() => {
   vi.resetModules();
 });
 
-test('each provider gets its own model from its own storage key', async () => {
+test('enabled providers restore their own models and ignore disabled provider storage', async () => {
   localStorage.setItem('claude-model', 'claude-stored');
   localStorage.setItem('cursor-model', 'cursor-stored');
   localStorage.setItem('codex-model', 'codex-stored');
@@ -70,9 +71,10 @@ test('each provider gets its own model from its own storage key', async () => {
   await waitFor(() => {
     assert.equal(result.current.providerModels.claude, 'claude-stored');
   });
-  assert.equal(result.current.providerModels.cursor, 'cursor-stored');
-  assert.equal(result.current.providerModels.codex, 'codex-stored');
-  assert.equal(result.current.providerModels.opencode, 'opencode-stored');
+  assert.deepEqual(result.current.providerModels, {
+    claude: 'claude-stored',
+    codex: 'codex-stored',
+  });
 });
 
 test('a provider with no stored model falls back to its own default, not another provider’s', async () => {
@@ -136,13 +138,13 @@ test('setting the same model twice keeps the record identity stable', async () =
 test('the active provider’s model is what currentProviderModel reports', async () => {
   // The provider selection is a stored preference; the per-provider model is
   // still a plain localStorage key.
-  writeUserPreference('selectedProvider', 'cursor');
-  localStorage.setItem('cursor-model', 'cursor-active');
+  writeUserPreference('selectedProvider', 'codex');
+  localStorage.setItem('codex-model', 'codex-active');
 
   const { result } = await renderProviderState();
 
   await waitFor(() => {
-    assert.equal(result.current.provider, 'cursor');
+    assert.equal(result.current.provider, 'codex');
   });
-  assert.equal(result.current.currentProviderModel, 'cursor-active');
+  assert.equal(result.current.currentProviderModel, 'codex-active');
 });

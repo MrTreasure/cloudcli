@@ -4,7 +4,7 @@ import React from 'react';
 import { render } from '@testing-library/react';
 import { describe, expect, it, test } from 'vitest';
 
-import '@/modules/i18n';
+import { i18n } from '@/modules/i18n';
 import { normalizedToChatMessages } from '@/modules/chat/hooks/useChatMessages';
 import MessageComponent from '@/modules/chat/transcript/MessageComponent';
 import { formatAnsweringModelLabel } from '@/modules/chat/utils/modelLabel';
@@ -67,40 +67,49 @@ const renderMessage = (message: ChatMessage) =>
     </UiPreferencesProvider>,
   );
 
-describe('the model label in the message footer', () => {
-  it('names the model that answered, beside the copy control', () => {
-    const { container } = renderMessage({
-      type: 'assistant',
-      content: 'Here is the plan.',
-      timestamp: '2026-08-19T12:00:00.000Z',
-      model: 'claude-opus-5',
+// Exercise both languages so absence assertions cannot pass merely because an
+// English selector missed an existing Chinese model label.
+for (const [language, answeredByPattern, answeredBy] of [
+  ['en', /^Answered by /, 'Answered by claude-opus-5'],
+  ['zh-CN', /^由 .+ 回答$/, '由 claude-opus-5 回答'],
+] as const) {
+  describe(`${language} model label in the message footer`, () => {
+    it('names the model that answered, beside the copy control', async () => {
+      await i18n.changeLanguage(language);
+      const view = renderMessage({
+        type: 'assistant',
+        content: 'Here is the plan.',
+        timestamp: '2026-08-19T12:00:00.000Z',
+        model: 'claude-opus-5',
+      });
+
+      const label = view.getByLabelText(answeredBy);
+      assert.equal(label.getAttribute('title'), answeredBy);
+      assert.equal(label.textContent, 'Opus');
     });
 
-    const label = container.querySelector('[title="Answered by claude-opus-5"]');
-    assert.ok(label, 'the footer must carry the model the provider reported');
-    assert.equal(label?.textContent, 'Opus');
-  });
+    it('shows nothing for a reply the provider reported no model for', async () => {
+      await i18n.changeLanguage(language);
+      // Local usage-limit notices must not inherit a guessed model.
+      const view = renderMessage({
+        type: 'assistant',
+        content: 'Claude usage limit reached.',
+        timestamp: '2026-08-19T12:00:00.000Z',
+      });
 
-  it('shows nothing for a reply the provider reported no model for', () => {
-    // A row Claude Code fabricated locally — the usage-limit notice — reaches
-    // the client with no model, and a guessed label would claim a request that
-    // never ran.
-    const { container } = renderMessage({
-      type: 'assistant',
-      content: 'Claude usage limit reached.',
-      timestamp: '2026-08-19T12:00:00.000Z',
+      assert.equal(view.queryByLabelText(answeredByPattern), null);
     });
 
-    assert.equal(container.querySelector('[title^="Answered by"]'), null);
-  });
+    it('leaves the user turn unlabelled even when its row carries a model', async () => {
+      await i18n.changeLanguage(language);
+      const view = renderMessage({
+        type: 'user',
+        content: 'Plan the refactor.',
+        timestamp: '2026-08-19T12:00:00.000Z',
+        model: 'claude-opus-5',
+      });
 
-  it('leaves the user turn unlabelled', () => {
-    const { container } = renderMessage({
-      type: 'user',
-      content: 'Plan the refactor.',
-      timestamp: '2026-08-19T12:00:00.000Z',
+      assert.equal(view.queryByLabelText(answeredByPattern), null);
     });
-
-    assert.equal(container.querySelector('[title^="Answered by"]'), null);
   });
-});
+}

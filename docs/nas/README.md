@@ -142,3 +142,16 @@ git add docs/nas/commit-log.md docs/nas/file-index.md
 Fast 滑动开关移到模型/推理菜单最顶部，正常文案仅“更快响应 · 更高用量”，错误文案为“设置失败，点击重试”。修改 `ComposerModelMenu.tsx` 和中英 chat 语言资源，保留原有会话保存与请求行为；回退仅影响排序及说明。
 
 2026-10-13 核对 [OpenAI Codex Speed](https://learn.chatgpt.com/docs/agent-configuration/speed)：1.5× 速度明确对应 GPT-5.6 / GPT-5.5；受支持模型的订阅内用量倍率为 2.5×，购买 credits / Enterprise 按量额度为 2×。API 按模型 token 价格计算，[GPT-6.1 Sol 模型页](https://developers.openai.com/api/docs/models/gpt-6.1-sol)的 Fast 价格为标准档 2×，未承诺其固定速度倍率。CloudCLI 当前通过 NAS CPA，请求意图不等于上游实际档位，也无法仅凭客户端确定账号计费方式，因此不在开关中统一承诺“2×额度、1.5×速度”。
+
+
+## 前端测试语言与 NAS Provider 回归修复
+
+- 目的：修正默认中文界面导致的 65 项英文断言失败，以及已禁用 Cursor/OpenCode 导致的 4 项测试数据不一致；保留业务测试覆盖。
+- 维护路径：`vitest.setup.ts` 在语言实例初始化和每项测试开始时固定英文，不提前导入应用或偏好模块，专门的语言测试仍可主动切换；`package.json` 的 `test:client` 通过已有 cross-env 固定 `NODE_ENV=test`，避免生产 shell 干扰依赖加载与 React act。
+- Provider 测试：`src/shared/tests/useSelectedProvider.test.tsx`、`selectedProvider.test.ts` 与 `src/modules/chat/tests/chatProviderModels.test.ts` 使用 Claude/Codex 验证通知和模型隔离，并显式检查禁用 Provider 回退、旧存储不被恢复。
+- 模型标签测试：`src/modules/chat/tests/messageModelLabel.test.tsx` 覆盖中英两种语言，使用对应的无障碍名称验证正反向显示；用户行携带模型时仍不得显示响应模型，修正英文选择器在中文下可能错误通过的盲点。
+- 上下文弹窗测试：`src/modules/chat/tests/contextUsageDisplay.test.tsx` 精确匹配设定/当前值行名，避免英文 Configured 同时匹配模型窗口字段而报多个元素。
+- 测试运行兼容：`vitest.setup.ts` 显式使用 jsdom 的 localStorage/sessionStorage，避免 Node 26 未配置原生存储路径时覆盖浏览器存储；`src/modules/auth/tests/authTokenRefreshRemount.test.tsx` 精确检查 auth/status、auth/user 重复初始化，并保留 workspace 挂载/加载次数断言，允许过半有效期 Token 正常触发 auth/refresh，消除计时器竞态误报。
+- 来源：NAS 本地测试维护，未合并额外上游 PR。生产默认中文、Provider 启用列表及运行服务配置继续由原功能负责。
+- 验证：本机直接执行 `pnpm run test:client`，123 个文件、814 项全部通过（原 809 项，新增 5 项中英标签与禁用 Provider 回归用例）；类型检查和前端构建通过，lint 无错误，保留仓库既有警告。Mac 使用相同源码和测试入口，本次未在 Mac 实机重跑。
+- 回退依赖：可以独立回退测试和 Vitest 配置；回退后中文文案及 Provider 相关失败会恢复。未来调整默认语言或启用 Provider 时，需要同步审查这些明确的测试约定。

@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`19474bd7cb4f8b8edf6572f5423e6e4c3b7bbfd0`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`59c632fb3fecc840b2f0a0f4befc799327a27605`。
 
-记录基线与当前暂存树之间的全部净差异，共 493 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 499 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -337,6 +337,7 @@
 | M | [src/main.tsx](../../src/main.tsx) | — |
 | M | [src/modules/auth/AuthLoadingScreen.tsx](../../src/modules/auth/AuthLoadingScreen.tsx) | — |
 | M | [src/modules/auth/AuthScreenLayout.tsx](../../src/modules/auth/AuthScreenLayout.tsx) | — |
+| M | [src/modules/auth/tests/authTokenRefreshRemount.test.tsx](../../src/modules/auth/tests/authTokenRefreshRemount.test.tsx) | — |
 | M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
 | M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
 | M | [src/modules/chat/composer/CommandMenu.tsx](../../src/modules/chat/composer/CommandMenu.tsx) | — |
@@ -358,11 +359,13 @@
 | M | [src/modules/chat/modals/ModelLibraryPanel.tsx](../../src/modules/chat/modals/ModelLibraryPanel.tsx) | — |
 | A | [src/modules/chat/tests/asyncQuestionPanel.test.tsx](../../src/modules/chat/tests/asyncQuestionPanel.test.tsx) | — |
 | M | [src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx](../../src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx) | — |
+| M | [src/modules/chat/tests/chatProviderModels.test.ts](../../src/modules/chat/tests/chatProviderModels.test.ts) | — |
 | A | [src/modules/chat/tests/codexFastState.test.ts](../../src/modules/chat/tests/codexFastState.test.ts) | — |
 | A | [src/modules/chat/tests/composerFastMenu.test.tsx](../../src/modules/chat/tests/composerFastMenu.test.tsx) | — |
 | A | [src/modules/chat/tests/composerSendCompactCommand.test.ts](../../src/modules/chat/tests/composerSendCompactCommand.test.ts) | — |
 | M | [src/modules/chat/tests/composerToolsSettingsResolution.test.ts](../../src/modules/chat/tests/composerToolsSettingsResolution.test.ts) | — |
 | A | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
+| M | [src/modules/chat/tests/messageModelLabel.test.tsx](../../src/modules/chat/tests/messageModelLabel.test.tsx) | — |
 | A | [src/modules/chat/tests/permissionRequestsBanner.test.tsx](../../src/modules/chat/tests/permissionRequestsBanner.test.tsx) | — |
 | A | [src/modules/chat/tests/queuedMessages.test.tsx](../../src/modules/chat/tests/queuedMessages.test.tsx) | — |
 | A | [src/modules/chat/tests/sessionHistoryRuntime.test.tsx](../../src/modules/chat/tests/sessionHistoryRuntime.test.tsx) | — |
@@ -491,7 +494,9 @@
 | A | [src/shared/tests/commandVisibility.test.tsx](../../src/shared/tests/commandVisibility.test.tsx) | — |
 | A | [src/shared/tests/fileTreeBrowsing.test.ts](../../src/shared/tests/fileTreeBrowsing.test.ts) | — |
 | A | [src/shared/tests/fontSizes.test.tsx](../../src/shared/tests/fontSizes.test.tsx) | — |
+| M | [src/shared/tests/selectedProvider.test.ts](../../src/shared/tests/selectedProvider.test.ts) | — |
 | M | [src/shared/tests/useProjectSlashCommands.test.tsx](../../src/shared/tests/useProjectSlashCommands.test.tsx) | — |
+| M | [src/shared/tests/useSelectedProvider.test.tsx](../../src/shared/tests/useSelectedProvider.test.tsx) | — |
 | A | [src/shared/tests/useVersionCheck.test.tsx](../../src/shared/tests/useVersionCheck.test.tsx) | — |
 | A | [src/shared/tests/versionReleaseRequest.test.ts](../../src/shared/tests/versionReleaseRequest.test.ts) | — |
 | M | [src/shared/types.ts](../../src/shared/types.ts) | — |
@@ -501,3 +506,4 @@
 | M | [tailwind.config.js](../../tailwind.config.js) | — |
 | M | [tsconfig.json](../../tsconfig.json) | — |
 | M | [vite.config.js](../../vite.config.js) | — |
+| M | [vitest.setup.ts](../../vitest.setup.ts) | — |
