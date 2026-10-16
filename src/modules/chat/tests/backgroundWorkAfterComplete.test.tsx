@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
 
-import { renderHook } from '@testing-library/react';
-import { test } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import { test, vi } from 'vitest';
 
 import { useChatRealtimeHandlers } from '@/modules/chat/hooks/useChatRealtimeHandlers';
+import { useSessionProtection } from '@/shared/hooks/useSessionProtection';
 import type { BackgroundTaskSummary, NormalizedMessage, ProjectSession, ServerEvent, SessionActivity } from '@/shared/types';
 import type { SessionStore } from '@/modules/chat/hooks/useSessionStore';
 
@@ -202,4 +203,49 @@ test('a rejected steer does not idle the running session', () => {
   dispatch(event({ kind: 'chat_steer_result', requestId: 'steer', messageId: 'queue-item',
     status: 'rejected', error: 'The active turn changed.' }));
   assert.deepEqual(log, []);
+});
+
+test('a rejected second send and subsequent tool output keep loading until the real complete', () => {
+  let listener: ((message: ServerEvent) => void) | undefined;
+  const { result } = renderHook(() => {
+    const activity = useSessionProtection();
+    useChatRealtimeHandlers({
+      isActive: true,
+      subscribe: (fn) => { listener = fn; return () => { listener = undefined; }; },
+      provider: 'codex', selectedSession: { id: 'session-live' }, currentSessionId: 'session-live',
+      setTokenBudget: () => undefined,
+      pendingPermissionRequests: [], setPendingPermissionRequests: () => undefined,
+      streamTimerRef: { current: null }, accumulatedStreamRef: { current: '' },
+      lastSeqRef: { current: new Map() }, statusCheckSentAtRef: { current: new Map() },
+      onSessionProcessing: activity.markSessionProcessing,
+      onSessionIdle: activity.markSessionIdle,
+      onSessionBackground: activity.markSessionBackground,
+      getSessionActivity: activity.getSessionActivity,
+      requestLatestMessages: async () => undefined,
+      sessionStore: {
+        appendRealtime: () => undefined, getMessages: () => [],
+        finalizeStreaming: () => undefined, updateStreaming: () => undefined,
+      } as unknown as SessionStore,
+    });
+    return activity;
+  });
+  const dispatch = (fields: Record<string, unknown>) => act(() => listener?.(event({ sessionId: 'session-live', provider: 'codex', ...fields })));
+  const errorLog = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  try {
+    act(() => result.current.markSessionProcessing('session-live'));
+    const startedAt = result.current.getSessionActivity('session-live')?.startedAt;
+    dispatch({ kind: 'protocol_error', code: 'RUN_IN_PROGRESS', error: 'A run is already in progress' });
+    assert.equal(result.current.isSessionProcessing('session-live'), true);
+    assert.equal(result.current.getSessionActivity('session-live')?.startedAt, startedAt, 'keep the original elapsed clock');
+
+    act(() => result.current.markSessionIdle('session-live'));
+    dispatch({ kind: 'tool_use', toolId: 'bash-1', toolName: 'Bash', toolInput: { command: 'sleep 30' } });
+    assert.equal(result.current.isSessionProcessing('session-live'), true, 'live tool output restores missing activity');
+    dispatch({ kind: 'stream_end' });
+    assert.equal(result.current.isSessionProcessing('session-live'), true, 'text stream end is not turn completion');
+    dispatch({ kind: 'complete', success: true });
+    assert.equal(result.current.isSessionProcessing('session-live'), false, 'the terminal event still clears loading');
+  } finally {
+    errorLog.mockRestore();
+  }
 });

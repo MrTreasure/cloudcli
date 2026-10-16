@@ -19,6 +19,35 @@
 
 ---
 
+## Codex live task checklists (NAS branch)
+
+Codex app-server task-plan notifications update one checklist card per turn in
+the conversation, using the existing shared checklist renderer. Pending,
+in-progress, and completed steps retain their distinct states; older Codex SDK
+`{ text, completed }` lists remain compatible. The write operation is settled
+independently of the task statuses, so cancellation or failure never marks
+unfinished steps complete. No plan is inferred from ordinary prose, and no
+additional model instructions, task queue, or authentication changes are needed.
+
+This is live, in-memory display, not new persistence. A full page reload cannot
+restore the checklist from these notifications alone; reconnect replay depends
+on the existing active-run buffer. The model must actually emit a plan.
+
+Implementation: `codex-app-server.runtime.ts` validates thread/turn identity and
+plan steps, `codex-sessions.provider.ts` normalizes todo states, and
+`useSessionStore.ts` replaces same-ID snapshots without moving the card. Existing
+`TodoList` / `TodoListContent` components render the list unchanged. See
+[NAS change records](docs/nas/README.md#codex-实时任务清单) for full paths,
+verification results, activation, and rollback details. To roll back, revert the
+plan notification handler, todo normalization, and store upsert together with
+their regression tests; there is no database migration.
+
+Verified with Codex CLI/SDK 0.162.0: 124 related backend tests and all 846 frontend
+tests pass, including real checklist rendering. Type checking, client/server
+builds, and lint pass (existing lint and bundle-size warnings remain). These are
+source/build checks; NAS publication and backend activation are tracked
+separately in the NAS change records linked above.
+
 ## Screenshots
 
 <div align="center">

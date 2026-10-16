@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { act, renderHook } from '@testing-library/react';
-import { test } from 'vitest';
+import { test, vi } from 'vitest';
 
 import { useSessionProtection } from '@/shared/hooks/useSessionProtection';
 import type { BackgroundTaskSummary } from '@/shared/types';
@@ -130,4 +130,42 @@ test('a poll that changes what it says about a listed task is not dropped as a r
   const listed = result.current.getSessionActivity('session-1')?.tasks?.[0];
   assert.equal(listed?.nested, true);
   assert.equal(listed?.description, 'Audit the whole frontend');
+});
+
+
+test('a slow poll and an idle subscribe ack cannot clear newer tool activity on a long-running turn', () => {
+  const clock = vi.spyOn(Date, 'now');
+  try {
+    clock.mockReturnValue(1_000);
+    const { result } = renderHook(() => useSessionProtection());
+    act(() => result.current.markSessionProcessing('session-1'));
+    const requestedAt = 30_000;
+    clock.mockReturnValue(31_000);
+    act(() => result.current.markSessionProcessing('session-1'));
+    // startedAt must stay old: the fix cannot reset the elapsed clock just to
+    // get the ten-second optimistic grace period back.
+    assert.equal(result.current.getSessionActivity('session-1')?.startedAt, 1_000);
+    clock.mockReturnValue(32_000);
+    act(() => result.current.syncProcessingSessions([], requestedAt));
+    assert.equal(result.current.isSessionProcessing('session-1'), true);
+    act(() => result.current.markSessionIdle('session-1', { ifStartedBefore: requestedAt }));
+    assert.equal(result.current.isSessionProcessing('session-1'), true);
+    // A fresh authoritative empty response can still recover a missed complete.
+    act(() => result.current.syncProcessingSessions([], 32_000));
+    assert.equal(result.current.isSessionProcessing('session-1'), false);
+  } finally { clock.mockRestore(); }
+});
+
+test('a stale running snapshot cannot revive a completed turn', () => {
+  const clock = vi.spyOn(Date, 'now');
+  try {
+    clock.mockReturnValue(1_000);
+    const { result } = renderHook(() => useSessionProtection());
+    act(() => result.current.markSessionProcessing('session-1'));
+    clock.mockReturnValue(31_000);
+    act(() => result.current.markSessionBackground('session-1', []));
+    act(() => result.current.syncProcessingSessions([{ sessionId: 'session-1', startedAt: 1_000 }], 30_000));
+    assert.equal(result.current.isSessionProcessing('session-1'), false);
+    assert.equal(result.current.getSessionActivity('session-1'), undefined);
+  } finally { clock.mockRestore(); }
 });

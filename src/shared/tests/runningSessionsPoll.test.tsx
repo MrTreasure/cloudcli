@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, test, vi } from 'vitest';
 
@@ -85,4 +85,31 @@ test('one task entry in a shape the client does not read hides only itself', asy
 
   await waitFor(() => assert.ok(result.current.get('held-session')));
   assert.deepEqual(result.current.get('held-session')?.tasks?.map((task) => task.taskId), ['w1']);
+});
+
+test('late older polls and malformed responses do not replace a newer running snapshot', async () => {
+  vi.useFakeTimers();
+  let resolveFirst: (value: unknown) => void = () => undefined;
+  let resolveSecond: (value: unknown) => void = () => undefined;
+  const first = new Promise(resolve => { resolveFirst = resolve; });
+  const second = new Promise(resolve => { resolveSecond = resolve; });
+  const response = (sessions: unknown[]) => ({ ok: true, json: async () => ({ data: { sessions } }) });
+  runningSessions.mockReturnValueOnce(first).mockReturnValueOnce(second)
+    .mockResolvedValue({ ok: true, json: async () => ({ success: false }) });
+  try {
+    const { SessionProtectionProvider, useProcessingSessions } = await import('@/shared/context/SessionProtectionContext');
+    const wrapper = ({ children }: { children: React.ReactNode }) => React.createElement(SessionProtectionProvider, null, children);
+    const view = renderHook(() => useProcessingSessions(), { wrapper });
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    await act(async () => { resolveSecond(response([{ sessionId: 'running-session', startedAt: 1 }])); });
+    assert.ok(view.result.current.has('running-session'));
+    await act(async () => { resolveFirst(response([])); });
+    assert.ok(view.result.current.has('running-session'), 'an older empty response must not clear the newer snapshot');
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    assert.ok(view.result.current.has('running-session'), 'a malformed response is not authoritative idle');
+    runningSessions.mockResolvedValue(response([]));
+    await act(async () => { await vi.advanceTimersByTimeAsync(5000); });
+    assert.equal(view.result.current.has('running-session'), false, 'a newer valid empty snapshot still recovers a missed completion');
+    view.unmount();
+  } finally { vi.useRealTimers(); }
 });

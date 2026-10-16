@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
 } from 'react';
 import type { ReactNode } from 'react';
 
@@ -131,8 +132,14 @@ export function SessionProtectionProvider({ children }: { children: ReactNode })
     isSessionProcessing,
     getSessionActivity,
   } = useSessionProtection();
+  // Polls may overlap on slow backends. A late response must not replace a
+  // newer applied snapshot, while newer live events are guarded by requestedAt.
+  const pollSequenceRef = useRef(0);
+  const appliedPollSequenceRef = useRef(0);
 
   const refreshRunningSessions = useCallback(async () => {
+    const requestId = ++pollSequenceRef.current;
+    const requestedAt = Date.now();
     try {
       const response = await api.runningSessions();
       if (!response.ok) {
@@ -140,7 +147,9 @@ export function SessionProtectionProvider({ children }: { children: ReactNode })
       }
 
       const payload = (await response.json()) as RunningSessionsApiPayload;
-      const sessions = Array.isArray(payload.data?.sessions) ? payload.data.sessions : [];
+      if (!Array.isArray(payload.data?.sessions) || requestId < appliedPollSequenceRef.current) return;
+      appliedPollSequenceRef.current = requestId;
+      const sessions = payload.data.sessions;
 
       syncProcessingSessions(
         sessions
@@ -159,6 +168,7 @@ export function SessionProtectionProvider({ children }: { children: ReactNode })
             };
           })
           .filter((session): session is NonNullable<typeof session> => Boolean(session)),
+        requestedAt,
       );
     } catch (error) {
       console.error('[SessionProtection] Failed to sync running sessions:', error);

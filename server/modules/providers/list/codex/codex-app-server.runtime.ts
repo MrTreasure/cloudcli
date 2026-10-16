@@ -922,6 +922,10 @@ export class CodexAppServerRuntime {
 
   private handleNotification(notification: JsonRpcNotification): void {
     const params = readRecord(notification.params) ?? {};
+    if (notification.method === 'turn/plan/updated') {
+      this.handlePlanUpdate(params);
+      return;
+    }
     const run = this.findRun(params);
     if (!run || run.terminal) {
       return;
@@ -985,6 +989,40 @@ export class CodexAppServerRuntime {
       default:
         return;
     }
+  }
+
+  private handlePlanUpdate(params: AnyRecord): void {
+    // Plan notifications have both ids in 0.162.0. Never use findRun's legacy
+    // single-run fallback or let a plan establish the active turn's identity.
+    const threadId = readString(params.threadId);
+    const turnId = readString(params.turnId);
+    const run = threadId ? this.runsByThread.get(threadId) : undefined;
+    if (!run || !turnId || run.turnId !== turnId || run.terminal || run.abortRequested || run.isCompaction) {
+      return;
+    }
+    if (!Array.isArray(params.plan)) {
+      console.warn('[Codex app-server] Invalid plan update:', { threadId, turnId, reason: 'plan must be an array' });
+      return;
+    }
+
+    const items = params.plan.flatMap((value: unknown) => {
+      const step = readRecord(value);
+      if (!step || !readString(step.step) || !['pending', 'inProgress', 'completed'].includes(step.status)) {
+        return [];
+      }
+      return [{ text: step.step, status: step.status }];
+    });
+    const invalidSteps = params.plan.length - items.length;
+    if (invalidSteps > 0) {
+      // Log counts and routing ids, not potentially sensitive task contents.
+      console.warn('[Codex app-server] Invalid plan steps ignored:', { threadId, turnId, invalidSteps });
+    }
+    // Empty/fully malformed updates must not create an empty card or erase the
+    // last usable checklist. Only the model's explicit steps are displayed.
+    if (items.length === 0) return;
+
+    const id = `codex-plan:${threadId}:${turnId}`;
+    this.emitNormalized(run, { type: 'item', itemType: 'todo_list', uuid: id, itemId: id, items });
   }
 
   private handleRequest(request: JsonRpcRequest): unknown {

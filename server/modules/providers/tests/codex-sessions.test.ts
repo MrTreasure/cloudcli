@@ -14,6 +14,53 @@ const createSdkSessionsProvider = () => new CodexSessionsProvider({
   readRuntimeMode: () => 'sdk',
 });
 
+test('live todo items map all app-server states and settle only the snapshot write', () => {
+  const messages = createSdkSessionsProvider().normalizeMessage({
+    type: 'item', itemType: 'todo_list', itemId: 'plan-1', items: [
+      { text: 'Inspect', status: 'completed' },
+      { text: 'Implement', status: 'inProgress' },
+      { text: 'Verify', status: 'pending' },
+    ],
+  }, 'session-1');
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].id, 'plan-1');
+  assert.equal(messages[0].toolName, 'TodoWrite');
+  assert.deepEqual(messages[0].toolInput, { todos: [
+    { content: 'Inspect', status: 'completed' },
+    { content: 'Implement', status: 'in_progress' },
+    { content: 'Verify', status: 'pending' },
+  ] });
+  assert.equal(messages[0].status, 'completed');
+  assert.deepEqual(messages[0].toolResult, { content: '', isError: false });
+});
+
+test('legacy SDK todo items keep boolean completion without completing remaining steps', () => {
+  const [message] = createSdkSessionsProvider().normalizeMessage({
+    type: 'item', itemType: 'todo_list', itemId: 'sdk-plan', items: [
+      { text: 'Inspect', completed: true }, { text: 'Verify', completed: false },
+    ],
+  }, 'session-sdk');
+  assert.deepEqual(message.toolInput, { todos: [
+    { content: 'Inspect', status: 'completed' }, { content: 'Verify', status: 'pending' },
+  ] });
+});
+
+test('invalid live todo entries are diagnosed, not coerced to plausible pending tasks', (t) => {
+  const warnings = t.mock.method(console, 'warn', () => undefined);
+  const provider = createSdkSessionsProvider();
+  const raw = { type: 'item', itemType: 'todo_list', itemId: 'plan-invalid' };
+  const [message] = provider.normalizeMessage({ ...raw, items: [
+    { text: 'Valid', completed: false }, null, { text: 1, completed: true },
+    { text: ' ', completed: false }, { text: 'Bad state', status: 'unknown', completed: true },
+    { text: 'Missing state' }, { text: 'Invalid boolean', completed: 'false' },
+  ] }, 'session-1');
+  assert.deepEqual(message.toolInput, { todos: [{ content: 'Valid', status: 'pending' }] });
+  assert.deepEqual(provider.normalizeMessage({ ...raw, items: null }, 'session-1'), []);
+  assert.deepEqual(provider.normalizeMessage({ ...raw, items: [null] }, 'session-1'), []);
+  assert.deepEqual(provider.normalizeMessage({ ...raw, items: [] }, 'session-1'), []);
+  assert.equal(warnings.mock.callCount(), 3);
+});
+
 const patchHomeDir = (nextHomeDir: string) => {
   const original = os.homedir;
   (os as any).homedir = () => nextHomeDir;

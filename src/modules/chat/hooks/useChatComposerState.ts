@@ -1178,17 +1178,17 @@ export function useChatComposerState({
     setIsTextareaExpanded(false);
   }, [input]);
 
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLTextAreaElement>) => {
-      const newValue = event.target.value;
-      const cursorPos = event.target.selectionStart;
+  const updateInputFromTextarea = useCallback(
+    (target: HTMLTextAreaElement) => {
+      const newValue = target.value;
+      const cursorPos = target.selectionStart;
 
       setInput(newValue);
       inputValueRef.current = newValue;
       setCursorPosition(cursorPos);
 
       if (!newValue.trim()) {
-        event.target.style.height = 'auto';
+        target.style.height = 'auto';
         setIsTextareaExpanded(false);
         resetCommandMenuState();
         return;
@@ -1199,8 +1199,54 @@ export function useChatComposerState({
     [handleCommandInputChange, resetCommandMenuState, setCursorPosition, setInput],
   );
 
+  const handleInputChange = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => updateInputFromTextarea(event.target),
+    [updateInputFromTextarea],
+  );
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
+      const composing = event.nativeEvent?.isComposing || event.nativeEvent?.keyCode === 229 || isComposingRef.current;
+      const endedJustNow = performance.now() - lastCompositionEndAtRef.current < SAFARI_IME_RACE_WINDOW_MS;
+      if (event.defaultPrevented || composing || (event.key === 'Enter' && endedJustNow)) return;
+
+      const key = event.key.toLowerCase();
+      if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && (key === 'k' || key === 'u')) {
+        const target = event.currentTarget;
+        if (target.disabled || target.readOnly) return;
+        event.preventDefault();
+        // Keep Ctrl+K inside the focused composer instead of opening the palette.
+        event.stopPropagation();
+
+        const { value, selectionStart: start, selectionEnd: end } = target;
+        let from = start;
+        let to = end;
+        if (start === end) {
+          if (key === 'u') from = start === 0 ? 0 : value.lastIndexOf('\n', start - 1) + 1;
+          else {
+            const newline = value.indexOf('\n', end);
+            to = newline === -1 ? value.length : newline === end ? end + 1 : newline;
+          }
+        }
+        if (from === to) return;
+
+        target.setSelectionRange(from, to);
+        const expected = value.slice(0, from) + value.slice(to);
+        try {
+          // Native editing retains undo history where supported; the input event
+          // is not emitted consistently, so sync the controlled draft below too.
+          target.ownerDocument.execCommand?.('delete');
+        } catch {
+          // Fall back when the browser rejects or lacks the native edit command.
+        }
+        if (target.value !== expected) target.setRangeText(expected, 0, target.value.length, 'start');
+        target.setSelectionRange(from, from);
+        updateInputFromTextarea(target);
+        resizeTextarea(target);
+        syncInputOverlayScroll(target);
+        return;
+      }
+
       if (handleCommandMenuKeyDown(event)) {
         return;
       }
@@ -1220,12 +1266,6 @@ export function useChatComposerState({
       }
 
       if (event.key === 'Enter') {
-        const endedJustNow =
-          performance.now() - lastCompositionEndAtRef.current < SAFARI_IME_RACE_WINDOW_MS;
-        if (event.nativeEvent.isComposing || isComposingRef.current || endedJustNow) {
-          return;
-        }
-
         if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
           event.preventDefault();
           handleSubmit(event);
@@ -1241,6 +1281,9 @@ export function useChatComposerState({
       handleFileMentionsKeyDown,
       handleHistoryKeyDown,
       handleSubmit,
+      updateInputFromTextarea,
+      resizeTextarea,
+      syncInputOverlayScroll,
       sendByCtrlEnter,
       showCommandMenu,
       showFileDropdown,
@@ -1257,11 +1300,14 @@ export function useChatComposerState({
   const handleTextareaInput = useCallback(
     (event: FormEvent<HTMLTextAreaElement>) => {
       const target = event.currentTarget;
+      // Native edits/undo can bypass React's change detection after a scripted
+      // deletion. Keep both the displayed draft and immediate-send mirror fresh.
+      if (target.value !== inputValueRef.current) updateInputFromTextarea(target);
       resizeTextarea(target);
       setCursorPosition(target.selectionStart);
       syncInputOverlayScroll(target);
     },
-    [resizeTextarea, setCursorPosition, syncInputOverlayScroll],
+    [resizeTextarea, setCursorPosition, syncInputOverlayScroll, updateInputFromTextarea],
   );
 
   const handleClearInput = useCallback(() => {

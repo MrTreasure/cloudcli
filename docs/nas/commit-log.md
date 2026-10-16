@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`7a79aa695d1583391d41f31f20beac63628e8c33`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`dfb4312b2f0ec6c3335de8ec248b07e602c1a636`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,9 +10,25 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
+| M | [README.md](../../README.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [src/modules/chat/tests/asyncQuestionPanel.test.tsx](../../src/modules/chat/tests/asyncQuestionPanel.test.tsx) | — |
-| M | [src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx](../../src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx) | — |
+| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
+| M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
+| M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
+| M | [server/modules/providers/tests/codex-runtime.test.ts](../../server/modules/providers/tests/codex-runtime.test.ts) | — |
+| M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
+| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
+| M | [src/modules/chat/hooks/useChatRealtimeHandlers.ts](../../src/modules/chat/hooks/useChatRealtimeHandlers.ts) | — |
+| M | [src/modules/chat/hooks/useSessionStore.ts](../../src/modules/chat/hooks/useSessionStore.ts) | — |
+| M | [src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx](../../src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx) | — |
+| A | [src/modules/chat/tests/composerTextEditing.test.tsx](../../src/modules/chat/tests/composerTextEditing.test.tsx) | — |
+| M | [src/modules/chat/tests/sessionStoreTruncate.test.tsx](../../src/modules/chat/tests/sessionStoreTruncate.test.tsx) | — |
+| M | [src/modules/command-palette/CommandPalette.tsx](../../src/modules/command-palette/CommandPalette.tsx) | — |
+| M | [src/shared/context/SessionProtectionContext.tsx](../../src/shared/context/SessionProtectionContext.tsx) | — |
+| M | [src/shared/hooks/useSessionProtection.ts](../../src/shared/hooks/useSessionProtection.ts) | — |
+| M | [src/shared/tests/backgroundSessionActivity.test.tsx](../../src/shared/tests/backgroundSessionActivity.test.tsx) | — |
+| M | [src/shared/tests/runningSessionsPoll.test.tsx](../../src/shared/tests/runningSessionsPoll.test.tsx) | — |
+| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 
 ## NAS 主线提交
 
@@ -2186,6 +2202,17 @@
   - `docs/nas/commit-log.md`
   - `docs/nas/file-index.md`
   - `src/modules/chat/composer/ComposerModelMenu.tsx`
+
+### dfb4312b · 2026-10-13 · feat(chat): simplify question cards and free-text answers
+
+- 完整提交：`dfb4312b2f0ec6c3335de8ec248b07e602c1a636`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `src/modules/chat/tests/asyncQuestionPanel.test.tsx`
+  - `src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx`
 
 ## 从 PR / 其他分支合入的提交
 

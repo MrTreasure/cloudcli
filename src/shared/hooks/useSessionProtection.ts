@@ -62,12 +62,16 @@ export function useSessionProtection() {
   );
   const processingSessionsRef = useRef<SessionActivityMap>(processingSessions);
   processingSessionsRef.current = processingSessions;
+  // Causal timestamps include terminal tombstones so an older HTTP snapshot
+  // cannot clear newer live work or revive a run that has already completed.
+  const activityUpdatedAtRef = useRef(new Map<string, number>());
 
   const markSessionProcessing = useCallback<MarkSessionProcessing>((sessionId, activity) => {
     if (!sessionId) {
       return;
     }
 
+    activityUpdatedAtRef.current.set(sessionId, Date.now());
     setProcessingSessions((prev) => {
       const existing = prev.get(sessionId);
       // A new turn on a session that was only doing background work starts
@@ -108,17 +112,23 @@ export function useSessionProtection() {
       // A background-only entry is not a response, so nothing that reports
       // "no response in flight" — an idle subscribe ack, a rejected send —
       // has anything to say about it.
-      if (!existing || existing.background) {
+      if (!existing) {
+        if (opts?.ifStartedBefore === undefined) activityUpdatedAtRef.current.set(sessionId, Date.now());
+        return prev;
+      }
+      if (existing.background) {
         return prev;
       }
 
       // Guard against stale `chat_subscribed` idle acks: if a new request
-      // started after the subscribe was sent, the idle ack describes the
-      // older request and must not clear the newer one.
-      if (opts?.ifStartedBefore !== undefined && existing.startedAt >= opts.ifStartedBefore) {
+      // started or produced live activity after the subscribe was sent, the
+      // idle ack is older evidence and must not clear the active response.
+      const latestActivityAt = Math.max(existing.startedAt, activityUpdatedAtRef.current.get(sessionId) ?? 0);
+      if (opts?.ifStartedBefore !== undefined && latestActivityAt >= opts.ifStartedBefore) {
         return prev;
       }
 
+      activityUpdatedAtRef.current.set(sessionId, Date.now());
       const updated = new Map(prev);
       updated.delete(sessionId);
       return updated;
@@ -126,6 +136,7 @@ export function useSessionProtection() {
   }, []);
 
   const markSessionBackground = useCallback<MarkSessionBackground>((sessionId, tasks) => {
+    activityUpdatedAtRef.current.set(sessionId, Date.now());
     setProcessingSessions((prev) => {
       const existing = prev.get(sessionId);
       if (tasks.length === 0) {
@@ -154,7 +165,7 @@ export function useSessionProtection() {
     });
   }, []);
 
-  const syncProcessingSessions = useCallback<SyncProcessingSessions>((sessions) => {
+  const syncProcessingSessions = useCallback<SyncProcessingSessions>((sessions, requestedAt) => {
     const now = Date.now();
 
     setProcessingSessions((prev) => {
@@ -167,9 +178,15 @@ export function useSessionProtection() {
       }
 
       const updated = new Map<string, SessionActivity>();
+      const hasNewerActivity = (sessionId: string) => requestedAt !== undefined
+        && (activityUpdatedAtRef.current.get(sessionId) ?? -Infinity) >= requestedAt;
 
       for (const [sessionId, snapshot] of incoming) {
         const existing = prev.get(sessionId);
+        if (hasNewerActivity(sessionId)) {
+          if (existing) updated.set(sessionId, existing);
+          continue;
+        }
         const snapshotStartedAt =
           typeof snapshot.startedAt === 'number' && Number.isFinite(snapshot.startedAt) && snapshot.startedAt > 0
             ? snapshot.startedAt
@@ -199,7 +216,7 @@ export function useSessionProtection() {
       }
 
       for (const [sessionId, activity] of prev) {
-        if (!incoming.has(sessionId) && now - activity.startedAt < LOCAL_ACTIVITY_GRACE_MS) {
+        if (!incoming.has(sessionId) && (hasNewerActivity(sessionId) || now - activity.startedAt < LOCAL_ACTIVITY_GRACE_MS)) {
           updated.set(sessionId, activity);
         }
       }

@@ -181,12 +181,13 @@ export function useChatRealtimeHandlers({
         case 'protocol_error': {
           console.error('[Chat] Protocol error:', msg.code, msg.error);
           if (sid) {
-            // Surface the failure in the conversation and stop the spinner —
-            // the run never started (or was rejected), so no `complete` follows.
-            // A refused stop request is not about the run: the task had
-            // already settled, and idling here would drop a response in
-            // flight on that session.
-            if (msg.code !== 'NO_SUCH_TASK' && msg.code !== 'TASK_ID_REQUIRED') {
+            // Rejecting a send can end its optimistic activity. RUN_IN_PROGRESS
+            // instead confirms a different active run, and a refused task-stop
+            // says nothing about whether the session is still producing output.
+            if (msg.code === 'RUN_IN_PROGRESS') {
+              // A refused second send confirms an existing run, not its end.
+              onSessionProcessing?.(sid);
+            } else if (msg.code !== 'NO_SUCH_TASK' && msg.code !== 'TASK_ID_REQUIRED') {
               onSessionIdle?.(sid);
             }
             sessionStore.appendRealtime(sid, {
@@ -213,6 +214,16 @@ export function useChatRealtimeHandlers({
       /* -------------------------------------------------------------- */
       /*  Provider NormalizedMessage handling                            */
       /* -------------------------------------------------------------- */
+
+      // Live foreground output is proof that the turn is still active. Keep
+      // it in step with the tool cards even after an idle ack or stale poll.
+      if (sid && (
+        msg.kind === 'tool_use'
+        || (msg.kind === 'text' && msg.role === 'assistant')
+        || (msg.kind === 'stream_delta' && Boolean(msg.content))
+      )) {
+        onSessionProcessing?.(sid);
+      }
 
       // --- Streaming: buffer for performance ---
       if (msg.kind === 'stream_delta') {
@@ -365,7 +376,10 @@ export function useChatRealtimeHandlers({
 
         case 'status': {
           // Capability metadata is consumed by the queue hook, not shown as task progress.
-          if (msg.text === 'active_turn') return;
+          if (msg.text === 'active_turn') {
+            if (sid) onSessionProcessing?.(sid);
+            return;
+          }
           if (msg.text === 'token_budget' && msg.tokenBudget) {
             // The counter shows the viewed session's context; budgets from
             // other concurrently running sessions must not overwrite it.

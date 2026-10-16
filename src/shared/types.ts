@@ -214,7 +214,7 @@ export type MarkSessionProcessing = (
   activity?: { statusText?: string | null; canInterrupt?: boolean },
 ) => void;
 
-/** Marks a session's response as finished; `ifStartedBefore` lets a late acknowledgement clear only a stale run. Leaves background-only work alone, which it says nothing about. */
+/** Marks a response as finished; ifStartedBefore rejects acknowledgements older than the start or latest live activity. Leaves background-only work alone. */
 export type MarkSessionIdle = (
   sessionId?: string | null,
   opts?: { ifStartedBefore?: number },
@@ -229,9 +229,10 @@ export type MarkSessionBackground = (
 /** Reads one session's current activity without subscribing to the map, for logic that runs on a websocket frame. */
 export type GetSessionActivity = (sessionId: string) => SessionActivity | undefined;
 
-/** Replaces the whole processing map with the server's view, used by the periodic running-sessions poll. */
+/** Applies the running-sessions poll; requestedAt protects newer live activity and terminal events from a stale response. */
 export type SyncProcessingSessions = (
   sessions: readonly SessionActivitySnapshot[],
+  requestedAt?: number,
 ) => void;
 
 /** Reports whether one session is currently producing a response; false for one that only has background tasks running. */

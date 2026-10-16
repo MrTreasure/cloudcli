@@ -21,6 +21,7 @@ import {
   type CodexAppServerProcess,
 } from '@/modules/providers/list/codex/index.js';
 import { createNormalizedMessage } from '@/shared/index.js';
+import { CodexSessionsProvider } from '@/modules/providers/list/codex/codex-sessions.provider.js';
 import type {
   AnyRecord,
   NormalizedMessage,
@@ -230,6 +231,139 @@ function createRuntime(process: FakeAppServerProcess) {
       clientInfo: { name: 'cloudcli-runtime-test', version: 'test' },
       spawn: () => process as unknown as CodexAppServerProcess,
     },
+  });
+}
+
+// Exercise the real todo_list adapter as well as transport routing; the other
+// runtime fixtures intentionally normalize only the item types they inspect.
+async function startPlanRun(harness: RuntimeHarness, runtime: ReturnType<typeof createRuntime>) {
+  const output = createWriter();
+  const provider = new CodexSessionsProvider({ readRuntimeMode: () => 'app-server' });
+  const runPromise = runtime.run('Work through the task', { sessionId: 'plan-app' }, output.writer, {
+    ...context,
+    normalizeMessage: (raw, sessionId) => provider.normalizeMessage(raw, sessionId),
+  });
+  let request = await harness.nextRequest();
+  while (request.method !== 'turn/start') request = await harness.nextRequest();
+  // Let the turn/start RPC reply establish the authoritative turn id.
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  return { output, runPromise, request };
+}
+
+test('plan notifications normalize three states and update one stable item per turn', async (t) => {
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise } = await startPlanRun(harness, runtime);
+  const notify = (plan: unknown) => harness.notify('turn/plan/updated', { threadId: 'thread-new', turnId: 'turn-1', plan });
+  const steps = [
+    { step: 'Inspect', status: 'completed' },
+    { step: 'Implement', status: 'inProgress' },
+    { step: 'Verify', status: 'pending' },
+  ];
+  notify(steps);
+  notify(steps.map((step) => ({ ...step, status: 'completed' })));
+  const plans = output.messages.filter((message) => message.toolName === 'TodoWrite');
+  assert.equal(plans.length, 2);
+  assert.deepEqual(plans.map((message) => message.id), [
+    'codex-plan:thread-new:turn-1', 'codex-plan:thread-new:turn-1',
+  ]);
+  assert.equal(plans[0].toolId, plans[0].id);
+  assert.deepEqual(plans[0].toolInput, { todos: [
+    { content: 'Inspect', status: 'completed' },
+    { content: 'Implement', status: 'in_progress' },
+    { content: 'Verify', status: 'pending' },
+  ] });
+  assert.deepEqual(plans[1].toolInput, { todos: steps.map((step) => ({ content: step.step, status: 'completed' })) });
+  assert.equal(plans[0].status, 'completed', 'the snapshot write is settled independently of its steps');
+  assert.deepEqual(plans[0].toolResult, { content: '', isError: false });
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-1', status: 'completed' } });
+  await runPromise;
+  notify(steps);
+  assert.equal(output.messages.filter((message) => message.toolName === 'TodoWrite').length, 2);
+});
+
+test('plans require the exact known thread and turn, including during turn setup and the next run', async (t) => {
+  const harness = createHarness({ pauseAt: 'turn/start' });
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise, request } = await startPlanRun(harness, runtime);
+  const plan = [{ step: 'Implement', status: 'inProgress' }];
+  // An untrusted notification must not choose the turn id before the RPC reply.
+  harness.notify('turn/plan/updated', { threadId: 'thread-new', turnId: 'stale-turn', plan });
+  harness.respondWithResult(request, { turn: { id: 'turn-1', status: 'inProgress' } });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  for (const ids of [
+    { threadId: 'other-thread', turnId: 'turn-1' },
+    { threadId: 'thread-new', turnId: 'stale-turn' },
+    { turnId: 'turn-1' },
+    { threadId: 'thread-new' },
+  ]) harness.notify('turn/plan/updated', { ...ids, plan });
+  assert.equal(output.messages.filter((message) => message.toolName === 'TodoWrite').length, 0);
+  harness.notify('turn/plan/updated', { threadId: 'thread-new', turnId: 'turn-1', plan });
+  assert.equal(output.messages.filter((message) => message.toolName === 'TodoWrite').length, 1);
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-1', status: 'completed' } });
+  await runPromise;
+
+  const next = await startPlanRun(harness, runtime);
+  harness.respondWithResult(next.request, { turn: { id: 'turn-2', status: 'inProgress' } });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  harness.notify('turn/plan/updated', { threadId: 'thread-new', turnId: 'turn-1', plan });
+  assert.equal(next.output.messages.filter((message) => message.toolName === 'TodoWrite').length, 0);
+  harness.notify('turn/plan/updated', { threadId: 'thread-new', turnId: 'turn-2', plan });
+  assert.equal(next.output.messages.find((message) => message.toolName === 'TodoWrite')?.id, 'codex-plan:thread-new:turn-2');
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-2', status: 'completed' } });
+  await next.runPromise;
+});
+
+test('malformed plans diagnose invalid entries without failing the run or erasing a valid checklist', async (t) => {
+  const warnings = t.mock.method(console, 'warn', () => undefined);
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise } = await startPlanRun(harness, runtime);
+  const notify = (plan: unknown) => harness.notify('turn/plan/updated', { threadId: 'thread-new', turnId: 'turn-1', plan });
+  notify([{ step: 'Valid step', status: 'inProgress' }, null, { step: ' ', status: 'pending' },
+    { step: 42, status: 'completed' }, { step: 'Bad state', status: 'unknown' }]);
+  notify(null);
+  notify([{ step: 'Missing status' }]);
+  notify([]);
+  const plans = output.messages.filter((message) => message.toolName === 'TodoWrite');
+  assert.equal(plans.length, 1);
+  assert.deepEqual(plans[0].toolInput, { todos: [{ content: 'Valid step', status: 'in_progress' }] });
+  assert.equal(warnings.mock.callCount(), 3);
+  assert.equal(output.messages.some((message) => message.kind === 'complete'), false);
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-1', status: 'completed' } });
+  assert.deepEqual(await runPromise, { status: 'completed' });
+});
+
+for (const ending of ['interrupted', 'failed', 'cancelled'] as const) {
+  test(`a ${ending} turn keeps unfinished plan steps and ignores later updates`, async (t) => {
+    const harness = createHarness();
+    const runtime = createRuntime(harness.process);
+    t.after(() => harness.process.kill());
+    const { output, runPromise } = await startPlanRun(harness, runtime);
+    const notify = (status: string) => harness.notify('turn/plan/updated', {
+      threadId: 'thread-new', turnId: 'turn-1', plan: [{ step: 'Verify', status }],
+    });
+    notify('inProgress');
+    if (ending === 'cancelled') {
+      await runtime.abort('plan-app');
+      notify('completed');
+    }
+    harness.notify('turn/completed', { threadId: 'thread-new', turn: {
+      id: 'turn-1', status: ending === 'cancelled' ? 'interrupted' : ending,
+      ...(ending === 'failed' ? { error: { message: 'Test failure' } } : {}),
+    } });
+    notify('completed');
+    const outcome = await runPromise;
+    const plans = output.messages.filter((message) => message.toolName === 'TodoWrite');
+    assert.equal(plans.length, 1);
+    assert.deepEqual(plans[0].toolInput, { todos: [{ content: 'Verify', status: 'in_progress' }] });
+    assert.deepEqual(outcome, {
+      status: ending === 'cancelled' ? 'interrupted' : ending,
+      ...(ending === 'failed' ? { error: 'Test failure' } : {}),
+    });
   });
 }
 

@@ -170,3 +170,43 @@ Fast 滑动开关移到模型/推理菜单最顶部，正常文案仅“更快�
 - 维护路径：`src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx`、`src/modules/chat/tests/asyncQuestionPanel.test.tsx`；Claude 权限提问和 Codex 异步提问复用同一卡片，回答仍由既有权限/异步通道处理。
 - 验证：816 项全量前端测试通过，覆盖无选项直接输入、空回答 Enter 不发送、多题返回后保留多选和草稿；类型检查、构建及涉及文件 lint 通过。NAS 前端已增量发布，未运行浏览器自动化。
 - 来源：NAS 本地 UI 优化，无额外上游 PR。回退卡片组件及对应测试即可恢复旧交互，依赖既有 Question 类型及 AsyncQuestionPanel，不涉及数据库或后端迁移。
+
+
+## 聊天输入基础编辑键
+
+- 保留现有原生 textarea，不引入 CodeMirror 或新的键盘库；Home/End、单词移动、Shift 选区、复制粘贴、全选与撤销/重做继续由浏览器/系统处理。
+- 输入框聚焦时 Ctrl+K 删除光标至当前行末，已在行末则删除换行以合并下一行；Ctrl+U 删除光标至当前行首。存在选区时只删除选中内容，空范围不操作。有修饰键的其他组合保持原行为。
+- Ctrl+K 在输入框内阻止冒泡，避免打开全局命令面板；输入框外的原快捷键和 Mac Cmd+K 保留。输入法组合输入及 keyCode 229 不触发删除/发送；Safari 刚结束选词的 Enter 保护在菜单处理前生效。
+- 文本编辑同时同步草稿、即时发送镜像、光标和输入框高度；原生 input 事件也同步草稿，避免撤销恢复文字后紧接 Enter 发送旧内容。
+- 优先调用浏览器原生编辑命令以保留撤销记录，缺少/拒绝该命令时降级为 setRangeText；降级路径不保证进入原生撤销栈。浏览器行为参考 [MDN execCommand](https://developer.mozilla.org/en-US/docs/Web/API/Document/execCommand)。
+- 命令面板同时尊重已消费事件及输入法事件；维护路径：`src/modules/chat/hooks/useChatComposerState.ts`、`src/modules/chat/tests/composerTextEditing.test.tsx`、`src/modules/command-palette/CommandPalette.tsx`。来源为 NAS 本地基础适配，无额外上游 PR；回退时一起审查按键处理和原生 input 同步，不涉及服务端或数据库。
+- 验证：新增 23 项回归用例，124 个文件、839 项全量前端测试通过；类型检查、构建通过，涉及文件 lint 无错误（既有警告保留）。覆盖行边界、跨行选区、原生键位放行、组合输入、原生编辑事件同步及紧接 Enter 的发送内容。NAS 已增量发布，未运行浏览器自动化或 Mac 实机验证。
+
+## 工具运行期间 loading 状态同步
+
+- 目的：修复工具卡片仍在更新时，输入框运行提示被错误清除的问题。工具记录与会话运行状态来自不同通道，必须按事件先后同步。
+- `RUN_IN_PROGRESS` 表示服务端已有任务，拒绝第二次发送时保留/恢复运行状态；实时工具调用、助手正文、流式增量和 active_turn 元数据也刷新运行证据，保留原始计时起点。普通后台工具结果不恢复前台 loading，真实 complete/abort 仍结束前台状态。
+- 每个会话记录最近活动/结束时间，轮询带上请求发起时间：旧快照不能清除更新的工具活动，也不能复活已经结束的会话；订阅 idle 确认同样检查最近活动。重叠轮询只应用比已处理结果更新的响应，格式不完整的响应不作为空列表；新的有效空快照仍可收敛丢失结束事件的状态。
+- 维护路径：`src/modules/chat/hooks/useChatRealtimeHandlers.ts`、`src/shared/hooks/useSessionProtection.ts`、`src/shared/context/SessionProtectionContext.tsx`、`src/shared/types.ts`；对应回归位于 `backgroundWorkAfterComplete.test.tsx`、`backgroundSessionActivity.test.tsx`、`runningSessionsPoll.test.tsx`。
+- 来源：NAS 本地状态同步修复，无额外上游 PR。回退时一起审查实时事件、共享活动时间保护及轮询参数，保留后台任务与真实结束事件的既有语义；无后端、数据库迁移或机器配置依赖。
+- 验证：124 个文件、843 项全量前端测试通过，类型检查和构建通过，涉及文件 lint 无错误（既有警告保留）。回归覆盖重复发送拒绝、工具事件恢复、stream_end 不结束整轮、真实 complete、旧订阅确认、轮询乱序、结束后旧快照及畸形响应。NAS 前端已增量发布，本地发布入口与构建一致；截图来自 Mac，未取得其当时事件轨迹，不能据此断言具体触发路径；未运行浏览器自动化或 Mac 实机验证。
+
+## Codex 实时任务清单
+
+- 目的：将 Codex 长任务的原生计划更新实时展示为聊天清单，每个执行轮次更新同一张卡片。沿用官方 TodoWrite / TodoList 展示，不新增队列、提示词、模型或认证配置；只展示模型实际产生的计划，不从普通进度文字推断任务。
+- 协议核对：本机 `codex-cli 0.162.0`，通过 `codex app-server generate-ts` 在临时目录导出并检查 `TurnPlanUpdatedNotification`、`TurnPlanStep`、`TurnPlanStepStatus`。原生 `turn/plan/updated` 携带 threadId、turnId 和 plan，每项为 `{ step, status }`，状态为 pending / inProgress / completed。SDK 0.162.0 的旧 todo_list 仍为 `{ text, completed: boolean }`。
+- 根因：app-server 只消费 item/completed，忽略独立的计划通知；已有 todo_list 转换只识别布尔完成标记，丢失进行中状态；消息仓库对同 ID 快照始终追加，且清单缺少“写入操作完成”的结果，会让工具外框一直显示 Running。
+- 后端维护路径：`server/modules/providers/list/codex/codex-app-server.runtime.ts` 为计划通知单独校验明确的线程和已知轮次，不采用旧版单活动会话兜底，不允许通知自行指定当前轮次；忽略其他线程、过期轮次、取消请求后及结束后的更新。非法 plan 记录诊断，非法步骤只记录数量并过滤；空或全部非法的更新不创建空卡，也不抹掉最后有效清单。稳定 ID 为 `codex-plan:<threadId>:<turnId>`。
+- 转换路径：运行时发出 todo_list，由 `server/modules/providers/list/codex/codex-sessions.provider.ts` 转为 TodoWrite：inProgress → in_progress，其余两态保持原意；兼容 SDK 布尔完成格式。清单快照的 status / toolResult 只表示这次写入已成功，与步骤状态独立，取消、中断、失败均不修改未完成步骤。
+- 前端维护路径：`src/modules/chat/hooks/useSessionStore.ts` 在本会话内按相同消息 ID 替换实时快照，保留首次时间戳和数组位置，避免更新后卡片跳到后续消息之后。既有 `src/modules/chat/tools/ContentRenderers/TodoList.tsx` 和 `TodoListContent.tsx` 已能正确展示三态，直接复用，未另建清单组件或新增前端单测文件。
+- 回归测试路径：后端扩展 `codex-app-server.runtime.test.ts`、`codex-sessions.test.ts`、`codex-runtime.test.ts`，覆盖真实 normalizer 链路、三态映射、稳定 ID 连续更新、SDK 三种 item 事件、错误线程/轮次、RPC 建立轮次前的错误更新、非法数据、取消/中断/失败以及结束后迟到更新；前端扩展已有 `src/modules/chat/tests/sessionStoreTruncate.test.tsx`，验证同 ID 原位替换、不同会话隔离、不同轮次分离、真实 ToolRenderer → TodoListContent → TodoList 三态、更新后仅一张卡及不显示 Running 写入标记。
+- 验证结果：`pnpm exec tsx --tsconfig server/tsconfig.json --test server/modules/providers/tests/codex-app-server.runtime.test.ts server/modules/providers/tests/codex-sessions.test.ts server/modules/providers/tests/codex-runtime.test.ts`，124 项全部通过；前端既有 store 文件聚焦 11 项通过，`pnpm run test:client` 全量 124 个文件、846 项通过；`pnpm run typecheck`、`pnpm run build`（前后端）和 `pnpm run lint` 通过，保留仓库原有 lint 及大包体积警告。运行时测试使用模拟 JSON-RPC 通知和实际 provider normalizer，SDK 测试使用模拟 SDK 流与实际转换；本次未执行真实模型对话或浏览器自动化。
+- 功能边界：本次不新增持久化。清单保存在当前页面的会话消息内存中；普通历史刷新不会为该通知创建新的持久记录，整页刷新后不能保证恢复。断线重连只能利用既有活动执行缓冲区的重放，执行结束、缓冲截断或服务重启后不承诺恢复。模型未发计划时不显示清单，也没有强制模型列计划的额外指令。
+- 来源：NAS 本地补齐，基于既有 Codex app-server 及官方清单组件，未额外合并 PR。回退时只回退本节通知处理、todo_list 规范化和 store 按 ID 更新相关代码及对应测试；避免整文件回退覆盖此前未提交的输入快捷键/loading 修复。无 schema、机器绝对路径或部署配置迁移。
+- 启用：此次只修复源码并本地构建，不发布前端、不重启运行服务、不 commit/push。NAS 生效需要按 `deploy/README.md` 发布前端资源，并在合适时机重启后端以加载新运行时；其他电脑同步源码后本地构建/启动，使用自己的部署配置。
+
+### 2026-10-16 NAS 发布与激活
+
+- 已增量发布前端及 56 项变更静态资源，原子替换本地入口并清理入口缓存；未检测公网首页或逐个检查全部 CDN 资源。
+- 已重新构建后端并通过独立任务重启 cloudcli-backend.service；重启后主进程 PID 已变化，服务 active，本地 /health 正常且原账号初始化状态保持正常。
+- 本次构建产物已由运行服务加载；实际 Codex 计划事件的 UI 展示仍待用户手动验收。未 commit/push。

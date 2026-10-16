@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`7a79aa695d1583391d41f31f20beac63628e8c33`。
+官方基线：`v1.37.4` (`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`)。历史覆盖至生成时的 HEAD：`dfb4312b2f0ec6c3335de8ec248b07e602c1a636`。
 
-记录基线与当前暂存树之间的全部净差异，共 499 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 507 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -252,6 +252,7 @@
 | A | [public/icons/c137-96.png](../../public/icons/c137-96.png) | — |
 | M | [public/manifest.json](../../public/manifest.json) | — |
 | M | [public/sw.js](../../public/sw.js) | — |
+| M | [README.md](../../README.md) | — |
 | A | [scripts/localization/collect-interface-labels.mjs](../../scripts/localization/collect-interface-labels.mjs) | — |
 | A | [scripts/localization/complete-zh-cn.py](../../scripts/localization/complete-zh-cn.py) | — |
 | A | [scripts/record-nas-changes.mjs](../../scripts/record-nas-changes.mjs) | — |
@@ -363,6 +364,7 @@
 | A | [src/modules/chat/tests/codexFastState.test.ts](../../src/modules/chat/tests/codexFastState.test.ts) | — |
 | A | [src/modules/chat/tests/composerFastMenu.test.tsx](../../src/modules/chat/tests/composerFastMenu.test.tsx) | — |
 | A | [src/modules/chat/tests/composerSendCompactCommand.test.ts](../../src/modules/chat/tests/composerSendCompactCommand.test.ts) | — |
+| A | [src/modules/chat/tests/composerTextEditing.test.tsx](../../src/modules/chat/tests/composerTextEditing.test.tsx) | — |
 | M | [src/modules/chat/tests/composerToolsSettingsResolution.test.ts](../../src/modules/chat/tests/composerToolsSettingsResolution.test.ts) | — |
 | A | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
 | M | [src/modules/chat/tests/messageModelLabel.test.tsx](../../src/modules/chat/tests/messageModelLabel.test.tsx) | — |
@@ -371,6 +373,7 @@
 | A | [src/modules/chat/tests/sessionHistoryRuntime.test.tsx](../../src/modules/chat/tests/sessionHistoryRuntime.test.tsx) | — |
 | M | [src/modules/chat/tests/sessionMessagePagination.test.ts](../../src/modules/chat/tests/sessionMessagePagination.test.ts) | — |
 | M | [src/modules/chat/tests/sessionMessageReconciliation.test.ts](../../src/modules/chat/tests/sessionMessageReconciliation.test.ts) | — |
+| M | [src/modules/chat/tests/sessionStoreTruncate.test.tsx](../../src/modules/chat/tests/sessionStoreTruncate.test.tsx) | — |
 | M | [src/modules/chat/tests/slashCommandTabCompletion.test.ts](../../src/modules/chat/tests/slashCommandTabCompletion.test.ts) | — |
 | M | [src/modules/chat/tools/BashCommandDisplay.tsx](../../src/modules/chat/tools/BashCommandDisplay.tsx) | — |
 | M | [src/modules/chat/tools/CollapsibleDisplay.tsx](../../src/modules/chat/tools/CollapsibleDisplay.tsx) | — |
@@ -397,6 +400,7 @@
 | M | [src/modules/code-editor/CodeEditorMediaPreview.tsx](../../src/modules/code-editor/CodeEditorMediaPreview.tsx) | — |
 | M | [src/modules/code-editor/EditorSidebar.tsx](../../src/modules/code-editor/EditorSidebar.tsx) | — |
 | M | [src/modules/code-editor/markdown/MarkdownCodeBlock.tsx](../../src/modules/code-editor/markdown/MarkdownCodeBlock.tsx) | — |
+| M | [src/modules/command-palette/CommandPalette.tsx](../../src/modules/command-palette/CommandPalette.tsx) | — |
 | M | [src/modules/file-tree/FileTree.tsx](../../src/modules/file-tree/FileTree.tsx) | — |
 | M | [src/modules/file-tree/FileTreeNode.tsx](../../src/modules/file-tree/FileTreeNode.tsx) | — |
 | M | [src/modules/file-tree/ImageViewer.tsx](../../src/modules/file-tree/ImageViewer.tsx) | — |
@@ -481,6 +485,7 @@
 | M | [src/shared/api.ts](../../src/shared/api.ts) | — |
 | M | [src/shared/chatDrafts.ts](../../src/shared/chatDrafts.ts) | — |
 | M | [src/shared/constants.ts](../../src/shared/constants.ts) | — |
+| M | [src/shared/context/SessionProtectionContext.tsx](../../src/shared/context/SessionProtectionContext.tsx) | — |
 | M | [src/shared/context/UiPreferencesContext.tsx](../../src/shared/context/UiPreferencesContext.tsx) | — |
 | M | [src/shared/context/WebSocketContext.tsx](../../src/shared/context/WebSocketContext.tsx) | — |
 | A | [src/shared/hooks/useBranding.ts](../../src/shared/hooks/useBranding.ts) | — |
@@ -488,12 +493,15 @@
 | A | [src/shared/hooks/useFontSizes.ts](../../src/shared/hooks/useFontSizes.ts) | — |
 | A | [src/shared/hooks/useInterfaceText.ts](../../src/shared/hooks/useInterfaceText.ts) | — |
 | M | [src/shared/hooks/useProjectSlashCommands.ts](../../src/shared/hooks/useProjectSlashCommands.ts) | — |
+| M | [src/shared/hooks/useSessionProtection.ts](../../src/shared/hooks/useSessionProtection.ts) | — |
 | M | [src/shared/hooks/useVersionCheck.ts](../../src/shared/hooks/useVersionCheck.ts) | — |
 | M | [src/shared/selectedProvider.ts](../../src/shared/selectedProvider.ts) | — |
+| M | [src/shared/tests/backgroundSessionActivity.test.tsx](../../src/shared/tests/backgroundSessionActivity.test.tsx) | — |
 | M | [src/shared/tests/chatDrafts.test.ts](../../src/shared/tests/chatDrafts.test.ts) | — |
 | A | [src/shared/tests/commandVisibility.test.tsx](../../src/shared/tests/commandVisibility.test.tsx) | — |
 | A | [src/shared/tests/fileTreeBrowsing.test.ts](../../src/shared/tests/fileTreeBrowsing.test.ts) | — |
 | A | [src/shared/tests/fontSizes.test.tsx](../../src/shared/tests/fontSizes.test.tsx) | — |
+| M | [src/shared/tests/runningSessionsPoll.test.tsx](../../src/shared/tests/runningSessionsPoll.test.tsx) | — |
 | M | [src/shared/tests/selectedProvider.test.ts](../../src/shared/tests/selectedProvider.test.ts) | — |
 | M | [src/shared/tests/useProjectSlashCommands.test.tsx](../../src/shared/tests/useProjectSlashCommands.test.tsx) | — |
 | M | [src/shared/tests/useSelectedProvider.test.tsx](../../src/shared/tests/useSelectedProvider.test.tsx) | — |

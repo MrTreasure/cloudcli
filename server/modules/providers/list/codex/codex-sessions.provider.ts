@@ -2362,9 +2362,31 @@ export class CodexSessionsProvider implements IProviderSessions {
             isError: raw.status === 'failed',
           })];
         }
-        case 'todo_list':
-          // Codex's live plan uses `{text, completed}`; Claude's TodoWrite uses
-          // `{content, status}`. Normalizing here means one renderer, not two.
+        case 'todo_list': {
+          // app-server carries three states; older SDK items carry a boolean.
+          // Both use the existing TodoWrite surface without losing in-progress.
+          if (!Array.isArray(raw.items)) {
+            console.warn('[Codex] Invalid todo_list items:', { sessionId, itemId });
+            return [];
+          }
+          const todos = raw.items.flatMap((value: unknown) => {
+            const item = readObjectRecord(value);
+            const content = readNonEmptyString(item?.text);
+            if (!content?.trim() || !item) return [];
+            const status = item.status === 'inProgress' || item.status === 'in_progress'
+              ? 'in_progress'
+              : item.status === 'pending' || item.status === 'completed'
+                ? item.status
+                : item.status === undefined && typeof item.completed === 'boolean'
+                  ? item.completed ? 'completed' : 'pending'
+                  : null;
+            return status ? [{ content, status }] : [];
+          });
+          const invalidSteps = raw.items.length - todos.length;
+          if (invalidSteps > 0) {
+            console.warn('[Codex] Invalid todo_list steps ignored:', { sessionId, itemId, invalidSteps });
+          }
+          if (todos.length === 0) return [];
           return [createNormalizedMessage({
             id: itemId,
             sessionId,
@@ -2372,14 +2394,14 @@ export class CodexSessionsProvider implements IProviderSessions {
             provider: PROVIDER,
             kind: 'tool_use',
             toolName: 'TodoWrite',
-            toolInput: {
-              todos: (Array.isArray(raw.items) ? raw.items : []).map((item: AnyRecord) => ({
-                content: String(item?.text ?? ''),
-                status: item?.completed ? 'completed' : 'pending',
-              })),
-            },
+            toolInput: { todos },
             toolId: itemId,
+            // Writing this snapshot is finished even while its steps are not.
+            // A turn ending/aborting must never manufacture completed steps.
+            status: 'completed',
+            toolResult: { content: '', isError: false },
           })];
+        }
         case 'image_view':
           return [createNormalizedMessage({
             id: itemId,
