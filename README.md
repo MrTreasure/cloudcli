@@ -279,3 +279,10 @@ CloudCLI UI - (https://cloudcli.ai).
 ## NAS 精简分支
 
 本分支基于官方 v1.37.5，仅保留约定的 NAS 功能；范围、路径、测试及回退依赖见 [维护指南](docs/nas/README.md)，跨电脑开发与 NAS 发布见 [部署说明](deploy/README.md)。
+
+
+### Codex 运行中插入与排队
+
+运行中的 Codex 对话：Enter/发送按钮通过原生 `turn/steer` 追加输入；Shift+Enter 排队到整轮（含后台工作）结束。空闲时 Shift+Enter 保持换行。排队卡片可立即插入或发送；仍沿用官方单条持久队列，不是多条 FIFO。插入不会停止当前工具，具体消费时机由 Codex 决定。调度、订阅修复与失败保护、验证及回退依赖见 [NAS 维护指南](docs/nas/README.md#2026-10-19-队列修复与恢复-codex-原生插入)。前后端需同步发布才能生效。
+
+NAS 外观继续保留 C137 Logo 和原用户头像，并隐藏侧栏的报告问题、加入社区及 GitHub Star 入口（含手机和折叠侧栏）。

@@ -175,10 +175,12 @@ export function createUserService(dependencies: UserDependencies) {
         });
       }
 
-      dependencies.drafts.saveDraft(userId, scope, {
-        text,
-        queuedMessage: payload.queuedMessage ?? null,
-      });
+      // A typing-only update must not clear another device's queue or revive
+      // one already consumed by the dispatcher. Only explicit queue edits own it.
+      const queuedMessage = Object.prototype.hasOwnProperty.call(payload, 'queuedMessage')
+        ? payload.queuedMessage ?? null
+        : dependencies.drafts.getDrafts(userId).find((draft) => draft.scope === scope)?.queuedMessage ?? null;
+      dependencies.drafts.saveDraft(userId, scope, { text, queuedMessage });
       return { success: true };
     },
 

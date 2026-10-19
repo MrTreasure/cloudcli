@@ -1,9 +1,13 @@
 import { useTranslation } from 'react-i18next';
-import { PencilIcon, XIcon } from 'lucide-react';
+import { PencilIcon, XIcon, SendIcon, Loader2 } from 'lucide-react';
 
 type QueuedMessageCardProps = {
   content: string;
   attachmentCount?: number;
+  onSendNow?: () => void;
+  sending?: boolean;
+  error?: string | null;
+  insertIntoActiveRun?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 };
@@ -15,6 +19,10 @@ type QueuedMessageCardProps = {
 export default function QueuedMessageCard({
   content,
   attachmentCount = 0,
+  onSendNow,
+  sending = false,
+  error,
+  insertIntoActiveRun = false,
   onEdit,
   onDelete,
 }: QueuedMessageCardProps) {
@@ -33,6 +41,7 @@ export default function QueuedMessageCard({
             </span>
           </div>
           <p className="mt-0.5 line-clamp-2 break-words text-sm text-foreground/90">{content}</p>
+          {error && <p role="alert" className="mt-1 text-xs text-destructive">{error}</p>}
           {attachmentCount > 0 && (
             <p className="mt-0.5 text-xs text-muted-foreground">
               {attachmentCount} {attachmentCount === 1 ? 'file' : 'files'} attached
@@ -41,8 +50,17 @@ export default function QueuedMessageCard({
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
+          {onSendNow && (
+            <button type="button" disabled={sending} onClick={onSendNow}
+              title={t(insertIntoActiveRun ? 'input.queue.insertNow' : 'input.queue.sendNow')}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-primary transition-colors hover:bg-accent disabled:opacity-50">
+              {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SendIcon className="h-3.5 w-3.5" />}
+              {t(insertIntoActiveRun ? 'input.queue.insertNow' : 'input.queue.sendNow')}
+            </button>
+          )}
           <button
             type="button"
+            disabled={sending}
             onClick={onEdit}
             aria-label={t('input.queue.edit', { defaultValue: 'Edit queued message' })}
             title={t('input.queue.edit', { defaultValue: 'Edit queued message' })}
@@ -52,6 +70,7 @@ export default function QueuedMessageCard({
           </button>
           <button
             type="button"
+            disabled={sending}
             onClick={onDelete}
             aria-label={t('input.queue.delete', { defaultValue: 'Delete queued message' })}
             title={t('input.queue.delete', { defaultValue: 'Delete queued message' })}

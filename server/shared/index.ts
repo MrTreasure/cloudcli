@@ -1,10 +1,11 @@
-export { appendFilesInputTag, buildCodexInputItems, normalizeImageDescriptors } from './image-attachments.js';
+export { appendFilesInputTag, buildCodexInputItems, normalizeImageDescriptors, isImageAttachmentDescriptor } from './image-attachments.js';
 export { resolveCodexExecutable, AppError, createCompleteMessage, createNormalizedMessage, readObjectRecord } from './utils.js';
 export type {
   AnyRecord,
   NormalizedMessage,
   ProviderPermissionDecision,
   ProviderRuntimeContext,
+  ProviderSteerInput,
   ProviderRuntimeWriter,
 } from './types.js';
 

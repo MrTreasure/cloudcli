@@ -211,7 +211,7 @@ export const chatRunRegistry = {
       provider: input.provider,
       providerSessionId: input.providerSessionId,
       status: 'running',
-      lastSeq: 0,
+      lastSeq: existing?.lastSeq ?? 0,
       events: [],
       writer: null as unknown as ChatSessionWriter,
       startedAt: Date.now(),
@@ -226,9 +226,10 @@ export const chatRunRegistry = {
       onProviderSessionId: (providerSessionId) => {
         recordProviderSessionId(run, providerSessionId);
       },
-      decorateOutboundEvent: (message) => decorateAndRecordEvent(run, message),
+      decorateOutboundEvent: (message) => runs.get(run.appSessionId) === run ? decorateAndRecordEvent(run, message) : null,
     });
 
+    if (existing) run.writer.inheritConnections(existing.writer);
     runs.set(input.appSessionId, run);
     return run;
   },

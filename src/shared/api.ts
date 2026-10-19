@@ -301,6 +301,8 @@ export const api = {
 
   // Scheduled messages: send a message to a session at a future time.
   scheduledMessages: {
+    sendQueuedNow: (sessionId: string, queuedMessage: unknown) =>
+      post('/api/scheduled-messages/queued/send-now', { sessionId, queuedMessage }),
     list: (sessionId?: string) =>
       get(`/api/scheduled-messages${sessionId ? query({ sessionId }) : ''}`),
     create: (body: { sessionId: string; content: string; scheduledFor: string; options?: unknown }) =>

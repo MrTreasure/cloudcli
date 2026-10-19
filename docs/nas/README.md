@@ -4,8 +4,8 @@
 
 - 本分支 `nas-clean-v1.37.5` 直接建立在官方 `v1.37.5`（`0ce5630f46c283653359820870df1afd67cb1cf5`）之上。
 - 原 `nas` 的 `2ef0d625` 保留完整旧功能及升级合并历史，作为回退参考；此前官方基线为 `v1.37.4`（`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`）。本分支没有继承旧 NAS 功能提交。
-- 产品功能仅保留 Fast、实时 Todo、基础输入快捷键、界面与文件名字号、仪表盘、上下文百分比及压缩阈值布局。重叠功能使用官方实现，尤其是消息发送/排队、命令列表、模型目录、认证和工具卡片。
-- 旧 FIFO/插入队列、原生命令定制/隐藏、品牌/头像设置、额外技能描述截断、隐藏文件过滤规则、Task Queue MCP/其他本地插件不移入本分支。
+- 产品功能仅保留 Fast、实时 Todo、基础输入快捷键、界面与文件名字号、仪表盘、上下文百分比及压缩阈值布局，以及 C137 Logo、原用户头像和侧栏推广入口精简。重叠功能优先使用官方实现；消息排队在官方单条持久草稿上补齐发送/实时订阅修复，并按用户后续要求恢复 Codex 原生插入。命令列表、模型目录、认证和工具卡片仍采用官方实现。
+- 旧 FIFO 多条队列、原生命令定制/隐藏、品牌/头像设置、额外技能描述截断、隐藏文件过滤规则、Task Queue MCP/其他本地插件不移入本分支。
 
 ## 构建及 NAS 部署适配
 
@@ -34,8 +34,8 @@
 
 ## 明确使用官方实现的部分
 
-- 官方 1.37.5 的消息发送、后台任务确认及单条持久排队消息完整保留，不移入 NAS FIFO 或 `turn/steer`。
-- 命令菜单、模型目录、技能描述、Question 卡片、loading/会话活跃状态、文件浏览过滤、注册/登录与品牌样式按官方实现。原来隐藏的 `/help`、`/model` 等命令不再由 NAS 定制过滤。
+- 官方 1.37.5 的发送、后台任务确认及单条 `session_drafts` 持久排队结构保留；队列分发、草稿竞态与实时订阅已修复，另恢复 `turn/steer` 插入，不移入旧 NAS FIFO 表/队列。
+- 命令菜单、模型目录、技能描述、Question 卡片、loading/会话活跃状态、文件浏览过滤、注册/登录按官方实现；Logo、静态用户头像与侧栏推广入口保留 NAS 外观定制。原来隐藏的 `/help`、`/model` 等命令不再由 NAS 定制过滤。
 - Codex 历史、分页、文件缓存及引用式 fork 历史继续使用官方 JSONL 读取；没有新增 app-server 历史端点。官方 fork 客户端只适配本机 CLI 入口，不改为共享长连接 fork。
 - NAS 分离部署仅额外保留 URL/CORS、自动化 API key 作用域和根工作空间路径的必要适配。普通电脑默认同源；部署脚本中的域名、路径和密码本配置不自动应用于其他电脑。
 - 未改动 `.env`、密码本、用户数据库、Codex/Claude 配置、已安装插件和系统服务；旧功能对应的数据库表/偏好数据也未删除。
@@ -89,3 +89,53 @@
 按用户要求，在精简范围外额外保留原 C137 Logo：`src/assets/c137-logo.webp` 从旧 `nas` 分支复用，`src/modules/sidebar/SidebarHeader.tsx` 的共用 LogoBlock 用它替换默认对话气泡，覆盖桌面、移动端及 PWA 页头。来源为旧 NAS 资源；标题继续使用现有文案，没有恢复品牌设置、头像或其他侧栏定制。回退时将 SidebarHeader 的这一显示片段还原至官方并删除未被引用的图片即可，不依赖后端或数据库。前端重新发布后生效，无需重启后端。
 
 验证：全量前端 118 个文件、825 项测试通过，前后端类型检查及该组件 lint 通过；生产构建确认原始 C137 图片未改变内容。前端已通过标准 NAS 发布器增量上传并原子更新入口，清理入口缓存。本次未重启后端。
+
+## 2026-10-19 队列修复与恢复 Codex 原生插入
+
+目的：修复排队保存/调度/实时接收链路，并恢复运行中输入的原生插入。一次“轮次”从用户发送到 AI 完整回复结束，期间可包含多次工具调用。
+
+- Codex 运行中 Enter 或点击发送：上传附件并保存后，使用本机 Codex 的 `turn/steer`、`threadId`、`expectedTurnId` 向当前轮追加输入。由 Codex 安排在可处理输入的时机消费，不停止工具、不伪造完成、不启动第二轮。模型在纯推理期间何时处理输入由原生运行时决定。
+- Codex 运行中 Shift+Enter：保存为官方单条排队消息，当前轮及其后台工作结束后发送。空闲时 Shift+Enter 仍换行。排队卡片增加“立即插入”/“立即发送”，其他 provider 不伪装支持原生插入。
+- 保留官方单条队列语义：再次排队会更新该条消息，不承诺多条 FIFO。后台队列独立每秒扫描；某个长轮次不再阻塞其他会话的队列。
+- 草稿保存检查 HTTP 状态、按 scope 串行并保护未确认写入；输入文字更新不再重发/清空服务端队列。后台新轮继承同用户的现有 WebSocket 订阅，序号继续递增，旧轮迟到事件被丢弃。
+- 原生插入成功只生成一条用户实时回显，忽略 app-server 重复 userMessage 通知；沿用原 NAS 对历史时间回填的限定去重。轮次过期或明确拒绝保留排队消息；确认结果未知时在草稿 options 记录 `_cloudcliSteerOutcomeUnknown` 并阻止自动重发，用户核查对话后可编辑或删除。它是避免重复执行的保护，不是新的跨 Agent 队列。
+
+所属路径：`server/index.ts`（调度器清理移至关闭流程）、`server/modules/scheduled-messages/`（独立队列扫描、原子领取、发送/插入端点）、`server/modules/user/`（文字更新保留队列）、`server/modules/providers/` 与 `server/shared/`（原生 steer 与轮次合同）、`server/modules/websocket/`（订阅继承与跨轮序号）；`src/shared/chatDrafts.ts`、`src/shared/api.ts`，`src/modules/chat/ChatInterface.tsx`、`composer/{ChatComposer,QueuedMessageCard}.tsx`、`hooks/useChatComposerState.ts`、`utils/sessionMessageReconciliation.ts`，中英繁体文案及对应测试。
+
+来源：官方 v1.37.5 的单条持久排队；旧实现 `7bcc9ba2` / 上游 PR #1526 的原生 `turn/steer` 片段与 NAS `e7ee39b7` 去重修复。协议字段通过本机已安装 Codex 的 `app-server generate-json-schema` 核对；没有重新引入旧 FIFO 数据库、Task Queue MCP、额外提示词或模型/认证配置。
+
+回退依赖：插入 UI、API、服务分发、provider runtime/共享合同应成组回退；草稿保存与队列调度/订阅修复可以独立保留。无需迁移数据库；回退前核查含 `_cloudcliSteerOutcomeUnknown` 的草稿，旧调度器不识别此保护标记。共享 Composer/runtime 文件同时包含 Fast/Todo 等保留项，不能整文件恢复旧版本。源码修复与本地构建不会自动更新运行实例，前端发布和后端重启均需另行执行。
+
+验证结果：
+
+| 命令 | 结果 |
+| --- | --- |
+| `pnpm run test:client` | 118 个文件、839 项全部通过 |
+| `pnpm test` | 839 项，838 通过、1 项原有真实 fork 集成测试跳过、0 失败 |
+| 队列定向复验 | 快照比较兼容调整后，21 项全部通过 |
+| `pnpm run typecheck` | 前后端通过 |
+| `pnpm run build` | 前后端构建通过，保留 Vite 大包提示 |
+| `pnpm run lint` | 无错误，仍有仓库现有规则警告 |
+
+覆盖草稿确认/失败/请求乱序/会话隔离、长任务不阻塞其他队列、一次领取、后台轮次订阅继承及旧事件隔离、原生 steer 轮次校验/附件/单条回显、拒绝及未知结果、Enter 插入与 Shift+Enter 排队。测试使用隔离数据库及模拟 Codex RPC，没有向真实模型提交任务，也未宣称已完成浏览器端真实会话联调。验证完成时尚未发布；后续已发布并重启，结果见下方发布记录。
+
+
+## 2026-10-19 保留原头像与侧栏精简
+
+目的：在已恢复 C137 Logo 的基础上，继续保留原 NAS 用户头像，隐藏“报告问题”“加入社区”和 GitHub Star。桌面、手机和折叠侧栏均移除这些入口；设置、版本信息和更新提示继续显示。
+
+所属路径：`src/assets/user-avatar.jpg`（从旧 `nas` 复用）、`src/modules/chat/transcript/MessageComponent.tsx`（静态头像）；`src/modules/sidebar/SidebarHeader.tsx`（移除 GitHubStarBadge 挂载，避免 Star 计数请求）、`SidebarFooter.tsx` 与 `SidebarCollapsed.tsx`（移除报告/社区入口及未使用的图标和地址）。C137 Logo 继续使用 `src/assets/c137-logo.webp`。没有恢复品牌设置面板或修改账户配置。
+
+来源：旧 `nas` 头像资源及用户明确要求保留的外观差异。回退只需恢复上述 UI 片段并移除不再引用的头像资源，勿覆盖消息插入、Fast 等其他保留修改；不依赖后端或数据库。源码修改须发布前端才能生效，本项无需后端重启。验证：全量前端 118 个文件、839 项测试通过；前后端类型检查通过；lint 无错误（保留既有警告）；前端构建通过（保留 Vite 大包提示）。后续已发布前端，结果见下方发布记录。
+
+
+### 2026-10-19 消息队列、原生插入与外观发布完成
+
+前端通过 NAS 发布器上传变更资源并原子切换入口，后端已由独立 systemd 任务重启。重启后本机健康、版本、账号登录、草稿 API、队列发送端点、Fast 元数据及未认证访问拒绝检查通过。未检测公网首页或逐个探测 CDN 文件，也未向真实模型发送验收任务。部署记录：`/vol1/1000/appdata/cloudcli/operations/queue-branding-20261019-114757/result.json`；发布前备份：`/vol1/1000/appdata/cloudcli/backups/before-queue-branding-20261019-114757`。本次整理提交记录该发布版本的源码，提交包含消息队列修复、Codex 原生插入与保留的外观调整。
+
+
+### 应用显示名称
+
+按用户要求，应用显示名称统一为“C137控制台”：各语言侧栏标题、登录/加载文案、版本行、空闲/项目浏览器标题、HTML 初始标题、Apple 安装名称和 PWA manifest 同步更新。会话打开时仍以会话标题作为浏览器标题；包名、上游项目引用、接口及认证配置不变。所属路径为 `src/modules/i18n/locales/*/{sidebar,common,auth}.json`、`src/modules/auth/{AuthLoadingScreen,AuthScreenLayout}.tsx`、`src/modules/sidebar/SidebarFooter.tsx`、`src/shared/utils.ts` 及标题测试、`index.html`、`public/manifest.json`。来源为用户 NAS 品牌要求，回退只恢复这些显示字符串，保留 C137 Logo/头像及消息链路修改；发布前端生效，不需要重启后端。
+
+验证与发布：5 项标题测试、类型检查及 lint 通过；NAS 前端构建/增量发布完成，已核对本机页面入口和 manifest 名称为“C137控制台”，入口缓存已清理。此次只更新前端名称，后端沿用已健康重启的运行实例。

@@ -227,6 +227,9 @@ function ChatInterface({
     backgroundSendPrompt,
     resolveBackgroundSendPrompt,
     queuedDraft,
+    sendQueuedDraftNow,
+    queuedSendBusy,
+    queuedSendError,
     editQueuedDraft,
     deleteQueuedDraft,
     handleVoiceTranscript,
@@ -558,6 +561,7 @@ function ChatInterface({
           availablePermissionModes={availablePermissionModes}
           onSelectPermissionMode={selectPermissionMode}
           providerLabel={selectedProviderLabel}
+          provider={provider}
           effort={currentProviderEffort}
           availableEffortOptions={currentProviderEffortOptions}
           onSelectEffort={handleSelectComposerEffort}
@@ -584,6 +588,9 @@ function ChatInterface({
           onSubmit={handleSubmit}
           isDragActive={isDragActive}
           queuedDraft={queuedDraft}
+          onSendQueuedDraftNow={sendQueuedDraftNow}
+          queuedSendBusy={queuedSendBusy}
+          queuedSendError={queuedSendError}
           backgroundSendPrompt={backgroundSendPrompt}
           onResolveBackgroundSendPrompt={resolveBackgroundSendPrompt}
           onEditQueuedDraft={editQueuedDraft}

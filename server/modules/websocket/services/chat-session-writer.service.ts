@@ -140,6 +140,14 @@ export class ChatSessionWriter {
     this.connections.add(newConnection);
   }
 
+  /** Used by the run registry to keep the same authorized session audience on its next run. */
+  inheritConnections(previous: ChatSessionWriter): void {
+    if (String(previous.userId) !== String(this.userId)) return;
+    for (const connection of previous.connections) {
+      if (connection.readyState === WS_OPEN_STATE) this.connections.add(connection);
+    }
+  }
+
   setSessionId(sessionId: string): void {
     this.captureProviderSessionId(sessionId);
   }

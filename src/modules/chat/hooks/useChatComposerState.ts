@@ -12,7 +12,7 @@ import type {
 import { useDropzone } from 'react-dropzone';
 import { useTranslation } from 'react-i18next';
 
-import { api } from '@/shared/api';
+import { api, readApiJson } from '@/shared/api';
 import { PROVIDER_PERMISSION_PREFERENCE_KEYS } from '@/shared/constants';
 import { readUserPreference } from '@/shared/userSettings';
 import type { BackgroundSendChoice, BackgroundSendPrompt, CommandModalPayload, CostCommandData, CodexRuntimeMode, HelpCommandData, MarkSessionProcessing, ModelCommandData, QueuedDraft, SessionActivityMap, StatusCommandData,QueuedSendOptions,ChatAttachment,ChatMessage,PendingPermissionRequest,PermissionMode,SessionEstablishedContext,Project,ProjectSession,LLMProvider,SlashCommand } from '@/shared/types';
@@ -21,6 +21,7 @@ import { grantClaudeToolPermission } from '@/modules/chat/utils/chatPermissions'
 import {
   clearQueuedMessage,
   hydrateChatDrafts,
+  persistChatDraft,
   readDraftText,
   readQueuedMessage,
   subscribeToChatDrafts,
@@ -103,6 +104,7 @@ type SubmitOptions = {
    * run that command instead of being sent.
    */
   skipCommandInterception?: boolean;
+  queueOnly?: boolean;
 };
 
 const createFakeSubmitEvent = () => {
@@ -327,6 +329,10 @@ export function useChatComposerState({
     }
     return restoreQueuedDraft(sessionKey);
   });
+  // Only disable queue actions during the acknowledged manual-send request.
+  const [queuedSendBusy, setQueuedSendBusy] = useState(false);
+  // Keep a rejected save/send visible on the queued card instead of dropping it.
+  const [queuedSendError, setQueuedSendError] = useState<string | null>(null);
   // Which session the in-memory `queuedDraft` belongs to. On a session switch
   // there is one commit where `sessionKey` already points at the new session
   // while `queuedDraft` still holds the old session's draft; the persistence
@@ -752,6 +758,7 @@ export function useChatComposerState({
       }
 
       queuedDraftSessionRef.current = queuedSessionKey;
+      setQueuedSendError(null);
       setQueuedDraft(durableDraft);
       setInput('');
       inputValueRef.current = '';
@@ -827,6 +834,20 @@ export function useChatComposerState({
           uploadedAttachments,
           options: queuedOptions,
         }, queuedSessionKey);
+        if (provider === 'codex' && queuedSessionKey && !submitOptions?.queueOnly) {
+          setQueuedSendBusy(true);
+          try {
+            await persistChatDraft(queuedSessionKey);
+            const saved = readQueuedMessage(queuedSessionKey);
+            if (saved) await readApiJson(await api.scheduledMessages.sendQueuedNow(queuedSessionKey, saved));
+            await hydrateChatDrafts();
+            if (sessionKeyRef.current === queuedSessionKey && !readQueuedMessage(queuedSessionKey)) setQueuedDraft(null);
+          } catch (error) {
+            if (sessionKeyRef.current === queuedSessionKey) setQueuedSendError(error instanceof Error ? error.message : String(error));
+          } finally {
+            setQueuedSendBusy(false);
+          }
+        }
         return;
       }
 
@@ -1122,6 +1143,25 @@ export function useChatComposerState({
     };
   }, [queuedDraft, sessionKey]);
 
+  const sendQueuedDraftNow = useCallback(async () => {
+    if (!sessionKey || !queuedDraft || queuedSendBusy) return;
+    const target = sessionKey;
+    setQueuedSendBusy(true);
+    setQueuedSendError(null);
+    try {
+      await persistChatDraft(target);
+      const saved = readQueuedMessage(target);
+      if (!saved) { await hydrateChatDrafts(); return; }
+      await readApiJson(await api.scheduledMessages.sendQueuedNow(target, saved));
+      await hydrateChatDrafts();
+      if (sessionKeyRef.current === target && !readQueuedMessage(target)) setQueuedDraft(null);
+    } catch (error) {
+      if (sessionKeyRef.current === target) setQueuedSendError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setQueuedSendBusy(false);
+    }
+  }, [sessionKey, queuedDraft, queuedSendBusy]);
+
   const editQueuedDraft = useCallback(() => {
     if (!queuedDraft) {
       return;
@@ -1211,6 +1251,7 @@ export function useChatComposerState({
   // descriptors restore from storage and remain sendable.
   useEffect(() => {
     queuedDraftSessionRef.current = sessionKey;
+    setQueuedSendError(null);
     if (!sessionKey) {
       setQueuedDraft(null);
       return;
@@ -1326,7 +1367,10 @@ export function useChatComposerState({
       }
 
       if (event.key === 'Enter') {
-        if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
+        if (event.shiftKey && !event.ctrlKey && !event.metaKey && isLoading && provider === 'codex') {
+          event.preventDefault();
+          handleSubmit(event, undefined, { queueOnly: true });
+        } else if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
           event.preventDefault();
           handleSubmit(event);
         } else if (!event.shiftKey && !event.ctrlKey && !event.metaKey && !sendByCtrlEnter) {
@@ -1345,6 +1389,8 @@ export function useChatComposerState({
       resizeTextarea,
       syncInputOverlayScroll,
       sendByCtrlEnter,
+      isLoading,
+      provider,
       showCommandMenu,
       showFileDropdown,
     ],
@@ -1498,6 +1544,9 @@ export function useChatComposerState({
     backgroundSendPrompt,
     resolveBackgroundSendPrompt,
     queuedDraft,
+    sendQueuedDraftNow,
+    queuedSendBusy,
+    queuedSendError,
     editQueuedDraft,
     deleteQueuedDraft,
     handleVoiceTranscript,

@@ -1182,3 +1182,49 @@ for (const sessionId of ['app-new', 'resume-app']) {
     });
   }
 }
+
+test('native steering targets the accepted turn, keeps it running and emits one user echo', async (t) => {
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise } = await startPlanRun(harness, runtime);
+  const token = runtime.activeTurnToken('plan-app');
+  assert.ok(token);
+  await assert.rejects(runtime.steer({ sessionId: 'plan-app', activeTurnToken: 'stale', content: 'wrong turn', attachments: [], messageId: 'stale' }), { code: 'ACTIVE_TURN_CHANGED' });
+  await assert.rejects(runtime.steer({ sessionId: 'another-session', activeTurnToken: token, content: 'wrong session', attachments: [], messageId: 'other' }), { code: 'NO_ACTIVE_TURN' });
+  const inserted = runtime.steer({ sessionId: 'plan-app', activeTurnToken: token, content: 'also check tests', attachments: [{ path: '/uploads/check.txt', mimeType: 'text/plain' }], messageId: 'insert-1' });
+  const request = await harness.nextRequest();
+  assert.equal(request.method, 'turn/steer');
+  assert.equal((request.params as AnyRecord).threadId, 'thread-new');
+  assert.equal((request.params as AnyRecord).expectedTurnId, 'turn-1');
+  assert.match(JSON.stringify((request.params as AnyRecord).input), /check.txt/);
+  harness.respondWithResult(request, { turnId: 'turn-1' });
+  await inserted;
+  harness.notify('item/completed', { threadId: 'thread-new', turnId: 'turn-1', item: { id: 'native-user', type: 'userMessage', content: [{ type: 'inputText', text: 'also check tests' }] } });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(output.messages.filter((m) => m.kind === 'text' && m.role === 'user').length, 1);
+  assert.equal(output.messages.some((m) => m.kind === 'complete'), false);
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-1', status: 'completed' } });
+  await runPromise;
+  assert.equal(runtime.activeTurnToken('plan-app'), null);
+  await assert.rejects(runtime.steer({ sessionId: 'plan-app', activeTurnToken: token, content: 'too late', attachments: [], messageId: 'late' }), { code: 'NO_ACTIVE_TURN' });
+});
+
+test('steering rejection and ambiguous acknowledgements never emit a false user echo', async (t) => {
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise } = await startPlanRun(harness, runtime);
+  const input = { sessionId: 'plan-app', activeTurnToken: runtime.activeTurnToken('plan-app')!, content: 'insert', attachments: [], messageId: 'rejected' };
+  const rejected = runtime.steer(input);
+  const rejection = assert.rejects(rejected, { code: 'CODEX_STEER_REJECTED' });
+  harness.respondWithError(await harness.nextRequest(), -32602, 'Turn changed');
+  await rejection;
+  const ambiguous = runtime.steer(input);
+  const unknown = assert.rejects(ambiguous, { code: 'STEER_OUTCOME_UNKNOWN' });
+  harness.respondWithResult(await harness.nextRequest(), { turnId: 'unexpected' });
+  await unknown;
+  assert.equal(output.messages.filter((m) => m.role === 'user').length, 0);
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-1', status: 'interrupted' } });
+  await runPromise;
+});

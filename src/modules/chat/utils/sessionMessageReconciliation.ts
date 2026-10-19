@@ -48,6 +48,20 @@ function findServerEchoForLocalUser(
     return null;
   }
 
+  // App-server history gives each prompt its turn's start time. Limit this
+  // fallback to the newest observed Codex turn at the echo's submission time,
+  // so matching text in an older steered turn cannot consume the new echo.
+  const isCodexQueueEcho = localMessage.id.startsWith('local_queue_')
+    && localMessage.provider === 'codex';
+  const latestCodexUserTime = isCodexQueueEcho
+    ? serverMessages.reduce<number | null>((latest, message) => {
+      if (message.provider !== 'codex' || message.kind !== 'text' || message.role !== 'user') return latest;
+      const time = readMessageTime(message);
+      if (time === null || time > localTime + LOCAL_USER_DEDUPE_CLOCK_SKEW_MS) return latest;
+      return latest === null ? time : Math.max(latest, time);
+    }, null)
+    : null;
+
   // The echo of an edited message may only be retired by a row that was not
   // in the transcript when the cut was made. Text and a time window are not
   // enough for it: a rewind that branches re-stamps every surviving turn to
@@ -74,9 +88,19 @@ function findServerEchoForLocalUser(
     }
 
     const serverTime = readMessageTime(serverMessage);
+    // Codex app-server stamps every item in a turn with the turn's start time.
+    // A steered prompt can therefore appear minutes before its local queue echo.
+    // Only an unanchored Codex prompt can be a steer: the first prompt of each
+    // turn carries transcriptAnchorId, so an earlier ordinary send stays distinct.
+    const isBackdatedCodexSteer = isCodexQueueEcho
+      && serverMessage.provider === 'codex'
+      && !serverMessage.transcriptAnchorId
+      && serverTime !== null
+      && serverTime === latestCodexUserTime
+      && serverTime <= localTime;
     if (
       serverTime === null
-      || serverTime < localTime - LOCAL_USER_DEDUPE_CLOCK_SKEW_MS
+      || (!isBackdatedCodexSteer && serverTime < localTime - LOCAL_USER_DEDUPE_CLOCK_SKEW_MS)
       || serverTime - localTime > dedupeWindow
     ) {
       continue;

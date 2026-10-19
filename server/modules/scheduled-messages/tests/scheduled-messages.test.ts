@@ -5,8 +5,9 @@ import path from 'node:path';
 import test from 'node:test';
 
 import { closeConnection, initializeDatabase, scheduledMessagesDb, sessionDraftsDb, sessionsDb, userDb } from '@/modules/database/index.js';
-import { dispatchDueScheduledMessages, dispatchQueuedMessages } from '@/modules/scheduled-messages/services/scheduled-message-dispatcher.service.js';
+import { initializeScheduledMessageDispatcher, closeScheduledMessageDispatcher, sendQueuedMessageNow, dispatchDueScheduledMessages, dispatchQueuedMessages } from '@/modules/scheduled-messages/services/scheduled-message-dispatcher.service.js';
 import { scheduledMessagesService } from '@/modules/scheduled-messages/services/scheduled-messages.service.js';
+import type { ProviderRuntimeGateway } from '@/modules/websocket/index.js';
 import { chatRunRegistry } from '@/modules/websocket/index.js';
 
 const SESSION_ID = 'scheduled-session';
@@ -350,5 +351,116 @@ test('scheduling validates its input', async () => {
       () => scheduledMessagesService.schedule({ ...base, sessionId: 'nope', content: 'hi' }),
       (error: Error & { code?: string }) => error.code === 'SESSION_NOT_FOUND',
     );
+  });
+});
+
+
+for (const longTask of ['queued', 'scheduled'] as const) {
+  test(`a long ${longTask} turn never blocks another session's queued message`, async (t) => {
+    await withIsolatedDatabase(async (userId) => {
+      t.mock.timers.enable({ apis: ['setInterval'] });
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => { release = resolve; });
+      const calls: string[] = [];
+      const runtime = {
+        ...(createRuntime([]) as ProviderRuntimeGateway),
+        run: async (_provider: unknown, command: string) => { calls.push(command); if (command === 'long task') await gate; },
+      } as ProviderRuntimeGateway;
+      sessionsDb.createAppSession('other-queue-session', 'claude', '/tmp', 'Other');
+      if (longTask === 'queued') sessionDraftsDb.saveDraft(userId, SESSION_ID, { text: '', queuedMessage: { content: 'long task' } });
+      else scheduledMessagesService.schedule({ userId, sessionId: SESSION_ID, content: 'long task', scheduledFor: new Date(Date.now() - 60000).toISOString() });
+      try {
+        initializeScheduledMessageDispatcher(runtime);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        sessionDraftsDb.saveDraft(userId, 'other-queue-session', { text: '', queuedMessage: { content: 'send independently' } });
+        t.mock.timers.tick(1000);
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        assert.deepEqual(calls, ['long task', 'send independently']);
+      } finally {
+        closeScheduledMessageDispatcher(); release();
+        await new Promise<void>((resolve) => setImmediate(resolve));
+        t.mock.timers.reset();
+      }
+    });
+  });
+}
+
+test('manual send claims an idle queue only once, preserving saved options', async () => {
+  await withIsolatedDatabase(async (userId) => {
+    const message = { content: 'send now', options: { codexFast: true, model: 'queued-model' }, attachments: [] };
+    sessionDraftsDb.saveDraft(userId, SESSION_ID, { text: '', queuedMessage: message });
+    const calls: RunCall[] = [];
+    const runtime = createRuntime(calls);
+    await assert.rejects(sendQueuedMessageNow(userId + 1, SESSION_ID, message, runtime), { code: 'QUEUE_CHANGED' });
+    assert.deepEqual(await sendQueuedMessageNow(userId, SESSION_ID, message, runtime), { status: 'sending' });
+    await assert.rejects(sendQueuedMessageNow(userId, SESSION_ID, message, runtime), { code: 'QUEUE_CHANGED' });
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].options.codexFast, true);
+    assert.equal(calls[0].options.model, 'queued-model');
+  });
+});
+
+test('a runtime without steering retains queued input without aborting the active turn', async () => {
+  await withIsolatedDatabase(async (userId) => {
+    const message = { content: 'after stopping', attachments: [] };
+    sessionDraftsDb.saveDraft(userId, SESSION_ID, { text: '', queuedMessage: message });
+    const active = chatRunRegistry.startRun({ appSessionId: SESSION_ID, provider: 'claude', providerSessionId: null, connection: null, userId });
+    const calls: RunCall[] = []; const aborts: string[] = [];
+    const runtime = createRuntime(calls, 'ok', aborts);
+    await assert.rejects(sendQueuedMessageNow(userId, SESSION_ID, message, runtime), { code: 'NO_ACTIVE_TURN' });
+    assert.deepEqual(aborts, []);
+    assert.equal(await dispatchQueuedMessages(runtime), 0);
+    assert.equal(sessionDraftsDb.getDrafts(userId).length, 1);
+    active!.writer.sendComplete({ exitCode: 0, aborted: true });
+    assert.equal(await dispatchQueuedMessages(runtime), 1);
+    assert.equal(calls.length, 1);
+  });
+});
+
+test('failed admission and unavailable providers retain queued input', async () => {
+  await withIsolatedDatabase(async (userId) => {
+    const message = { content: 'retain me' };
+    sessionDraftsDb.saveDraft(userId, SESSION_ID, { text: '', queuedMessage: message });
+    const runtime = { ...(createRuntime([]) as ProviderRuntimeGateway), hasRuntime: () => false };
+    await dispatchQueuedMessages(runtime);
+    assert.deepEqual(sessionDraftsDb.getDrafts(userId)[0]?.queuedMessage, message);
+    await assert.rejects(sendQueuedMessageNow(userId, SESSION_ID, message, runtime), { code: 'QUEUE_UNAVAILABLE' });
+    assert.deepEqual(sessionDraftsDb.getDrafts(userId)[0]?.queuedMessage, message);
+  });
+});
+
+test('queued insertion claims once, preserves attachments and never aborts the native run', async () => {
+  await withIsolatedDatabase(async (userId) => {
+    const message = { content: 'insert now', attachments: [{ path: '/uploads/a.txt', mimeType: 'text/plain' }] };
+    sessionDraftsDb.saveDraft(userId, SESSION_ID, { text: '', queuedMessage: message });
+    const active = chatRunRegistry.startRun({ appSessionId: SESSION_ID, provider: 'claude', providerSessionId: null, connection: null, userId })!;
+    const aborts: string[] = [];
+    const seen: unknown[] = [];
+    const runtime = { ...(createRuntime([], 'ok', aborts) as ProviderRuntimeGateway), activeTurnToken: () => 'active-token', steer: async (_provider: string, input: unknown) => { seen.push(input); } };
+    assert.deepEqual(await sendQueuedMessageNow(userId, SESSION_ID, message, runtime), { status: 'inserted' });
+    assert.equal(seen.length, 1);
+    assert.deepEqual((seen[0] as { attachments: unknown[] }).attachments, message.attachments);
+    assert.equal(chatRunRegistry.isProcessing(SESSION_ID), true);
+    assert.deepEqual(aborts, []);
+    await assert.rejects(sendQueuedMessageNow(userId, SESSION_ID, message, runtime), { code: 'QUEUE_CHANGED' });
+    active.writer.sendComplete({ exitCode: 0 });
+    assert.equal(await dispatchQueuedMessages(runtime), 0);
+  });
+});
+
+test('an ambiguous steering outcome stays visible but is never automatically resent', async () => {
+  await withIsolatedDatabase(async (userId) => {
+    const { AppError } = await import('@/shared/index.js');
+    const message = { content: 'may have been accepted' };
+    sessionDraftsDb.saveDraft(userId, SESSION_ID, { text: '', queuedMessage: message });
+    const active = chatRunRegistry.startRun({ appSessionId: SESSION_ID, provider: 'codex', providerSessionId: null, connection: null, userId })!;
+    const runtime = { ...(createRuntime([]) as ProviderRuntimeGateway), activeTurnToken: () => 'token', steer: async () => { throw new AppError('Acknowledgement lost', { code: 'STEER_OUTCOME_UNKNOWN', statusCode: 409 }); } };
+    await assert.rejects(sendQueuedMessageNow(userId, SESSION_ID, message, runtime), { code: 'STEER_OUTCOME_UNKNOWN' });
+    active.writer.sendComplete({ exitCode: 0 });
+    assert.equal(await dispatchQueuedMessages(runtime), 0);
+    const retained = sessionDraftsDb.getDrafts(userId)[0]?.queuedMessage as { options: Record<string, unknown> };
+    assert.equal(retained.options._cloudcliSteerOutcomeUnknown, true);
+    await assert.rejects(sendQueuedMessageNow(userId, SESSION_ID, retained, runtime), { code: 'STEER_OUTCOME_UNKNOWN' });
   });
 });

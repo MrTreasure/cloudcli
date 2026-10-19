@@ -1,7 +1,7 @@
 {
-  "name": "CloudCLI UI",
-  "short_name": "CloudCLI UI",
-  "description": "CloudCLI UI web application",
+  "name": "C137控制台",
+  "short_name": "C137控制台",
+  "description": "C137控制台",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

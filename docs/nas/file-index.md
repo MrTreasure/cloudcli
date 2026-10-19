@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`34c072bff77936a4b265a3126c627da31494acbc`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`97f1aaa8b714a4493d87a25e6beb0d5ef2c63612`。
 
-记录基线与当前暂存树之间的全部净差异，共 136 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 204 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -32,6 +32,7 @@
 | A | [docs/nas/file-index.md](../../docs/nas/file-index.md) | — |
 | A | [docs/nas/README.md](../../docs/nas/README.md) | — |
 | A | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
+| M | [index.html](../../index.html) | — |
 | A | [local-plugins/cloudcli-host-dashboard/icon.svg](../../local-plugins/cloudcli-host-dashboard/icon.svg) | — |
 | A | [local-plugins/cloudcli-host-dashboard/manifest.json](../../local-plugins/cloudcli-host-dashboard/manifest.json) | — |
 | A | [local-plugins/cloudcli-host-dashboard/package.json](../../local-plugins/cloudcli-host-dashboard/package.json) | — |
@@ -46,6 +47,7 @@
 | M | [package.json](../../package.json) | — |
 | A | [pnpm-lock.yaml](../../pnpm-lock.yaml) | — |
 | A | [pnpm-workspace.yaml](../../pnpm-workspace.yaml) | — |
+| M | [public/manifest.json](../../public/manifest.json) | — |
 | M | [README.md](../../README.md) | — |
 | A | [scripts/record-nas-changes.mjs](../../scripts/record-nas-changes.mjs) | — |
 | M | [server/index.ts](../../server/index.ts) | — |
@@ -80,8 +82,16 @@
 | M | [server/modules/providers/tests/provider-runtime.service.test.ts](../../server/modules/providers/tests/provider-runtime.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider-token-usage.service.test.ts](../../server/modules/providers/tests/provider-token-usage.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider.routes.test.ts](../../server/modules/providers/tests/provider.routes.test.ts) | — |
+| M | [server/modules/scheduled-messages/scheduled-messages.routes.ts](../../server/modules/scheduled-messages/scheduled-messages.routes.ts) | — |
+| M | [server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts](../../server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts) | — |
+| M | [server/modules/scheduled-messages/tests/scheduled-messages.test.ts](../../server/modules/scheduled-messages/tests/scheduled-messages.test.ts) | — |
+| M | [server/modules/user/tests/user.service.test.ts](../../server/modules/user/tests/user.service.test.ts) | — |
+| M | [server/modules/user/user.service.ts](../../server/modules/user/user.service.ts) | — |
 | M | [server/modules/websocket/README.md](../../server/modules/websocket/README.md) | — |
+| M | [server/modules/websocket/services/chat-run-registry.service.ts](../../server/modules/websocket/services/chat-run-registry.service.ts) | — |
+| M | [server/modules/websocket/services/chat-session-writer.service.ts](../../server/modules/websocket/services/chat-session-writer.service.ts) | — |
 | M | [server/modules/websocket/services/chat-websocket.service.ts](../../server/modules/websocket/services/chat-websocket.service.ts) | — |
+| M | [server/modules/websocket/tests/chat-run-registry.test.ts](../../server/modules/websocket/tests/chat-run-registry.test.ts) | — |
 | M | [server/shared/index.ts](../../server/shared/index.ts) | — |
 | M | [server/shared/interfaces.ts](../../server/shared/interfaces.ts) | — |
 | M | [server/shared/tests/read-only-roots.test.ts](../../server/shared/tests/read-only-roots.test.ts) | — |
@@ -90,12 +100,16 @@
 | M | [server/tsconfig.json](../../server/tsconfig.json) | — |
 | M | [src/App.tsx](../../src/App.tsx) | — |
 | A | [src/assets/c137-logo.webp](../../src/assets/c137-logo.webp) | — |
+| A | [src/assets/user-avatar.jpg](../../src/assets/user-avatar.jpg) | — |
+| M | [src/modules/auth/AuthLoadingScreen.tsx](../../src/modules/auth/AuthLoadingScreen.tsx) | — |
+| M | [src/modules/auth/AuthScreenLayout.tsx](../../src/modules/auth/AuthScreenLayout.tsx) | — |
 | M | [src/modules/auth/tests/authTokenRefreshRemount.test.tsx](../../src/modules/auth/tests/authTokenRefreshRemount.test.tsx) | — |
 | M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
 | M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
 | M | [src/modules/chat/composer/ComposerMenuPrimitives.tsx](../../src/modules/chat/composer/ComposerMenuPrimitives.tsx) | — |
 | M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
 | M | [src/modules/chat/composer/PermissionRequestsBanner.tsx](../../src/modules/chat/composer/PermissionRequestsBanner.tsx) | — |
+| M | [src/modules/chat/composer/QueuedMessageCard.tsx](../../src/modules/chat/composer/QueuedMessageCard.tsx) | — |
 | M | [src/modules/chat/composer/TokenUsageSummary.tsx](../../src/modules/chat/composer/TokenUsageSummary.tsx) | — |
 | M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
 | M | [src/modules/chat/hooks/useChatRealtimeHandlers.ts](../../src/modules/chat/hooks/useChatRealtimeHandlers.ts) | — |
@@ -103,23 +117,72 @@
 | M | [src/modules/chat/hooks/useSessionStore.ts](../../src/modules/chat/hooks/useSessionStore.ts) | — |
 | M | [src/modules/chat/modals/CommandResultModal.tsx](../../src/modules/chat/modals/CommandResultModal.tsx) | — |
 | A | [src/modules/chat/tests/codexFastState.test.ts](../../src/modules/chat/tests/codexFastState.test.ts) | — |
+| M | [src/modules/chat/tests/composerSendOverBackgroundWork.test.ts](../../src/modules/chat/tests/composerSendOverBackgroundWork.test.ts) | — |
 | A | [src/modules/chat/tests/composerTextEditing.test.tsx](../../src/modules/chat/tests/composerTextEditing.test.tsx) | — |
 | M | [src/modules/chat/tests/composerToolsSettingsResolution.test.ts](../../src/modules/chat/tests/composerToolsSettingsResolution.test.ts) | — |
 | A | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
 | A | [src/modules/chat/tests/permissionRequestsBanner.test.tsx](../../src/modules/chat/tests/permissionRequestsBanner.test.tsx) | — |
+| M | [src/modules/chat/tests/sessionMessageReconciliation.test.ts](../../src/modules/chat/tests/sessionMessageReconciliation.test.ts) | — |
 | M | [src/modules/chat/tests/sessionStoreTruncate.test.tsx](../../src/modules/chat/tests/sessionStoreTruncate.test.tsx) | — |
+| M | [src/modules/chat/transcript/MessageComponent.tsx](../../src/modules/chat/transcript/MessageComponent.tsx) | — |
+| M | [src/modules/chat/utils/sessionMessageReconciliation.ts](../../src/modules/chat/utils/sessionMessageReconciliation.ts) | — |
 | M | [src/modules/code-editor/CodeEditorBinaryFile.tsx](../../src/modules/code-editor/CodeEditorBinaryFile.tsx) | — |
 | M | [src/modules/code-editor/CodeEditorHeader.tsx](../../src/modules/code-editor/CodeEditorHeader.tsx) | — |
 | M | [src/modules/code-editor/CodeEditorMediaPreview.tsx](../../src/modules/code-editor/CodeEditorMediaPreview.tsx) | — |
 | M | [src/modules/command-palette/CommandPalette.tsx](../../src/modules/command-palette/CommandPalette.tsx) | — |
 | M | [src/modules/file-tree/FileTree.tsx](../../src/modules/file-tree/FileTree.tsx) | — |
 | M | [src/modules/file-tree/FileTreeNode.tsx](../../src/modules/file-tree/FileTreeNode.tsx) | — |
+| M | [src/modules/i18n/locales/cs/auth.json](../../src/modules/i18n/locales/cs/auth.json) | — |
+| M | [src/modules/i18n/locales/cs/common.json](../../src/modules/i18n/locales/cs/common.json) | — |
+| M | [src/modules/i18n/locales/cs/sidebar.json](../../src/modules/i18n/locales/cs/sidebar.json) | — |
+| M | [src/modules/i18n/locales/de/auth.json](../../src/modules/i18n/locales/de/auth.json) | — |
+| M | [src/modules/i18n/locales/de/common.json](../../src/modules/i18n/locales/de/common.json) | — |
+| M | [src/modules/i18n/locales/de/sidebar.json](../../src/modules/i18n/locales/de/sidebar.json) | — |
+| M | [src/modules/i18n/locales/en/auth.json](../../src/modules/i18n/locales/en/auth.json) | — |
 | M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
+| M | [src/modules/i18n/locales/en/common.json](../../src/modules/i18n/locales/en/common.json) | — |
 | M | [src/modules/i18n/locales/en/settings.json](../../src/modules/i18n/locales/en/settings.json) | — |
+| M | [src/modules/i18n/locales/en/sidebar.json](../../src/modules/i18n/locales/en/sidebar.json) | — |
+| M | [src/modules/i18n/locales/es/auth.json](../../src/modules/i18n/locales/es/auth.json) | — |
+| M | [src/modules/i18n/locales/es/common.json](../../src/modules/i18n/locales/es/common.json) | — |
+| M | [src/modules/i18n/locales/es/sidebar.json](../../src/modules/i18n/locales/es/sidebar.json) | — |
+| M | [src/modules/i18n/locales/fr/auth.json](../../src/modules/i18n/locales/fr/auth.json) | — |
+| M | [src/modules/i18n/locales/fr/common.json](../../src/modules/i18n/locales/fr/common.json) | — |
+| M | [src/modules/i18n/locales/fr/sidebar.json](../../src/modules/i18n/locales/fr/sidebar.json) | — |
+| M | [src/modules/i18n/locales/he/auth.json](../../src/modules/i18n/locales/he/auth.json) | — |
+| M | [src/modules/i18n/locales/he/common.json](../../src/modules/i18n/locales/he/common.json) | — |
+| M | [src/modules/i18n/locales/he/sidebar.json](../../src/modules/i18n/locales/he/sidebar.json) | — |
+| M | [src/modules/i18n/locales/id/auth.json](../../src/modules/i18n/locales/id/auth.json) | — |
+| M | [src/modules/i18n/locales/id/common.json](../../src/modules/i18n/locales/id/common.json) | — |
+| M | [src/modules/i18n/locales/id/sidebar.json](../../src/modules/i18n/locales/id/sidebar.json) | — |
+| M | [src/modules/i18n/locales/it/auth.json](../../src/modules/i18n/locales/it/auth.json) | — |
+| M | [src/modules/i18n/locales/it/common.json](../../src/modules/i18n/locales/it/common.json) | — |
+| M | [src/modules/i18n/locales/it/sidebar.json](../../src/modules/i18n/locales/it/sidebar.json) | — |
+| M | [src/modules/i18n/locales/ja/auth.json](../../src/modules/i18n/locales/ja/auth.json) | — |
+| M | [src/modules/i18n/locales/ja/common.json](../../src/modules/i18n/locales/ja/common.json) | — |
+| M | [src/modules/i18n/locales/ja/sidebar.json](../../src/modules/i18n/locales/ja/sidebar.json) | — |
+| M | [src/modules/i18n/locales/ko/auth.json](../../src/modules/i18n/locales/ko/auth.json) | — |
+| M | [src/modules/i18n/locales/ko/common.json](../../src/modules/i18n/locales/ko/common.json) | — |
+| M | [src/modules/i18n/locales/ko/sidebar.json](../../src/modules/i18n/locales/ko/sidebar.json) | — |
+| M | [src/modules/i18n/locales/pt-BR/auth.json](../../src/modules/i18n/locales/pt-BR/auth.json) | — |
+| M | [src/modules/i18n/locales/pt-BR/common.json](../../src/modules/i18n/locales/pt-BR/common.json) | — |
+| M | [src/modules/i18n/locales/pt-BR/sidebar.json](../../src/modules/i18n/locales/pt-BR/sidebar.json) | — |
+| M | [src/modules/i18n/locales/ru/auth.json](../../src/modules/i18n/locales/ru/auth.json) | — |
+| M | [src/modules/i18n/locales/ru/common.json](../../src/modules/i18n/locales/ru/common.json) | — |
+| M | [src/modules/i18n/locales/ru/sidebar.json](../../src/modules/i18n/locales/ru/sidebar.json) | — |
+| M | [src/modules/i18n/locales/tr/auth.json](../../src/modules/i18n/locales/tr/auth.json) | — |
+| M | [src/modules/i18n/locales/tr/common.json](../../src/modules/i18n/locales/tr/common.json) | — |
+| M | [src/modules/i18n/locales/tr/sidebar.json](../../src/modules/i18n/locales/tr/sidebar.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/auth.json](../../src/modules/i18n/locales/zh-CN/auth.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/common.json](../../src/modules/i18n/locales/zh-CN/common.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/settings.json](../../src/modules/i18n/locales/zh-CN/settings.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/sidebar.json](../../src/modules/i18n/locales/zh-CN/sidebar.json) | — |
+| M | [src/modules/i18n/locales/zh-TW/auth.json](../../src/modules/i18n/locales/zh-TW/auth.json) | — |
 | M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-TW/common.json](../../src/modules/i18n/locales/zh-TW/common.json) | — |
 | M | [src/modules/i18n/locales/zh-TW/settings.json](../../src/modules/i18n/locales/zh-TW/settings.json) | — |
+| M | [src/modules/i18n/locales/zh-TW/sidebar.json](../../src/modules/i18n/locales/zh-TW/sidebar.json) | — |
 | M | [src/modules/plugins/PluginTabContent.tsx](../../src/modules/plugins/PluginTabContent.tsx) | — |
 | A | [src/modules/plugins/tests/hostDashboardPolling.test.ts](../../src/modules/plugins/tests/hostDashboardPolling.test.ts) | — |
 | M | [src/modules/settings/hooks/useSettingsController.ts](../../src/modules/settings/hooks/useSettingsController.ts) | — |
@@ -131,14 +194,19 @@
 | A | [src/modules/settings/tests/codexPermissionsRuntime.test.tsx](../../src/modules/settings/tests/codexPermissionsRuntime.test.tsx) | — |
 | A | [src/modules/settings/tests/fontSizeControls.test.tsx](../../src/modules/settings/tests/fontSizeControls.test.tsx) | — |
 | M | [src/modules/shell/utils/socket.ts](../../src/modules/shell/utils/socket.ts) | — |
+| M | [src/modules/sidebar/SidebarCollapsed.tsx](../../src/modules/sidebar/SidebarCollapsed.tsx) | — |
+| M | [src/modules/sidebar/SidebarFooter.tsx](../../src/modules/sidebar/SidebarFooter.tsx) | — |
 | M | [src/modules/sidebar/SidebarHeader.tsx](../../src/modules/sidebar/SidebarHeader.tsx) | — |
 | M | [src/modules/sidebar/tests/recentConversationTitleSync.test.ts](../../src/modules/sidebar/tests/recentConversationTitleSync.test.ts) | — |
 | M | [src/shared/api.ts](../../src/shared/api.ts) | — |
+| M | [src/shared/chatDrafts.ts](../../src/shared/chatDrafts.ts) | — |
 | M | [src/shared/constants.ts](../../src/shared/constants.ts) | — |
 | M | [src/shared/context/UiPreferencesContext.tsx](../../src/shared/context/UiPreferencesContext.tsx) | — |
 | M | [src/shared/context/WebSocketContext.tsx](../../src/shared/context/WebSocketContext.tsx) | — |
 | A | [src/shared/hooks/useFontSizes.ts](../../src/shared/hooks/useFontSizes.ts) | — |
+| M | [src/shared/tests/chatDrafts.test.ts](../../src/shared/tests/chatDrafts.test.ts) | — |
 | A | [src/shared/tests/fontSizes.test.tsx](../../src/shared/tests/fontSizes.test.tsx) | — |
+| M | [src/shared/tests/pageTitle.test.ts](../../src/shared/tests/pageTitle.test.ts) | — |
 | M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 | M | [src/shared/utils.ts](../../src/shared/utils.ts) | — |
 | M | [tsconfig.json](../../tsconfig.json) | — |

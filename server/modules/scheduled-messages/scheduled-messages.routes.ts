@@ -1,6 +1,8 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 
+import { providerRuntimeService } from '@/modules/providers/index.js';
+import { sendQueuedMessageNow } from '@/modules/scheduled-messages/services/scheduled-message-dispatcher.service.js';
 import { scheduledMessagesService } from '@/modules/scheduled-messages/services/scheduled-messages.service.js';
 import { AppError, asyncHandler, createApiSuccessResponse } from '@/shared/utils.js';
 
@@ -56,6 +58,12 @@ router.post(
     res.status(201).json(createApiSuccessResponse(result));
   }),
 );
+
+router.post('/queued/send-now', asyncHandler(async (req: Request, res: Response) => {
+  const body = (req.body ?? {}) as Record<string, unknown>;
+  const result = await sendQueuedMessageNow(readUserId(req), readString(body.sessionId, 'sessionId'), body.queuedMessage, providerRuntimeService);
+  res.json(createApiSuccessResponse(result));
+}));
 
 router.delete(
   '/:id',

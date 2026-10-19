@@ -380,10 +380,10 @@ async function startServer() {
             });
         });
 
-        await closeSessionsWatcher();
-        closeScheduledMessageDispatcher();
         // Clean up plugin processes on shutdown
         const shutdownRuntimeServices = async () => {
+            closeScheduledMessageDispatcher();
+            await closeSessionsWatcher();
             try {
                 await browserUseService.stopAllSessions();
             } catch (err) {

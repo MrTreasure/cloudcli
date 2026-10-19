@@ -149,3 +149,20 @@ test('saveDraft rejects text past the storage limit', () => {
     /too long/i,
   );
 });
+
+
+test('typing-only updates preserve the server-owned queue while an explicit null cancels it', () => {
+  const saved: unknown[][] = [];
+  const queue = { content: 'pending on another device' };
+  const service = createUserService(createDependencies({ drafts: {
+    getDrafts: () => [{ scope: 'session-1', text: '', queuedMessage: queue, updatedAt: '' }],
+    saveDraft: (...args) => { saved.push(args); },
+    deleteDraft: () => undefined,
+  } }));
+  service.saveDraft(5, 'session-1', { text: 'a different draft' });
+  service.saveDraft(5, 'session-1', { text: 'a different draft', queuedMessage: null });
+  assert.deepEqual(saved, [
+    [5, 'session-1', { text: 'a different draft', queuedMessage: queue }],
+    [5, 'session-1', { text: 'a different draft', queuedMessage: null }],
+  ]);
+});

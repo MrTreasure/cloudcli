@@ -1821,3 +1821,12 @@ export type CodexContextLimits = {
   autoCompactThreshold: number;
   postTurnCompactThreshold: number | null;
 };
+
+/** Input consumed once by a provider's native active-turn steering API. The token binds it to the observed run; attachments must already be uploaded. */
+export type ProviderSteerInput = {
+  sessionId: string;
+  activeTurnToken: string;
+  content: string;
+  attachments: import('./image-attachments.js').ChatAttachmentDescriptor[];
+  messageId: string;
+};

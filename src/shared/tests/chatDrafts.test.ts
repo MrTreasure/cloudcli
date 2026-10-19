@@ -17,6 +17,9 @@ const savedDrafts: SavedDraft[] = [];
 const deletedScopes: string[] = [];
 let serverDrafts: unknown[] = [];
 let draftsRequestFailed = false;
+let saveBarrier: Promise<void> | null = null;
+let readBarrier: Promise<void> | null = null;
+let saveStatus = 200;
 
 vi.mock('@/shared/api', () => ({
   api: {
@@ -25,6 +28,7 @@ vi.mock('@/shared/api', () => ({
         if (draftsRequestFailed) {
           throw new Error('offline');
         }
+        if (readBarrier) await readBarrier;
         return new Response(JSON.stringify({ success: true, drafts: serverDrafts }), {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -32,7 +36,8 @@ vi.mock('@/shared/api', () => ({
       },
       saveDraft: async (scope: string, draft: { text: string; queuedMessage?: unknown }) => {
         savedDrafts.push({ scope, ...draft });
-        return new Response('{}', { status: 200 });
+        if (saveBarrier) await saveBarrier;
+        return new Response('{}', { status: saveStatus });
       },
       deleteDraft: async (scope: string) => {
         deletedScopes.push(scope);
@@ -53,6 +58,9 @@ beforeEach(() => {
   deletedScopes.length = 0;
   serverDrafts = [];
   draftsRequestFailed = false;
+  saveBarrier = null;
+  readBarrier = null;
+  saveStatus = 200;
   vi.useFakeTimers();
 });
 
@@ -70,7 +78,7 @@ test('a draft is readable synchronously and reaches the server after the debounc
 
   await vi.advanceTimersByTimeAsync(1_500);
   assert.deepEqual(savedDrafts, [
-    { scope: 'session-a', text: 'half a thought', queuedMessage: null },
+    { scope: 'session-a', text: 'half a thought' },
   ]);
 });
 
@@ -93,7 +101,7 @@ test('a chat with no session yet is scoped to its project', async () => {
   assert.equal(store.readDraftText('session-a'), '');
 });
 
-test('clearing a draft deletes it on the server instead of storing an empty one', async () => {
+test('clearing typed text does not delete a server-owned queued message', async () => {
   const store = await loadStore();
   store.writeDraftText('session-a', 'typed');
   await vi.advanceTimersByTimeAsync(1_500);
@@ -102,8 +110,8 @@ test('clearing a draft deletes it on the server instead of storing an empty one'
   store.writeDraftText('session-a', '');
   await vi.advanceTimersByTimeAsync(1_500);
 
-  assert.deepEqual(savedDrafts, []);
-  assert.deepEqual(deletedScopes, ['session-a']);
+  assert.deepEqual(savedDrafts, [{ scope: 'session-a', text: '' }]);
+  assert.deepEqual(deletedScopes, []);
 });
 
 test('a draft written in one page load is readable synchronously in the next', async () => {
@@ -228,4 +236,65 @@ test('reset clears the drafts so the next user does not see them', async () => {
 
   assert.equal(store.readDraftText('session-a'), '');
   assert.equal(localStorage.getItem('chat-drafts'), null);
+});
+
+
+test('hydrate cannot discard a queued message before its save is acknowledged', async () => {
+  let release!: () => void;
+  saveBarrier = new Promise<void>((resolve) => { release = resolve; });
+  const store = await loadStore();
+  store.writeQueuedMessage('session-a', { content: 'not acknowledged yet' });
+  await store.hydrateChatDrafts();
+  assert.equal(store.readQueuedMessage('session-a')?.content, 'not acknowledged yet');
+  release();
+  await store.persistChatDraft('session-a');
+});
+
+test('a stale GET cannot erase a queue saved after that GET started', async () => {
+  let release!: () => void;
+  readBarrier = new Promise<void>((resolve) => { release = resolve; });
+  const store = await loadStore();
+  const hydration = store.hydrateChatDrafts();
+  store.writeQueuedMessage('session-a', { content: 'newer than GET' });
+  await store.persistChatDraft('session-a');
+  release();
+  await hydration;
+  assert.equal(store.readQueuedMessage('session-a')?.content, 'newer than GET');
+});
+
+test('HTTP save errors retain the queue and a later retry can persist it', async () => {
+  vi.spyOn(console, 'error').mockImplementation(() => {});
+  const store = await loadStore();
+  saveStatus = 500;
+  store.writeQueuedMessage('session-a', { content: 'keep on failure' });
+  await assert.rejects(store.persistChatDraft('session-a'), /500/);
+  await store.hydrateChatDrafts();
+  assert.equal(store.readQueuedMessage('session-a')?.content, 'keep on failure');
+  saveStatus = 200;
+  await store.persistChatDraft('session-a');
+  const saved = savedDrafts.at(-1)?.queuedMessage as { content: string } | undefined;
+  assert.equal(saved?.content, 'keep on failure');
+});
+
+test('cancel is serialized after an outstanding queue save, so a late PUT cannot revive it', async () => {
+  let release!: () => void;
+  saveBarrier = new Promise<void>((resolve) => { release = resolve; });
+  const store = await loadStore();
+  store.writeQueuedMessage('session-a', { content: 'cancel this' });
+  store.clearQueuedMessage('session-a');
+  assert.deepEqual(deletedScopes, []);
+  release();
+  await store.persistChatDraft('session-a');
+  assert.deepEqual(deletedScopes, ['session-a']);
+  assert.equal(store.readQueuedMessage('session-a'), null);
+});
+
+
+test('typing after a queue save does not repost a potentially consumed message', async () => {
+  const store = await loadStore();
+  store.writeQueuedMessage('session-a', { content: 'sent once' });
+  await store.persistChatDraft('session-a');
+  store.writeDraftText('session-a', 'typing the following message');
+  await store.persistChatDraft('session-a');
+  assert.deepEqual(savedDrafts.at(-1), { scope: 'session-a', text: 'typing the following message' });
 });

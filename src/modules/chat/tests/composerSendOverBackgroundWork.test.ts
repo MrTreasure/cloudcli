@@ -1,9 +1,12 @@
 import assert from 'node:assert/strict';
 
-import { act, renderHook, waitFor } from '@testing-library/react';
+import { createElement } from 'react';
+import { act, render as renderComponent, renderHook, screen, fireEvent, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, test, vi } from 'vitest';
 
 import '@/modules/i18n';
+import QueuedMessageCard from '@/modules/chat/composer/QueuedMessageCard';
+import { api } from '@/shared/api';
 import { useChatComposerState } from '@/modules/chat/hooks/useChatComposerState';
 import { clearQueuedMessage, readQueuedMessage } from '@/shared/chatDrafts';
 import type * as ChatDrafts from '@/shared/chatDrafts';
@@ -52,20 +55,20 @@ const backgroundOnly: SessionActivityMap = new Map([[
 
 const uploads = () => vi.mocked(fetch).mock.calls.filter(([url]) => String(url).includes('/api/assets/files'));
 
-const render = (processingSessions: SessionActivityMap) => {
+const render = (processingSessions: SessionActivityMap, runningCodex = false) => {
   const sent: Array<{ type: string }> = [];
   const view = renderHook(() =>
     useChatComposerState({
       selectedProject: PROJECT,
       selectedSession: SESSION,
       currentSessionId: SESSION.id,
-      provider: 'claude',
+      provider: runningCodex ? 'codex' : 'claude',
       permissionMode: 'default',
       cyclePermissionMode: () => undefined,
       resolvePermissionModeForProvider: () => 'default' as PermissionMode,
       currentProviderModel: 'test-model',
       currentProviderEffort: 'medium',
-      isLoading: false,
+      isLoading: runningCodex,
       processingSessions,
       canAbortSession: false,
       tokenBudget: null,
@@ -211,4 +214,68 @@ test('a session with nothing in the background sends without asking', async () =
 
   assert.equal(view.result.current.backgroundSendPrompt, null);
   assert.equal(sends().length, 1);
+});
+
+
+test('queued card exposes explicit send/insert actions and blocks duplicate clicks while sending', () => {
+  const onSendNow = vi.fn();
+  const props = { content: 'pending', onEdit: vi.fn(), onDelete: vi.fn(), onSendNow };
+  const view = renderComponent(createElement(QueuedMessageCard, props));
+  fireEvent.click(screen.getByRole('button', { name: 'Send now' }));
+  assert.equal(onSendNow.mock.calls.length, 1);
+  view.rerender(createElement(QueuedMessageCard, { ...props, insertIntoActiveRun: true, sending: true }));
+  const stop = screen.getByRole('button', { name: 'Insert now' }) as HTMLButtonElement;
+  assert.equal(stop.disabled, true);
+  fireEvent.click(stop);
+  assert.equal(onSendNow.mock.calls.length, 1);
+});
+
+test('manual queued send uses the server claim endpoint with saved attachments and never emits another chat.send', async () => {
+  const stored = { content: 'manual queue', options: { codexFast: true }, attachments: [UPLOADED] };
+  const { writeQueuedMessage: saveQueue } = await import('@/shared/chatDrafts');
+  saveQueue(SESSION.id, stored);
+  const sendNow = vi.spyOn(api.scheduledMessages, 'sendQueuedNow').mockResolvedValue(new Response(JSON.stringify({ success: true, data: { status: 'sending' } })));
+  const { view, sends } = render(new Map());
+  await act(async () => { await view.result.current.sendQueuedDraftNow(); });
+  assert.equal(sendNow.mock.calls.length, 1);
+  assert.deepEqual(sendNow.mock.calls[0], [SESSION.id, stored]);
+  assert.equal(sends().length, 0);
+});
+
+
+test('sending during a Codex turn inserts through the native endpoint without starting a second turn', async () => {
+  const insertion = vi.spyOn(api.scheduledMessages, 'sendQueuedNow').mockResolvedValue(new Response(JSON.stringify({ success: true, data: { status: 'inserted' } })));
+  const { view, sends } = render(new Map(), true);
+  await act(async () => { view.result.current.setInput('also check compatibility'); });
+  await act(async () => { await view.result.current.handleSubmit({ preventDefault: () => undefined } as never); });
+  assert.equal(insertion.mock.calls.length, 1);
+  assert.equal(insertion.mock.calls[0][0], SESSION.id);
+  assert.equal((insertion.mock.calls[0][1] as { content: string }).content, 'also check compatibility');
+  assert.equal(sends().length, 0);
+  assert.equal(view.result.current.input, '');
+  insertion.mockRestore();
+});
+
+test('Shift+Enter during a Codex turn saves a queue without requesting insertion', async () => {
+  const insertion = vi.spyOn(api.scheduledMessages, 'sendQueuedNow');
+  const { view, sends } = render(new Map(), true);
+  await act(async () => { view.result.current.setInput('after this turn'); });
+  const preventDefault = vi.fn();
+  await act(async () => { view.result.current.handleKeyDown({ key: 'Enter', shiftKey: true, preventDefault } as never); });
+  await waitFor(() => assert.equal(view.result.current.queuedDraft?.content, 'after this turn'));
+  assert.ok(preventDefault.mock.calls.length > 0);
+  assert.equal(insertion.mock.calls.length, 0);
+  assert.equal(sends().length, 0);
+  insertion.mockRestore();
+});
+
+test('rejected insertion keeps the message and displays the failure without another chat.send', async () => {
+  const insertion = vi.spyOn(api.scheduledMessages, 'sendQueuedNow').mockResolvedValue(new Response(JSON.stringify({ error: 'Turn changed' }), { status: 409 }));
+  const { view, sends } = render(new Map(), true);
+  await act(async () => { view.result.current.setInput('retain on failure'); });
+  await act(async () => { await view.result.current.handleSubmit({ preventDefault: () => undefined } as never); });
+  assert.equal(view.result.current.queuedDraft?.content, 'retain on failure');
+  assert.ok(view.result.current.queuedSendError);
+  assert.equal(sends().length, 0);
+  insertion.mockRestore();
 });

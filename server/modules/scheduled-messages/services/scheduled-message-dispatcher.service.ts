@@ -1,4 +1,9 @@
-import { scheduledMessagesDb, sessionDraftsDb } from '@/modules/database/index.js';
+import { randomUUID } from 'node:crypto';
+import { isDeepStrictEqual } from 'node:util';
+
+import { AppError, normalizeImageDescriptors, readObjectRecord } from '@/shared/index.js';
+import type { LLMProvider } from '@/shared/types.js';
+import { scheduledMessagesDb, sessionDraftsDb, sessionsDb } from '@/modules/database/index.js';
 import type { QueuedSessionMessageRecord, ScheduledMessageRow } from '@/modules/database/index.js';
 import { chatRunRegistry, runDetachedChatTurn } from '@/modules/websocket/index.js';
 import type { ProviderRuntimeGateway } from '@/modules/websocket/index.js';
@@ -13,6 +18,8 @@ import type { ProviderRuntimeGateway } from '@/modules/websocket/index.js';
 const POLL_INTERVAL_MS = 30_000;
 
 let pollTimer: ReturnType<typeof setInterval> | null = null;
+let queuedPollTimer: ReturnType<typeof setInterval> | null = null;
+// Only the due-time scan is serialized; running turns never lock other queues.
 let dispatchInFlight = false;
 
 type StoredQueuedMessage = {
@@ -74,7 +81,7 @@ async function sendClaimedQueuedMessage(
 
   // The registry check and run reservation are separate operations. If a run
   // wins that tiny race, put the turn back so the next poll tries again.
-  if (!result.started && result.error === 'A run was already in progress for this session.') {
+  if (!result.started) {
     sessionDraftsDb.restoreQueuedMessage(candidate);
     return;
   }
@@ -100,14 +107,19 @@ export async function dispatchQueuedMessages(runtime: ProviderRuntimeGateway): P
   let claimed = 0;
 
   await Promise.all(candidates.map(async (candidate) => {
-    if (isSessionBusy(candidate.sessionId, runtime)) {
+    if (readQueuedMessage(candidate.queuedMessage)?.options._cloudcliSteerOutcomeUnknown === true || isSessionBusy(candidate.sessionId, runtime)) {
       return;
     }
     if (!sessionDraftsDb.claimQueuedMessage(candidate)) {
       return;
     }
     claimed += 1;
-    await sendClaimedQueuedMessage(candidate, runtime);
+    try {
+      await sendClaimedQueuedMessage(candidate, runtime);
+    } catch (error) {
+      sessionDraftsDb.restoreQueuedMessage(candidate);
+      console.error('[QueuedMessages] Dispatch failed; queued message retained', { sessionId: candidate.sessionId, error: error instanceof Error ? error.message : String(error) });
+    }
   }));
 
   return claimed;
@@ -190,7 +202,7 @@ export function initializeScheduledMessageDispatcher(runtime: ProviderRuntimeGat
     }
     dispatchInFlight = true;
     void dispatchDueScheduledMessages(runtime)
-      .then(() => dispatchQueuedMessages(runtime))
+
       .catch((error: unknown) => {
         const message = error instanceof Error ? error.message : String(error);
         console.error('[ScheduledMessages] Dispatch pass failed', { error: message });
@@ -200,6 +212,16 @@ export function initializeScheduledMessageDispatcher(runtime: ProviderRuntimeGat
       });
   };
 
+  // Each claim is atomic and each run reserves its session before awaiting.
+  // An unfinished turn must not block the next scan of other idle sessions.
+  const pollQueued = () => {
+    void dispatchQueuedMessages(runtime).catch((error: unknown) => {
+      console.error('[QueuedMessages] Scan failed', { error: error instanceof Error ? error.message : String(error) });
+    });
+  };
+  queuedPollTimer = setInterval(pollQueued, 1000);
+  queuedPollTimer.unref?.();
+  pollQueued();
   pollTimer = setInterval(poll, POLL_INTERVAL_MS);
   // Never keep the process alive just to poll for scheduled messages.
   pollTimer.unref?.();
@@ -209,8 +231,70 @@ export function initializeScheduledMessageDispatcher(runtime: ProviderRuntimeGat
 }
 
 export function closeScheduledMessageDispatcher(): void {
+  if (queuedPollTimer) {
+    clearInterval(queuedPollTimer);
+    queuedPollTimer = null;
+  }
   if (pollTimer) {
     clearInterval(pollTimer);
     pollTimer = null;
   }
+}
+
+
+/** Used by the protected scheduled-message route to send one unchanged draft, without duplicate client-side dispatch. */
+export async function sendQueuedMessageNow(
+  userId: number,
+  sessionId: string,
+  expected: unknown,
+  runtime: ProviderRuntimeGateway,
+): Promise<{ status: 'inserted' | 'sending' }> {
+  const candidate = sessionDraftsDb.listQueuedMessages().find((entry) => entry.userId === userId && entry.sessionId === sessionId);
+  if (!candidate || !isDeepStrictEqual(readQueuedMessage(candidate.queuedMessage), readQueuedMessage(expected))) {
+    throw new AppError('The queued message was already sent or changed. Refresh its status.', { code: 'QUEUE_CHANGED', statusCode: 409 });
+  }
+  if (!readQueuedMessage(candidate.queuedMessage)) {
+    throw new AppError('The queued message has no valid content or attachments.', { code: 'INVALID_QUEUED_MESSAGE', statusCode: 400 });
+  }
+  const session = sessionsDb.getSessionById(sessionId);
+  if (!session || !runtime.hasRuntime(session.provider)) {
+    throw new AppError('The session provider is unavailable; your message remains queued.', { code: 'QUEUE_UNAVAILABLE', statusCode: 409 });
+  }
+  if (readQueuedMessage(candidate.queuedMessage)?.options._cloudcliSteerOutcomeUnknown === true) {
+    throw new AppError('Insertion acknowledgement was lost. Check the conversation, then edit or delete this message.', { code: 'STEER_OUTCOME_UNKNOWN', statusCode: 409 });
+  }
+  if (isSessionBusy(sessionId, runtime)) {
+    const token = runtime.activeTurnToken?.(session.provider as LLMProvider, sessionId);
+    if (!token || !runtime.steer) {
+      throw new AppError('This session has no active steerable Codex turn. Your message remains queued.', { code: 'NO_ACTIVE_TURN', statusCode: 409 });
+    }
+    if (!sessionDraftsDb.claimQueuedMessage(candidate)) {
+      throw new AppError('The queued message was already sent or changed.', { code: 'QUEUE_CHANGED', statusCode: 409 });
+    }
+    const message = readQueuedMessage(candidate.queuedMessage)!;
+    try {
+      await runtime.steer(session.provider as LLMProvider, {
+        sessionId, activeTurnToken: token, content: message.content,
+        attachments: normalizeImageDescriptors(message.attachments), messageId: randomUUID(),
+      });
+    } catch (error) {
+      // An RPC transport failure can mean Codex accepted the input but its reply
+      // was lost. Keep it visible, but never automatically execute it twice.
+      const unknown = error instanceof AppError && error.code === 'STEER_OUTCOME_UNKNOWN';
+      sessionDraftsDb.restoreQueuedMessage(unknown ? {
+        ...candidate, claimToken: JSON.stringify({ ...readObjectRecord(candidate.queuedMessage), options: { ...message.options, _cloudcliSteerOutcomeUnknown: true } }),
+      } : candidate);
+      throw error;
+    }
+    sessionDraftsDb.deleteEmptyDraft(userId, sessionId);
+    return { status: 'inserted' };
+  }
+  if (!sessionDraftsDb.claimQueuedMessage(candidate)) {
+    throw new AppError('The queued message was already sent or changed.', { code: 'QUEUE_CHANGED', statusCode: 409 });
+  }
+  void sendClaimedQueuedMessage(candidate, runtime).catch((error: unknown) => {
+    sessionDraftsDb.restoreQueuedMessage(candidate);
+    console.error('[QueuedMessages] Manual send failed; queued message retained', { sessionId, error: error instanceof Error ? error.message : String(error) });
+  });
+  return { status: 'sending' };
 }

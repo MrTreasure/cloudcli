@@ -1,6 +1,4 @@
-import assert from 'node:assert/strict';
-
-import { test } from 'vitest';
+import { assert, test } from 'vitest';
 
 import type { NormalizedMessage } from '@/shared/types';
 import { removeOptimisticUserEchoes } from '@/modules/chat/utils/sessionMessageReconciliation';
@@ -68,6 +66,62 @@ test('keeps the existing optimistic text reconciliation behavior', () => {
   });
 
   assert.deepEqual(removeOptimisticUserEchoes([persisted], [local]), []);
+});
+
+test('retires a steered Codex echo when history backdates it to the start of the turn', () => {
+  const turnStart = '2026-10-13T02:13:58.000Z';
+  const insertedAt = '2026-10-13T02:17:55.000Z';
+  const original = createUserMessage('original', turnStart, {
+    provider: 'codex', content: 'build the dashboard', transcriptAnchorId: 'turn-1',
+  });
+  const persisted = createUserMessage('steered', turnStart, {
+    provider: 'codex', content: 'support macOS',
+  });
+  const local = createUserMessage('local_queue_abc', insertedAt, {
+    provider: 'codex', content: 'support macOS',
+  });
+
+  assert.deepEqual(removeOptimisticUserEchoes([original, persisted], [local]), []);
+  assert.deepEqual(removeOptimisticUserEchoes([original], [local]), [local]);
+});
+
+test('a steered echo cannot claim the first prompt of a previous Codex turn', () => {
+  const persisted = createUserMessage('original', '2026-10-13T02:13:58.000Z', {
+    provider: 'codex', content: 'support macOS', transcriptAnchorId: 'turn-1',
+  });
+  const local = createUserMessage('local_queue_abc', '2026-10-13T02:17:55.000Z', {
+    provider: 'codex', content: 'support macOS',
+  });
+
+  assert.deepEqual(removeOptimisticUserEchoes([persisted], [local]), [local]);
+});
+
+test('backdated steering matches are one-to-one for repeated input', () => {
+  const persisted = createUserMessage('steered', '2026-10-13T02:13:58.000Z', {
+    provider: 'codex', content: 'continue',
+  });
+  const first = createUserMessage('local_queue_first', '2026-10-13T02:17:55.000Z', {
+    provider: 'codex', content: 'continue',
+  });
+  const second = createUserMessage('local_queue_second', '2026-10-13T02:18:55.000Z', {
+    provider: 'codex', content: 'continue',
+  });
+
+  assert.deepEqual(removeOptimisticUserEchoes([persisted], [first, second]), [second]);
+});
+
+test('a matching steer from an older turn does not retire input in the newest turn', () => {
+  const oldSteer = createUserMessage('old-steer', '2026-10-13T02:00:00.000Z', {
+    provider: 'codex', content: 'continue',
+  });
+  const currentPrompt = createUserMessage('current-prompt', '2026-10-13T02:13:58.000Z', {
+    provider: 'codex', content: 'build the dashboard', transcriptAnchorId: 'turn-2',
+  });
+  const local = createUserMessage('local_queue_second', '2026-10-13T02:17:55.000Z', {
+    provider: 'codex', content: 'continue',
+  });
+
+  assert.deepEqual(removeOptimisticUserEchoes([oldSteer, currentPrompt], [local]), [local]);
 });
 
 test('a replacement echo survives a kept turn that repeats its text', () => {

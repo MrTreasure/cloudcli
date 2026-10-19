@@ -1,19 +1,21 @@
-import type { JsonRpcRequest, JsonRpcNotification, CodexAppServerDiagnostic, CodexAppServerRuntimeOptions } from '@/shared/index.js';
 import { randomUUID } from 'node:crypto';
 
 import {
   appendFilesInputTag,
   buildCodexInputItems,
   normalizeImageDescriptors,
+  isImageAttachmentDescriptor,
   AppError,
   createCompleteMessage,
   createNormalizedMessage,
   readObjectRecord,
 } from '@/shared/index.js';
 import type {
+  JsonRpcRequest, JsonRpcNotification, CodexAppServerDiagnostic, CodexAppServerRuntimeOptions,
   AnyRecord,
   ProviderPermissionDecision,
   ProviderRuntimeContext,
+  ProviderSteerInput,
   ProviderRuntimeWriter,
 } from '@/shared/index.js';
 import {
@@ -23,6 +25,7 @@ import {
   notifyUserIfEnabled,
 } from '@/modules/notifications/index.js';
 
+import { JsonRpcRemoteError } from './codex-app-server.transport.js';
 import { CodexAppServerProcessManager } from './codex-app-server.process.js';
 
 type AppServerRuntimeResult = {
@@ -35,6 +38,8 @@ type AppServerRun = {
   sessionSummary: string | null;
   threadId: string;
   turnId: string | null;
+  activeTurnToken: string;
+  workingDirectory: string;
   writer: ProviderRuntimeWriter;
   context: ProviderRuntimeContext;
   turnAccepted: boolean;
@@ -554,7 +559,7 @@ class CodexAppServerRuntime {
       }
 
       checkSetupAbort();
-      run = this.createRun(sessionId, threadId, writer, context, sessionSummary);
+      run = this.createRun(sessionId, threadId, writer, context, sessionSummary, workingDirectory);
       if (sessionId) {
         this.pendingRunSetups.delete(sessionId);
       }
@@ -617,6 +622,43 @@ class CodexAppServerRuntime {
         this.removeRun(run);
       }
     }
+  }
+
+  activeTurnToken(sessionId: string): string | null {
+    const run = this.runsBySession.get(sessionId);
+    return run && !run.terminal && !run.abortRequested && run.turnAccepted && run.turnId ? run.activeTurnToken : null;
+  }
+
+  async steer(input: ProviderSteerInput): Promise<void> {
+    const run = this.runsBySession.get(input.sessionId);
+    if (!run || run.terminal || run.abortRequested || !run.turnAccepted || !run.turnId) {
+      throw new AppError('No active Codex app-server turn to steer.', { code: 'NO_ACTIVE_TURN', statusCode: 409 });
+    }
+    if (input.activeTurnToken !== run.activeTurnToken) {
+      throw new AppError('The active Codex turn changed.', { code: 'ACTIVE_TURN_CHANGED', statusCode: 409 });
+    }
+    const expectedTurnId = run.turnId;
+    const submittedAt = new Date().toISOString();
+    try {
+      const result = await this.manager.request<{ turnId: string }>('turn/steer', {
+        threadId: run.threadId, expectedTurnId,
+        input: buildTurnInput(input.content, {
+          images: input.attachments.filter(isImageAttachmentDescriptor),
+          files: input.attachments.filter((attachment) => !isImageAttachmentDescriptor(attachment)),
+        }, run.workingDirectory),
+      });
+      if (result.turnId !== expectedTurnId) throw new Error('Steer returned an unexpected turn id.');
+    } catch (error) {
+      if (error instanceof JsonRpcRemoteError) {
+        throw new AppError(error.message, { code: 'CODEX_STEER_REJECTED', statusCode: 409 });
+      }
+      throw new AppError('Codex did not acknowledge insertion. Check the conversation before resending.', { code: 'STEER_OUTCOME_UNKNOWN', statusCode: 409 });
+    }
+    run.writer.send(createNormalizedMessage({ kind: 'text', role: 'user', provider: 'codex',
+      sessionId: run.threadId, id: `local_queue_${input.messageId}`, timestamp: submittedAt, content: input.content,
+      images: input.attachments.filter(isImageAttachmentDescriptor),
+      files: input.attachments.filter((attachment) => !isImageAttachmentDescriptor(attachment)),
+    }));
   }
 
   async abort(sessionId: string): Promise<boolean> {
@@ -687,6 +729,7 @@ class CodexAppServerRuntime {
     writer: ProviderRuntimeWriter,
     context: ProviderRuntimeContext,
     sessionSummary: string | null,
+    workingDirectory: string,
   ): AppServerRun {
     const existing = this.runsByThread.get(threadId)
       ?? (appSessionId ? this.runsBySession.get(appSessionId) : undefined);
@@ -703,6 +746,8 @@ class CodexAppServerRuntime {
       sessionSummary,
       threadId,
       turnId: null,
+      activeTurnToken: randomUUID(),
+      workingDirectory,
       writer,
       context,
       turnAccepted: false,
@@ -1104,6 +1149,8 @@ export function createCodexAppServerRuntime(options: CodexAppServerRuntimeOption
   return {
     run: runtime.run.bind(runtime),
     abort: runtime.abort.bind(runtime),
+    activeTurnToken: runtime.activeTurnToken.bind(runtime),
+    steer: runtime.steer.bind(runtime),
     restart: runtime.restart.bind(runtime),
     permissions: {
       resolve: runtime.resolveApproval.bind(runtime),

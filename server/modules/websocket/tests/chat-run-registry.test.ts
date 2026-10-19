@@ -311,3 +311,22 @@ test('startRun rejects a second concurrent run for the same session', async () =
     assert.ok(third);
   });
 });
+
+test('detached queued turns inherit the authorized audience and advance its sequence', async () => {
+  await withIsolatedDatabase(() => {
+    const connection = new FakeConnection();
+    const first = chatRunRegistry.startRun({ appSessionId: 'queued-live', provider: 'codex', providerSessionId: null, connection, userId: 1 })!;
+    first.writer.sendComplete({ exitCode: 0 });
+    const lastSeq = first.lastSeq;
+    const next = chatRunRegistry.startRun({ appSessionId: 'queued-live', provider: 'codex', providerSessionId: null, connection: null, userId: 1 })!;
+    next.writer.send({ kind: 'text', provider: 'codex', content: 'queued response' });
+    assert.equal(connection.frames.at(-1)?.content, 'queued response');
+    assert.equal(connection.frames.at(-1)?.seq, lastSeq + 1);
+    first.writer.send({ kind: 'text', provider: 'codex', content: 'late old event' });
+    assert.equal(connection.frames.at(-1)?.content, 'queued response');
+    next.writer.sendComplete({ exitCode: 0 });
+    const other = chatRunRegistry.startRun({ appSessionId: 'queued-live', provider: 'codex', providerSessionId: null, connection: null, userId: 2 })!;
+    other.writer.send({ kind: 'text', provider: 'codex', content: 'other user' });
+    assert.notEqual(connection.frames.at(-1)?.content, 'other user');
+  });
+});
