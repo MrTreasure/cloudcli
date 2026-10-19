@@ -400,3 +400,14 @@ alongside the implementation.
 - Forgetting that Claude plugin skills are discovered differently from normal
   user/project skill folders.
 - Assuming one provider's MCP config file format works for the others.
+
+
+## Codex outgoing image context filtering
+
+`services/codex-image-proxy.service.ts` creates a loopback HTTP route per stable app session. `provider-runtime.service.ts` supplies its lifecycle through the runtime context. Before native thread start/resume, `config/read` resolves that cwd's existing provider; the returned thread-local override points only its HTTP base URL to the proxy. Authentication stays in Codex and request headers are forwarded. Reserved builtin OpenAI uses `openai_base_url` and immediate native HTTP-426 fallback, preserving its original provider identity and AuthManager. No global config, credential, or model-catalog file is written.
+
+`services/codex-image-context.service.ts` archives typed inline images by digest and filters actual Responses/compact request bodies. A per-turn lease freezes policy and protects current/newly-read images. Old images followed by a model response or compaction boundary are eligible for bounded retention; opaque encrypted content, ordinary text, file IDs and unknown representations pass through. Native `view_image` reads archived files using existing permissions. Explicit pins missing from a compacted request are reattached on demand. Child or mismatched-thread requests remain transparent and never inherit the parent archive catalogue.
+
+HTTP transport preserves request encoding, raw SSE responses, upstream headers, cancellation and host proxy settings. Metrics measure serialized HTTP bodies and decoded JSON, not TLS traffic or CPA's downstream uploads. Archive/body capacity failures are explicit; history is never rewritten. `codex_context_state` persists per-session settings, image metadata and metrics. Ordinary sends/compaction keep the native thread; only explicit clear stores a previous-rollout segment and atomically changes the native mapping. History parsing reads those retained segments, making older segments read-only while keeping current anchors.
+
+The authenticated `/sessions/:sessionId/image-context` GET/PATCH endpoints expose policy and metadata. The usage modal invokes `/compact` or `/clear` through normal chat admission/abort handling without consuming the composer draft. Explicit SDK mode reports unsupported context controls. See root README and `docs/nas/README.md` for defaults, verification, limitations and rollback.

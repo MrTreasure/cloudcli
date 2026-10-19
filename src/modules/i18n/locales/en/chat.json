@@ -1,4 +1,21 @@
 {
+  "contextPolicy": {
+    "title": "Image context",
+    "compact": "Compact context",
+    "clear": "Clear context",
+    "busy": "A task is running. Saved image settings apply next turn; compact and clear wait for this turn to finish.",
+    "boundary": "Only outgoing historical image inputs are filtered. Chat history and originals stay intact. Clear starts an empty context.",
+    "count": "Recent image count",
+    "budget": "History image budget (MiB)",
+    "save": "Save",
+    "saved": "Saved; applies next turn",
+    "stats": "History: {{count}} images / {{bytes}} · Detached this request: {{pruned}} · Compactions: {{compactions}}",
+    "measurement": "Latest HTTP body {{before}} → {{after}} · Total saved {{saved}} ({{requests}} requests). Excludes traffic beyond CPA.",
+    "exceeded": "History budget {{budget}} exceeded: retained history {{retained}}; current input {{count}} images / about {{bytes}}. Latest and comparison images remain available.",
+    "images": "Historical image references ({{count}})",
+    "reload": "Select images to reload or keep for comparison, then save. They load on your next send. Unselected images follow the recent-count and byte limits.",
+    "unmeasured": "No model HTTP request has been measured yet."
+  },
   "codeBlock": {
     "copy": "Copy",
     "copied": "Copied",

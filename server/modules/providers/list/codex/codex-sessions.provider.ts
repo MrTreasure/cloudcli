@@ -3,7 +3,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import readline from 'node:readline';
 
-import { sessionsDb } from '@/modules/database/index.js';
+import { sessionsDb, codexContextDb } from '@/modules/database/index.js';
 import { codexAppServer } from '@/modules/providers/list/codex/codex-app-server.client.js';
 import { parseFilesInputTag, toImageAttachments } from '@/shared/image-attachments.js';
 import type { IProviderSessions } from '@/shared/interfaces.js';
@@ -1282,8 +1282,8 @@ const CODEX_COLLABORATION_CONTROL_TOOLS = new Set([
  * Reads one Codex rollout file and produces the compact per-message records
  * `normalizeHistoryEntry` turns into `NormalizedMessage`s.
  */
-async function getCodexSessionMessages(sessionId: string): Promise<CodexHistoryResult> {
-  const sessionFilePath = sessionsDb.getSessionById(sessionId)?.jsonl_path;
+async function getCodexSessionMessages(sessionId: string, transcriptPath?: string): Promise<CodexHistoryResult> {
+  const sessionFilePath = transcriptPath ?? sessionsDb.getSessionById(sessionId)?.jsonl_path;
 
   if (!sessionFilePath) {
     console.warn(`Codex session file not found for session ${sessionId}`);
@@ -2495,6 +2495,19 @@ export class CodexSessionsProvider implements IProviderSessions {
     let result: CodexHistoryResult;
     try {
       result = await getCodexSessionMessages(sessionId);
+      const segments = codexContextDb.get(sessionId)?.segments ?? [];
+      if (segments.length > 0) {
+        const earlier: AnyRecord[] = [];
+        for (const segment of segments) {
+          let history: CodexHistoryResult;
+          try { history = await getCodexSessionMessages(sessionId, segment.path); }
+          catch { throw new AppError('A retained Codex history segment is unavailable; the current conversation was not erased.', { code: 'CODEX_HISTORY_SOURCE_MISSING', statusCode: 409 }); }
+          // Old turns stay visible but cannot be edited against the new native thread.
+          earlier.push(...history.messages.map(message => { const copy = { ...message }; delete copy.turnId; return copy; }));
+        }
+        result.messages = [...earlier, ...result.messages].filter(message =>
+          !String(message.content ?? message.message?.content ?? '').startsWith('[CloudCLI context cleared]'));
+      }
     } catch (error) {
       // A broken inherited snapshot must not masquerade as an empty thread.
       if (error instanceof AppError && error.code.startsWith('CODEX_HISTORY_SOURCE_')) {

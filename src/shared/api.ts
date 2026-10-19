@@ -454,6 +454,10 @@ export const api = {
     ) => get(sessionMessagesUrl(sessionId, pagination), options),
     sessionTokenUsage: (sessionId: string) =>
       get(`/api/providers/sessions/${encodeURIComponent(sessionId)}/token-usage`),
+    sessionImageContext: (sessionId: string, options: ApiRequestOptions = {}) =>
+      get(`/api/providers/sessions/${encodeURIComponent(sessionId)}/image-context`, options),
+    setSessionImageContext: (sessionId: string, policy: unknown) =>
+      patch(`/api/providers/sessions/${encodeURIComponent(sessionId)}/image-context`, policy),
     sessionCodexFast: (sessionId: string) =>
       get(`/api/providers/sessions/${encodeURIComponent(sessionId)}/codex-fast`),
     setSessionCodexFast: (sessionId: string, codexFast: boolean) =>

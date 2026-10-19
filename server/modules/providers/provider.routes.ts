@@ -1,5 +1,6 @@
 import express, { type Request, type Response } from 'express';
 
+import { codexImageContextService } from '@/modules/providers/services/codex-image-context.service.js';
 import { providerSessionSettingsService } from '@/modules/providers/services/provider-session-settings.service.js';
 import { providerAuthService } from '@/modules/providers/services/provider-auth.service.js';
 import { claudeSettingsPermissionsService } from '@/modules/providers/services/claude-settings-permissions.service.js';
@@ -742,6 +743,16 @@ router.post(
     ));
   }),
 );
+
+/** Image policy follows the stable application session across native context handoffs. */
+router.get('/sessions/:sessionId/image-context', asyncHandler(async (req: Request, res: Response) => {
+  res.json(createApiSuccessResponse(await codexImageContextService.describe(parseSessionId(req.params.sessionId))));
+}));
+router.patch('/sessions/:sessionId/image-context', asyncHandler(async (req: Request, res: Response) => {
+  const policy = req.body;
+  if (!policy || typeof policy !== 'object' || Array.isArray(policy)) throw new AppError('Expected image context policy.', { code: 'CODEX_CONTEXT_POLICY', statusCode: 400 });
+  res.json(createApiSuccessResponse(codexImageContextService.update(parseSessionId(req.params.sessionId), policy)));
+}));
 
 /** Fast intent belongs to the stable application session, not the native thread id. */
 router.get('/sessions/:sessionId/codex-fast', asyncHandler(async (req: Request, res: Response) => {

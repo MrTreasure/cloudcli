@@ -1,4 +1,21 @@
 {
+  "contextPolicy": {
+    "title": "圖片上下文",
+    "compact": "壓縮上下文",
+    "clear": "清理上下文",
+    "busy": "任務進行中；圖片設定下輪生效，壓縮與清理需等本輪結束。",
+    "boundary": "僅裁剪傳給模型的舊圖片輸入，聊天記錄和原圖保留。清理會開始空上下文。",
+    "count": "保留近期圖片數",
+    "budget": "歷史圖片預算（MiB）",
+    "save": "儲存",
+    "saved": "已儲存，下輪生效",
+    "stats": "歷史圖片 {{count}} 張 / {{bytes}} · 本次移除 {{pruned}} 張 · 壓縮 {{compactions}} 次",
+    "measurement": "最近 HTTP 請求本文 {{before}} → {{after}} · 累計減少 {{saved}}（{{requests}} 次）；不含 CPA 到模型的後續流量。",
+    "exceeded": "超出歷史預算 {{budget}}：保留歷史圖片 {{retained}}；目前輸入 {{count}} 張 / 約 {{bytes}}。最新圖片及對比圖仍可處理。",
+    "images": "歷史圖片引用（{{count}}）",
+    "reload": "勾選需重新查看或持續對比的圖片並儲存，下次傳送時重新載入。取消後依近期數量與預算管理。",
+    "unmeasured": "尚未測得模型 HTTP 請求。"
+  },
   "codeBlock": {
     "copy": "複製",
     "copied": "已複製",

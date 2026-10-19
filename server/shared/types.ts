@@ -646,6 +646,20 @@ export type ProviderRuntimeContext = {
   getProviderModels(): Promise<ProviderModelsDefinition>;
   normalizeMessage(raw: unknown, sessionId: string | null): NormalizedMessage[];
   isProviderInstalled(): Promise<boolean>;
+  /** Temporarily routes this thread's HTTP requests through the local image filter; no config files are changed. */
+  openImageContext?: (input: {
+    sessionId: string;
+    cwd: string;
+    request: (method: string, params: unknown) => Promise<unknown>;
+  }) => Promise<{ config: AnyRecord; bindThread: (threadId: string) => void; close: () => void } | null>;
+  /** Explicit clear starts an empty native thread while preserving original rollout segments for the UI. */
+  clearImageContext?: (input: {
+    sessionId: string;
+    threadId: string;
+    threadParams: AnyRecord;
+    checkAbort: () => void;
+    request: (method: string, params: unknown) => Promise<unknown>;
+  }) => Promise<{ threadId: string; threadResult: unknown }>;
   /**
    * Builds the SDK query for a run. Production leaves this unset and the
    * runtime uses the SDK's own; tests supply a scripted stream so the hold
@@ -1829,4 +1843,63 @@ export type ProviderSteerInput = {
   content: string;
   attachments: import('./image-attachments.js').ChatAttachmentDescriptor[];
   messageId: string;
+};
+
+//----------------- CODEX CONTEXT POLICY ------------
+/** Per-CloudCLI-session limits for historical image inputs; current input and explicit pins are exempt. */
+export type CodexImageContextPolicy = {
+  recentImages: number;
+  imageBytes: number;
+  pinnedImageIds: string[];
+};
+/** One admitted turn's frozen policy and fresh-image protection; never shared between app sessions. */
+export type CodexImageFilterLease = {
+  policy: CodexImageContextPolicy;
+  initialized: boolean;
+  knownIds: Set<string>;
+  protectedIds: Set<string>;
+};
+/** Metadata for an immutable archived image. No Base64 or prompt is stored in this record. */
+export type CodexContextImage = {
+  id: string;
+  path: string;
+  mime: string;
+  bytes: number;
+  encodedBytes: number;
+  timestamp: string;
+};
+/** Durable segment boundary preserving the old rollout while the app session moves to a clean thread. */
+export type CodexContextSegment = {
+  threadId: string;
+  path: string;
+  reason: string;
+  compactions?: number;
+};
+/** Last local proxy measurements. HTTP body bytes refer only to Codex -> CloudCLI -> configured upstream. */
+export type CodexContextMetrics = {
+  historicalImageCount: number;
+  historicalImageBytes: number;
+  retainedImageCount: number;
+  retainedImageBytes: number;
+  currentImageCount: number;
+  currentImageBytes: number;
+  budgetExceeded: boolean;
+  compactions: number;
+  switches: number;
+  requests: number;
+  requestBytesBefore: number;
+  requestBytesAfter: number;
+  jsonBytesBefore: number;
+  jsonBytesAfter: number;
+  savedBytes: number;
+  uploadedBytes: number;
+  prunedImageCount: number;
+};
+/** Private durable state used by provider context management and the database repository. */
+export type CodexContextState = {
+  policy: CodexImageContextPolicy;
+  segments: CodexContextSegment[];
+  images: CodexContextImage[];
+  activeImageIds: string[];
+  metrics: CodexContextMetrics;
 };

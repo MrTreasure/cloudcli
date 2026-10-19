@@ -1129,6 +1129,19 @@ export function useChatComposerState({
     };
   }, [queuedDraft, sessionKey]);
 
+  const manageCodexContext = useCallback((action: 'compact' | 'clear') => {
+    if (provider !== 'codex' || isLoading || !sessionKey) return;
+    const options = buildSendOptions(`/${action}`);
+    if (options.codexRuntimeMode === 'sdk') {
+      addMessage({ type: 'error', content: 'Context controls require the Codex app-server runtime.', timestamp: new Date() });
+      return;
+    }
+    setCommandModalPayload(null);
+    onSessionProcessing?.(sessionKey, { statusText: action === 'compact' ? 'Compacting context…' : 'Clearing context…', canInterrupt: true });
+    // Use the normal admission/stream/abort path, preserving the unsent composer draft.
+    sendMessage({ type: 'chat.send', sessionId: sessionKey, provider, content: `/${action}`, options });
+  }, [provider, isLoading, sessionKey, buildSendOptions, addMessage, onSessionProcessing, sendMessage]);
+
   const sendQueuedDraftNow = useCallback(async () => {
     if (!sessionKey || !queuedDraft || queuedSendBusy) return;
     const target = sessionKey;
@@ -1548,5 +1561,6 @@ export function useChatComposerState({
     commandModalPayload,
     closeCommandModal,
     showCostModal,
+    manageCodexContext,
   };
 }

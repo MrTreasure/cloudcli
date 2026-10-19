@@ -219,3 +219,57 @@
 - 回退：整体回退上述前端动作、卡片、翻译和测试，并恢复相应文档；不回退后端 steer/队列修复，不清除用户已排队消息。仍沿用官方单条队列，新消息更新该草稿，没有引入多条 FIFO。
 - 验证：37 项定向测试通过，覆盖响应中 Enter/提交仅入队、耐久附件、卡片“立即发送”触发插入、不重复 chat.send、失败后保留草稿及提示、Shift+Enter 放行、空闲正常发送和基本编辑快捷键；全量前端 118 个文件、843 项全部通过，类型检查、前端构建和 lint 通过（保留既有 lint 警告与 Vite 大包提示）。
 - 发布状态：源码已修复；本轮只改前端，无须重启后端，尚未发布当前界面；本次与此前已验证的模型维护记录和活动时间修复一并提交；提交与推送不表示已发布。
+
+## 2026-10-19 Codex 历史图片本地过滤与上下文按钮（已发布并重启）
+
+### 用户确认和实际发送链路
+
+用户确认采用“CloudCLI 本地转发 + 图片本地缓存 + 按需读回”，要求 NAS、Mac 不依赖 R2。先前文字交接/自动新线程草案未提交、未发布，已替换；不再把临时授权重确认和历史编辑限制施加到普通发送或自动图片裁剪。未部署 task-queue-mcp，没有跨 Agent 队列，没有改变模型库、全局 CLI 配置或认证文件。
+
+实际链路：浏览器只上传当前附件，`chat.send` 经 WebSocket 附件校验和会话准入进入 Codex runtime；`thread/resume` 恢复原生上下文，Codex 把历史截图（包括 `compacted.payload.replacement_history` 中的 Base64）再次组装到 HTTP 请求。CloudCLI 在 Codex 请求离开本机前过滤其实际 JSON，才转发配置上游；只改聊天渲染或附件上传接口不能消除这些历史字节。
+
+本机 Codex CLI/SDK 0.162.0 支持线程级 `config` 临时覆盖。通过 `config/read` 解析当前 cwd 的有效 provider：自定义 provider 保留 ID、认证、请求头及上游；内置 OpenAI 使用 `openai_base_url` 和本地 HTTP 426 触发原生 HTTP 回退，**不使用临时 provider 别名**，避免影响 CLI 会话选择及重启恢复。内置 provider 表不允许直接覆盖，普通 400/404 会造成 WebSocket 重试，实测 426 可立即回退并保留 Authorization。全局 `config.toml`、`auth.json` 和模型目录不写入代理地址或其他修改。
+
+### 所属路径与策略
+
+- `server/modules/providers/services/codex-image-proxy.service.ts`：仅监听 `127.0.0.1` 随机端口，每个稳定应用 session 有不可猜测的路由 token；转发 `/responses`、`/responses/compact` 和 `/models`，不暴露通用目标 URL 入口。匹配原生 thread header/请求 cache key 后才应用该会话策略。子 Agent、错误线程和无活跃过滤 lease 的请求透明转发，不混入主会话图片目录或指定对比图。
+- HTTP 保持 gzip、deflate、br、zstd 原压缩格式，直接流式转发上游响应，不缓冲整段 SSE。原生取消关闭上游连接；不额外施加整轮超时，继续沿用 Codex 的 deadline。新增生产依赖 `proxy-agent@6.5.0`（复用锁文件已有版本）继承宿主机 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY；只为 Codex 子进程补充回环 NO_PROXY，不修改宿主机环境。zstd 要求 Node 22.15+，缺失能力时明确报告，不偷偷发回大请求。
+- `server/modules/providers/services/codex-image-context.service.ts`：只识别 typed inline `input_image`，归档后把可过期图替换为编号/哈希/原文件引用；图片后存在模型响应或 compaction 边界才视为已消费。保留当前用户和运行中插入消息的图片；刚返回、尚未消费的工具图片保留，后续已消费工具图可按预算裁剪。显式勾选对比图始终保留，若压缩后请求不含该图则从本地档案重新附带。重复历史图片尽量只留一份。未知图片格式和 `file_id` 不擅自移除。
+- 默认近期 **3 张历史图**、历史图片 JSON **1 MiB**，可在 Token 弹窗逐会话设置。当前输入及指定对比图豁免；单张最新历史图大于预算仍保留，并显示实际超额。设置在下一次普通发送开始时冻结为该轮 lease，进行中的设置变更不让正在看的图片突然消失。
+- 原图按 SHA256 保存在数据库目录旁 `codex-context-images/`，目录 0700、文件 0600，以临时文件原子重命名写入；相同图片复用副本。`catalogs/<session-hash>.json` 保存本会话编号、哈希、大小和原图路径，模型只在有明确需要时读目录并调用原生 `view_image`，沿用现有权限。无需新 MCP 服务或 R2。图片缓存总量默认 **512 MiB**，不会自动删除旧图；满时明确报错，历史原图仍留在原 rollout/附件中。请求体压缩前后均限制 **64 MiB**，避免无限制内存缓冲。
+- 环境默认值见 `.env.example`、根 README：`CLOUDCLI_CODEX_HISTORY_IMAGES`、`CLOUDCLI_CODEX_HISTORY_IMAGE_BYTES`、`CLOUDCLI_CODEX_IMAGE_CACHE_BYTES`、`CLOUDCLI_CODEX_PROXY_BODY_BYTES`。会话已保存值优先。所有数据目录根据本机 DB 路径推导，不把 NAS 路径、凭据或域名放进公共默认值。
+- `server/modules/database/{schema.ts,index.ts,repositories/codex-context.db.ts}` 和 `server/shared/types.ts`：`codex_context_state` 保存每会话策略、图片索引、统计和显式清理产生的历史分段。模型选择、effort、Fast、UI 权限及普通轮次原生临时授权不变；自动过滤和压缩都不切换 native thread。
+- `server/modules/providers/{services/provider-runtime.service.ts,list/codex/codex-app-server.runtime.ts,list/codex/codex-runtime.provider.ts}`：通过 runtime context 接入，避免 provider registry 循环依赖。`thread/resume.excludeTurns:true` 减少本地 IPC 载入，不宣称它减少模型请求。保护已有活动线程、运行中插入和并发会话；SDK 模式不启用此过滤，手动上下文命令显式报告不支持，不作为普通提示词发送。
+- `server/modules/providers/provider.routes.ts`、`src/shared/api.ts`：认证后的会话图片策略 GET/PATCH；组件不自行散布 endpoint。
+- `src/modules/chat/{modals/CodexContextPanel.tsx,modals/CommandResultModal.tsx,hooks/useChatComposerState.ts,ChatInterface.tsx}` 及三种聊天语言包：增加图片数量/预算、历史图片对比勾选、请求统计、**压缩上下文**和**清理上下文**。操作沿用现有 chat.send 的准入、流和取消链路，进行中禁用，不消耗编辑中的草稿。
+- 压缩调用原生 `thread/compact/start`，同线程内过滤图片并保留原生加密摘要。只有用户显式清理才通过 `thread/start` + `thread/inject_items` 建立空任务上下文，清除图片勾选，并事务性保存原 rollout 分段、superseded 标记和新映射。`codex-sessions.provider.ts` 读取完整分段历史、隐藏内部清理标记，旧分段只读、当前分段仍正常编辑。清理后原生临时授权必要时重新确认；缺失历史源明确报错，不伪装为空会话。
+
+### 社区与官方来源
+
+- [Codex Model Router 作者说明](https://marketplace.visualstudio.com/items?itemName=koupualen.codex-model-router) 已有“本地图片缓存、转发前按预算裁剪、历史图片按需读回”的社区架构。此次参考其思路，在 CloudCLI 内实现，不安装 VS Code 扩展、不复制其运行配置。其文档预算不当作服务商上限。
+- 官方 [#40994](https://github.com/openai/codex/pull/40994) 已将 `compaction_image_budget` 默认开启，本机也是 `stable true`；token/压缩预算不是序列化上传字节预算。社区 [#33493](https://github.com/openai/codex/issues/33493)、[#41338](https://github.com/openai/codex/issues/41338) 报告这一区别及持续保留图片的问题。
+- 官方 [#45794](https://github.com/openai/codex/pull/45794) 支持 `fileId` / `file_id`；本次保持这类引用，不声称 CPA 文件上传端到端已经验证。原生 `turn/start` / `thread/inject_items` 实测拒绝远程图片 URL，不等于只支持 Base64；此次没有上传截图到 R2。
+- 原生 HTTP 回退和 provider 身份约束参考社区 [#27381](https://github.com/openai/codex/issues/27381)、[#43194](https://github.com/openai/codex/issues/43194)，并以本机实测为准。没有 fork/替换 Codex 二进制，没有合并额外上游 PR。
+
+### 测量、验证与边界
+
+日志只记录会话 ID、图片数、过滤前后 HTTP 请求体及解压后 JSON 的实际字节、请求数、累计净减少字节和压缩/清理统计。不记录 Base64、完整提示词、Cookie、密钥或上游 URL。请求体大小在写入上游请求后统计，不等于已被远端确认接收的网络字节；不含 TLS/协议头，也不能直接测得 CPA→chatgpt.com 的后续上传。没有证据将此前的问题归为重试风暴。
+
+| 验证方式 | 过滤前 | 过滤后 | 说明 |
+| --- | --- | --- | --- |
+| 安装的 Codex → 本地过滤 → 隔离 Responses 模拟端，HTTP 请求体实测 | 10 张历史图 + 当前 1 张，2,954,555 字节 | 3 张历史图 + 当前 1 张，1,114,637 字节 | **减少 62.3%**，同一次请求前后比较，原线程不变；不是 CPA 公网抓包 |
+| 生产长会话同一快照只读 JSON 重建 | 25 张图，4,847,623 字节 | 3 张图，1,616,180 字节 | **估算减少 66.7%**；保留全部文字和加密摘要，不进行有损文字交接；没有对真实会话发模型请求 |
+
+隔离服务/原生协议验证通过：10 张历史截图、当前图片、勾选最早图片读回、模型实际调用 `view_image` 读回、最新图超预算、SSE 流式回复、取消抵达上游、原生压缩同线程、显式清理才切线程、重启恢复、原历史截图完整可读、源 rollout 已有前缀字节不变、模型/effort/Fast 保留、gzip/zstd 转发、加密 compaction 内容不变、子线程透明转发、两会话并发图片/策略/计数隔离，以及禁止跨会话选择他人档案图片。内置 OpenAI 另外验证 426→HTTP、API key 原样传递、provider 保持 openai、原配置/auth 文件不变及重启恢复；使用临时假凭据与本地模拟端，没有真实 OAuth 或 CPA 模型调用。
+
+现有 runtime/history 定向 **81 项通过**；全量前端 **118 个文件、843 项通过**；全量后端 **843 项中 842 通过、1 项原有集成测试跳过、0 失败**。最终类型检查、前后端构建、lint 与 `git diff --check` 均通过；保留既有 lint 和 Vite 大包提示。按父 AGENTS 约定不新增仓库单测文件，隔离服务验证脚本/报告留在 NAS 临时目录；没有浏览器自动化。
+
+功能边界：只处理 CloudCLI 管理的 app-server 流量，不接管其他终端独立启动的 Codex 或显式 SDK 模式。子 Agent 流量不应用主会话裁剪。保留原始历史意味着 Codex 自身 JSONL 磁盘膨胀仍可能存在；本功能不会 vacuum、改写或删除它。图片字节缓存不随 Git 迁移，Mac 使用自身缓存、数据库和已有 CLI 配置；跨电脑共享同一会话历史仍需单独迁移运行数据。Mac 真机界面及真实 CPA 上游仍需发布后手动验收，不以 Linux 隔离验证宣称已经完成这两项。
+
+### 发布与回退
+
+用户已确认采用本地过滤方案，并授权发布、重启及提交。**源码已修复，前端已发布，后端已完成构建和重启，NAS 运行实例已加载本次修改。** 按 `deploy/README.md` 发布：57 个变更资源上传、116 个未变资源在本地跳过，原子替换入口并清理 HTML 缓存；没有检测公网首页或逐个检测 CDN 文件。后端 PID 从 459995 变为 654187，启动迁移已创建状态表。本机健康、登录、项目、草稿、最近会话、需认证的图片策略接口及默认 3 张/1 MiB 策略检查通过；发布前后 Codex/Claude 模型目录内容一致，前端产物包含上下文按钮。操作记录、数据库和旧入口备份位于 NAS 运行数据目录 `operations/image-context-release-20261019-235008/`，该目录不随 Git 同步。源码与维护记录作为本次功能提交，提交和推送结果以 Git 历史为准。
+
+运行实例生效不代表已完成真实 CPA 上传量和 Mac 真机验收。界面仍由用户手动验收：Token 弹窗按钮、忙碌禁用、草稿保留、历史图对比、清理确认结果、刷新和切会话。
+
+即时停用：设置 `CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED=false` 并重启后端，恢复直接原生上游；共享 config/auth 文件无需恢复。普通图片过滤没有切换原生线程，无须迁移模型历史。若用户执行过显式清理，完整历史读取依赖 `codex_context_state` 的分段和原始 rollout；保留表、superseded 映射及图片目录。完全回退源码前备份数据库及这些文件，迁移或导出完整历史，不能仅指回最早 rollout 后隐藏后续对话。回退应整体考虑两个图片服务、runtime 接线、DB/共享类型、API、弹窗、语言包、依赖锁文件和历史 reader；不要编辑运行中的源会话文件。删除缓存会使已经提供的本地引用失效，不应当作常规回退步骤。

@@ -1,3 +1,5 @@
+import { codexImageProxyService } from '@/modules/providers/services/codex-image-proxy.service.js';
+import { codexImageContextService } from '@/modules/providers/services/codex-image-context.service.js';
 import { providerRegistry } from '@/modules/providers/provider.registry.js';
 import { providerModelsService } from '@/modules/providers/services/provider-models.service.js';
 import { sessionsService } from '@/modules/providers/services/sessions.service.js';
@@ -50,6 +52,7 @@ export function createProviderRuntimeService(
     provider: IProvider,
   ): ProviderRuntimeContext => ({
     resolveProviderSessionId: dependencies.resolveProviderSessionId,
+    ...(provider.id === 'codex' ? { openImageContext: codexImageProxyService.open, clearImageContext: codexImageContextService.clear } : {}),
     resolveResumeModel: (sessionId, requestedModel) =>
       dependencies.resolveResumeModel(provider.id, sessionId, requestedModel),
     getProviderModels: async () => dependencies.getProviderModels(provider.id),

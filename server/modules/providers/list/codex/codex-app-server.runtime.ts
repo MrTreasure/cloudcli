@@ -468,8 +468,13 @@ class CodexAppServerRuntime {
   private inFlightRuns = 0;
 
   constructor(options: CodexAppServerRuntimeOptions = {}) {
+    const inheritedEnv = options.managerOptions?.env ?? process.env;
+    const noProxy = (value: string | undefined) => [value, '127.0.0.1', 'localhost', '::1'].filter(Boolean).join(',');
     this.manager = new CodexAppServerProcessManager({
       ...(options.managerOptions ?? {}),
+      // Only this child bypasses external proxies for the loopback filter.
+      // The filter itself still honors the host's upstream proxy environment.
+      env: { ...inheritedEnv, NO_PROXY: noProxy(inheritedEnv.NO_PROXY), no_proxy: noProxy(inheritedEnv.no_proxy) },
       onNotification: (notification) => this.handleNotification(notification),
       onRequest: options.onRequest ?? ((request) => this.handleRequest(request)),
       onDiagnostic: (diagnostic) => this.handleDiagnostic(diagnostic),
@@ -504,6 +509,7 @@ class CodexAppServerRuntime {
     let run: AppServerRun | null = null;
     let threadId: string | null = null;
     let providerThreadCreated = false;
+    let imageContext: Awaited<ReturnType<NonNullable<ProviderRuntimeContext['openImageContext']>>> = null;
 
     try {
       await this.manager.start();
@@ -528,7 +534,12 @@ class CodexAppServerRuntime {
       // 0.162.0 protocol: explicit default clears inherited priority; omission
       // would reuse the native thread/global tier even with the UI switched off.
       const serviceTier = options.codexFast === true ? 'priority' : 'default';
+      if (sessionId && context.openImageContext) {
+        imageContext = await context.openImageContext({ sessionId, cwd: workingDirectory, request: (method, params) => this.manager.request(method, params) });
+        checkSetupAbort();
+      }
       const threadParams = {
+        ...(imageContext ? { config: imageContext.config } : {}),
         serviceTier,
         cwd: workingDirectory,
         ...(resolvedModel ? { model: resolvedModel } : {}),
@@ -536,9 +547,10 @@ class CodexAppServerRuntime {
         approvalPolicy: permission.approvalPolicy,
       } satisfies AnyRecord;
 
-      const threadResult = providerSessionId
+      let threadResult = providerSessionId
         ? await this.manager.request('thread/resume', {
           threadId: providerSessionId,
+          excludeTurns: true, // History UI reads rollout segments; avoid full IPC history hydration.
           ...threadParams,
         })
         : await this.manager.request('thread/start', threadParams);
@@ -547,6 +559,21 @@ class CodexAppServerRuntime {
       if (!threadId) {
         throw new CodexAppServerPreTurnError('Codex app-server did not return a thread id', threadResult);
       }
+      const resumedThread = readNestedRecord(readRecord(threadResult) ?? {}, 'thread');
+      if (readNestedRecord(resumedThread ?? {}, 'status')?.type === 'active') {
+        throw new CodexAppServerPreTurnError('The native Codex thread still has an active turn; context was not changed.');
+      }
+      const action = command.trim() === '/clear' ? 'clear' : command.trim() === '/compact' ? 'compact' : undefined;
+      const currentInput = action ? [] : buildTurnInput(command, options, workingDirectory);
+      if (action === 'clear' && sessionId && providerSessionId && context.clearImageContext) {
+        const cleared = await context.clearImageContext({ sessionId, threadId, threadParams,
+          checkAbort: checkSetupAbort, request: (method, params) => this.manager.request(method, params) });
+        threadId = cleared.threadId;
+        threadResult = cleared.threadResult;
+        writer.send(createNormalizedMessage({ kind: 'status', provider: 'codex', sessionId: threadId, text: 'token_budget', tokenBudget: { contextUnavailable: true } }));
+      }
+      imageContext?.bindThread(threadId);
+      checkSetupAbort();
       providerThreadCreated = !providerSessionId;
       writer.setSessionId?.(threadId);
       if (providerThreadCreated) {
@@ -563,11 +590,16 @@ class CodexAppServerRuntime {
       if (sessionId) {
         this.pendingRunSetups.delete(sessionId);
       }
+      if (action === 'clear') {
+        writer.send(createNormalizedMessage({ kind: 'status', provider: 'codex', sessionId: threadId, text: 'Model context cleared; original chat and images remain available.' }));
+        writer.send(createCompleteMessage({ provider: 'codex', sessionId: threadId, actualSessionId: threadId, exitCode: 0 }));
+        return { status: 'completed' };
+      }
       const turnParams = {
         threadId,
         serviceTier,
         serviceTierForTurn: serviceTier,
-        input: buildTurnInput(command, options, workingDirectory),
+        input: currentInput,
         cwd: workingDirectory,
         approvalPolicy: permission.approvalPolicy,
         sandboxPolicy: buildTurnSandboxPolicy(permission.sandbox, threadResult),
@@ -575,6 +607,12 @@ class CodexAppServerRuntime {
         ...(resolvedEffort ? { effort: resolvedEffort } : {}),
       } satisfies AnyRecord;
 
+      if (action === 'compact') {
+        await this.manager.request('thread/compact/start', { threadId });
+        run.turnAccepted = true;
+        return await run.completion;
+      }
+      checkSetupAbort();
       const turnResult = await this.manager.request('turn/start', turnParams);
       run.turnAccepted = true;
       run.turnId = readTurnId(turnResult);
@@ -614,6 +652,7 @@ class CodexAppServerRuntime {
       this.notifyRunOutcome('failed', writer, sessionId ?? threadId, sessionSummary, normalized.message);
       throw normalized;
     } finally {
+      imageContext?.close();
       if (sessionId && this.pendingRunSetups.get(sessionId) === setup) {
         this.pendingRunSetups.delete(sessionId);
       }

@@ -248,6 +248,7 @@ function ChatInterface({
     commandModalPayload,
     closeCommandModal,
     showCostModal,
+    manageCodexContext,
     editingAnchorId,
     buildSendOptions,
     beginEditMessage,
@@ -643,6 +644,8 @@ function ChatInterface({
         activeProviderModel={currentProviderModel}
         currentSessionId={currentSessionId || selectedSession?.id || null}
         onSelectProviderModel={selectProviderModel}
+        onContextAction={manageCodexContext}
+        isProcessing={isProcessing}
       />
     </PermissionContext.Provider>
   );

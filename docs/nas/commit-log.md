@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`cb24516c2304a29808b0d54cf309e24858449923`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`83d3f8042e8c4bf4b01ecb873f2d881f59cdf150`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,22 +10,31 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [AGENTS.md](../../AGENTS.md) | — |
+| M | [.env.example](../../.env.example) | — |
 | M | [README.md](../../README.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
-| M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
-| M | [server/modules/providers/services/sessions-watcher.service.ts](../../server/modules/providers/services/sessions-watcher.service.ts) | — |
-| A | [server/modules/providers/tests/sessions-watcher.test.ts](../../server/modules/providers/tests/sessions-watcher.test.ts) | — |
-| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
+| M | [package.json](../../package.json) | — |
+| M | [pnpm-lock.yaml](../../pnpm-lock.yaml) | — |
+| M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
+| A | [server/modules/database/repositories/codex-context.db.ts](../../server/modules/database/repositories/codex-context.db.ts) | — |
+| M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
+| M | [server/modules/providers/README.md](../../server/modules/providers/README.md) | — |
+| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
+| M | [server/modules/providers/list/codex/codex-runtime.provider.ts](../../server/modules/providers/list/codex/codex-runtime.provider.ts) | — |
+| M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
+| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
+| A | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
+| A | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
+| M | [server/modules/providers/services/provider-runtime.service.ts](../../server/modules/providers/services/provider-runtime.service.ts) | — |
+| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
 | M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
-| M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
-| M | [src/modules/chat/composer/QueuedMessageCard.tsx](../../src/modules/chat/composer/QueuedMessageCard.tsx) | — |
 | M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
-| M | [src/modules/chat/tests/composerSendOverBackgroundWork.test.ts](../../src/modules/chat/tests/composerSendOverBackgroundWork.test.ts) | — |
+| A | [src/modules/chat/modals/CodexContextPanel.tsx](../../src/modules/chat/modals/CodexContextPanel.tsx) | — |
+| M | [src/modules/chat/modals/CommandResultModal.tsx](../../src/modules/chat/modals/CommandResultModal.tsx) | — |
 | M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
 | M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
+| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
 
 ## NAS 主线提交
 
@@ -336,6 +345,30 @@
   - `server/modules/file-tree/tests/file-tree.service.test.ts`
   - `src/shared/api.ts`
   - `src/shared/tests/readApiJson.test.ts`
+
+### 83d3f804 · 2026-10-19 · fix(nas): correct session activity and queued chat behavior
+
+- 完整提交：`83d3f8042e8c4bf4b01ecb873f2d881f59cdf150`
+- 相对第一父提交涉及文件：
+
+  - `AGENTS.md`
+  - `README.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-sync-policy.md`
+  - `server/modules/database/repositories/sessions.db.ts`
+  - `server/modules/providers/services/sessions-watcher.service.ts`
+  - `server/modules/providers/tests/sessions-watcher.test.ts`
+  - `server/shared/utils.ts`
+  - `src/modules/chat/ChatInterface.tsx`
+  - `src/modules/chat/composer/ChatComposer.tsx`
+  - `src/modules/chat/composer/QueuedMessageCard.tsx`
+  - `src/modules/chat/hooks/useChatComposerState.ts`
+  - `src/modules/chat/tests/composerSendOverBackgroundWork.test.ts`
+  - `src/modules/i18n/locales/en/chat.json`
+  - `src/modules/i18n/locales/zh-CN/chat.json`
+  - `src/modules/i18n/locales/zh-TW/chat.json`
 
 ## 从 PR / 其他分支合入的提交
 

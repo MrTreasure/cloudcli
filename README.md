@@ -286,3 +286,24 @@ CloudCLI UI - (https://cloudcli.ai).
 默认 Enter/发送按钮在空闲时直接发送，响应中将消息加入官方单条持久队列，等待整轮（含后台工作）结束后自动发送。需要在响应中立即插入时，点击队列卡片的“立即发送”，Codex 使用原生 `turn/steer` 追加输入；Shift+Enter 始终换行。启用 Ctrl+Enter 发送设置时，发送与入队均使用该组合键。队列仍为单条草稿，不是多条 FIFO；插入不会停止当前工具，消费时机由 Codex 决定。调度修复、验证及回退依赖见 [NAS 维护指南](docs/nas/README.md#2026-10-19-队列修复与恢复-codex-原生插入)。此次交互调整只需发布前端，后端原生插入接口已存在。
 
 NAS 外观继续保留 C137 Logo 和原用户头像，并隐藏侧栏的报告问题、加入社区及 GitHub Star 入口（含手机和折叠侧栏）。
+
+
+### Codex 长会话图片上下文
+
+Codex app-server 会把历史 `input_image`（包括压缩后的 `replacement_history` 中的 Base64）再次带入模型请求。CloudCLI 通过仅监听本机回环地址的 HTTP 转发，在**实际发往上游的请求体**中把过期图片替换为可追溯的本地引用。原始 rollout JSONL 和聊天界面图片不变，不依赖 NAS、R2 或额外 MCP 服务。
+
+默认保留最近 **3 张历史图**，历史图片 JSON 预算 **1 MiB**。当前用户消息、刚返回的工具图片、无法可靠确定已被模型处理的图片和显式勾选的对比图保留；最新一张历史图单独超预算时也仍可处理，并在弹窗展示超额。设置在下一轮开始时生效，正在响应的对话仍保护本轮图片。
+
+配置入口：输入框的上下文百分比 → Token 用量弹窗 → **图片上下文**。可调整近期数量、字节预算，勾选历史图并保存后，下次发送将重新附带该图。被移除的图像位置保留原图路径；会话图片目录包含编号、内容哈希和本地路径，模型可按明确需要读取目录并使用原生 `view_image` 重新查看。读回的工具图片视为本轮新图。对比结束后取消勾选即可恢复预算管理。
+
+普通发送和 **压缩上下文**沿用同一个原生线程，保留加密摘要、推理内容和原生临时授权；压缩调用原生 `thread/compact/start`，其 HTTP 图片输入也经过过滤。**清理上下文**是显式开启空线程，保留完整聊天历史，取消对比图选择；旧分段可阅读，当前分段正常编辑。清理可能重新请求原生临时授权，原有模型、Fast 和 UI 权限模式不变。任务进行中禁用这两个按钮，未发送草稿保留。
+
+新会话策略默认值可通过 `CLOUDCLI_CODEX_HISTORY_IMAGES=3`、`CLOUDCLI_CODEX_HISTORY_IMAGE_BYTES=1048576` 配置；会话已保存的值优先。原图按内容哈希归档在数据库目录旁的 `codex-context-images/`，默认总容量 **512 MiB**（`CLOUDCLI_CODEX_IMAGE_CACHE_BYTES`）；满时明确报错，不自动删除旧图或悄悄转发大请求。单个压缩前后 HTTP 请求体均限制为 **64 MiB**（`CLOUDCLI_CODEX_PROXY_BODY_BYTES`），可按需要调整。缓存及数据库属于每台电脑自己的运行数据，不随 Git 同步。
+
+转发地址仅通过线程参数临时覆盖，不写 `config.toml`、`auth.json` 或模型库。自定义 provider 保留原 ID、认证和请求头；内置 OpenAI 使用官方 `openai_base_url` 临时覆盖，并由本地 426 响应触发原生 HTTP 回退，保留 provider ID 和原生 AuthManager。此路径使用 HTTP/SSE，原先支持 WebSocket 的 provider 在线程内切换为 HTTP；浏览器 WebSocket、消息插入和工具权限交互不变。支持 gzip/deflate/br/zstd 请求，保持相同压缩格式转发；zstd 需要 Node 22.15+。使用宿主机 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY 环境，只有 Codex 子进程增加本机回环绕过规则。
+
+可观测性记录实际 HTTP 请求体序列化字节（过滤前后、保持原压缩格式）、解压后的 JSON 字节、图数和累计净减少字节。它们是 Codex→CloudCLI→配置上游这一段的请求体测量，不含 TLS/协议头，也不是 CPA→模型的后续网络流量。日志只包含统计元数据，不记录 Base64、完整提示词、Cookie 或密钥。
+
+边界：此功能只支持默认 app-server 模式；显式 SDK 模式不进行过滤。子 Agent 或不匹配当前线程的请求透明转发，不混用主会话图片策略。文件 ID 和未知图片表示保持原样；本机原生接口拒绝远程图片 URL，因此没有上传历史截图到 R2。本方案降低模型外发图片量，不改写原始历史，也不解决 Codex 自身 rollout 的磁盘增长。关闭 `CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED=false` 并重启可停用自动过滤，保留历史读取及手动操作。
+
+测试数据、所属路径、回退依赖及 NAS 发布状态见 [维护指南](docs/nas/README.md)。源码修复和本地构建不等于已发布；界面由用户手动验收。

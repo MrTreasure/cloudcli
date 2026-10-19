@@ -26,11 +26,14 @@ import type {
   ProviderModelOption,
   ProviderModelsDefinition,CommandModalPayload,CostCommandData,HelpCommandData,ModelCommandData,StatusCommandData
 } from '@/shared/types';
+import { CodexContextPanel } from '@/modules/chat/modals/CodexContextPanel';
 import ModelLibraryPanel from '@/modules/chat/modals/ModelLibraryPanel';
 
 type CommandResultModalProps = {
   payload: CommandModalPayload | null;
   onClose: () => void;
+  onContextAction?: (action: 'compact' | 'clear') => void;
+  isProcessing?: boolean;
   providerModelCatalog: Partial<Record<LLMProvider, ProviderModelsDefinition>>;
   providerModelActions: ProviderModelActions;
   activeProvider: LLMProvider;
@@ -571,6 +574,8 @@ function CommandResultModal({
   activeProviderModel,
   currentSessionId,
   onSelectProviderModel,
+  onContextAction,
+  isProcessing = false,
 }: CommandResultModalProps) {
   const { t } = useTranslation();
   const isOpen = Boolean(payload);
@@ -663,7 +668,10 @@ function CommandResultModal({
               onSelectProviderModel={onSelectProviderModel}
             />
           )}
-          {payload?.kind === 'cost' && <CostContent data={payload.data as CostCommandData} />}
+          {payload?.kind === 'cost' && <>
+            <CostContent data={payload.data as CostCommandData} />
+            {activeProvider === 'codex' && <CodexContextPanel key={currentSessionId ?? 'no-session'} sessionId={currentSessionId} busy={isProcessing} onAction={onContextAction} />}
+          </>}
           {payload?.kind === 'status' && <StatusContent data={payload.data as StatusCommandData} />}
         </div>
 

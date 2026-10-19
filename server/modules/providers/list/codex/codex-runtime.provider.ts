@@ -15,6 +15,7 @@ import { Codex } from '@openai/codex-sdk';
 import type { ModelReasoningEffort, Thread, ThreadOptions } from '@openai/codex-sdk';
 
 import {
+  AppError,
   appendFilesInputTag,
   buildCodexInputItems,
   normalizeImageDescriptors,
@@ -527,6 +528,7 @@ async function queryCodex(
 ) {
   const mode = resolveCodexRuntimeMode(options.codexRuntimeMode);
   if (mode === 'sdk') {
+    if (['/compact', '/clear'].includes(command.trim())) throw new AppError('Context controls require the Codex app-server runtime.', { code: 'CODEX_CONTEXT_SDK_UNSUPPORTED', statusCode: 409 });
     return queryLegacyCodex(command, options, ws, context);
   }
 
