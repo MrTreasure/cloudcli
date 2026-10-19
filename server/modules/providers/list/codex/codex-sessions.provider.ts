@@ -1359,8 +1359,8 @@ async function getCodexSessionMessages(sessionId: string): Promise<CodexHistoryR
     if (entry.type === 'event_msg') {
       if (payload.type === 'token_count' && payload.info) {
         const info = payload.info as AnyRecord;
-        if (info.total_token_usage) {
-          const usage = info.total_token_usage as AnyRecord;
+        if (info.last_token_usage || info.total_token_usage) {
+          const usage = (info.last_token_usage || info.total_token_usage) as AnyRecord;
           tokenUsage = { used: usage.total_tokens || 0, total: info.model_context_window || 200000 };
         }
         continue;
@@ -2159,7 +2159,7 @@ export class CodexSessionsProvider implements IProviderSessions {
       return [];
     }
 
-    if (raw.message?.role) {
+    if (raw.message?.role && raw.type !== 'item') {
       return this.normalizeHistoryEntry(raw, sessionId);
     }
 
@@ -2172,6 +2172,8 @@ export class CodexSessionsProvider implements IProviderSessions {
       const itemId = readNonEmptyString(raw.itemId as string | undefined) ?? baseId;
 
       switch (raw.itemType) {
+        case 'user_message':
+          return this.normalizeHistoryEntry(raw, sessionId);
         case 'agent_message': {
           const cited = readCodexMemoryCitations(String(raw.message?.content || ''));
           const text = cited.text;
@@ -2203,6 +2205,15 @@ export class CodexSessionsProvider implements IProviderSessions {
           })];
         }
         case 'reasoning':
+          return [createNormalizedMessage({
+            id: itemId,
+            sessionId,
+            timestamp: ts,
+            provider: PROVIDER,
+            kind: 'thinking',
+            content: raw.message?.content || '',
+          })];
+        case 'plan':
           return [createNormalizedMessage({
             id: itemId,
             sessionId,
@@ -2245,17 +2256,30 @@ export class CodexSessionsProvider implements IProviderSessions {
         case 'file_change': {
           // One row per file so each change gets the same diff view as an Edit.
           const changes = Array.isArray(raw.changes) ? raw.changes : [];
-          return changes.map((change: AnyRecord, index: number) => createNormalizedMessage({
-            id: `${itemId}_${index}`,
-            sessionId,
-            timestamp: ts,
-            provider: PROVIDER,
-            kind: 'tool_use',
-            toolName: change?.kind === 'add' ? 'Write' : 'Edit',
-            toolInput: { file_path: change?.path, old_string: '', new_string: '' },
-            toolId: `${itemId}_${index}`,
-            status: raw.status,
-          }));
+          return changes.map((change: AnyRecord, index: number) => {
+            const diff = typeof change?.diff === 'string' ? change.diff : '';
+            const { oldText, newText } = change?.kind === 'add'
+              ? { oldText: '', newText: diff }
+              : change?.kind === 'delete'
+                ? { oldText: diff, newText: '' }
+                : unifiedDiffToTexts(diff);
+            return createNormalizedMessage({
+              id: `${itemId}_${index}`,
+              sessionId,
+              timestamp: ts,
+              provider: PROVIDER,
+              kind: 'tool_use',
+              toolName: change?.kind === 'add' ? 'Write' : 'Edit',
+              toolInput: {
+                file_path: change?.path,
+                old_string: oldText,
+                new_string: newText,
+                ...(change?.kind === 'delete' ? { deleted: true } : {}),
+              },
+              toolId: `${itemId}_${index}`,
+              status: raw.status,
+            });
+          });
         }
         case 'mcp_tool_call': {
           const toolName = raw.server ? `mcp__${String(raw.server)}__${String(raw.tool ?? 'tool')}` : String(raw.tool || 'MCP');
@@ -2286,6 +2310,52 @@ export class CodexSessionsProvider implements IProviderSessions {
             isError: Boolean(raw.error) || raw.status === 'failed',
           })];
         }
+        case 'dynamic_tool_call': {
+          const toolUse = createNormalizedMessage({
+            id: itemId,
+            sessionId,
+            timestamp: ts,
+            provider: PROVIDER,
+            kind: 'tool_use',
+            toolName: [raw.namespace, raw.tool].filter(Boolean).join('.') || 'DynamicTool',
+            toolInput: raw.arguments,
+            toolId: itemId,
+            status: raw.status,
+          });
+          if (raw.status === 'in_progress') {
+            return [toolUse];
+          }
+          return [toolUse, createNormalizedMessage({
+            id: `${itemId}_result`,
+            sessionId,
+            timestamp: ts,
+            provider: PROVIDER,
+            kind: 'tool_result',
+            toolId: itemId,
+            content: typeof raw.result === 'string' ? raw.result : JSON.stringify(raw.result ?? ''),
+            isError: raw.success === false || raw.status === 'failed',
+          })];
+        }
+        case 'collab_agent_tool_call':
+          if (raw.tool !== 'spawnAgent') {
+            return [];
+          }
+          return [createNormalizedMessage({
+            id: itemId,
+            sessionId,
+            timestamp: ts,
+            provider: PROVIDER,
+            kind: 'tool_use',
+            toolName: 'Task',
+            toolInput: {
+              subagent_type: 'Codex',
+              description: raw.prompt || 'Codex sub-agent',
+              model: raw.model,
+              reasoning_effort: raw.reasoningEffort,
+            },
+            toolId: itemId,
+            status: raw.status,
+          })];
         case 'web_search':
           return [createNormalizedMessage({
             id: itemId,
@@ -2297,9 +2367,32 @@ export class CodexSessionsProvider implements IProviderSessions {
             toolInput: { query: raw.query },
             toolId: itemId,
           })];
-        case 'todo_list':
-          // Codex's live plan uses `{text, completed}`; Claude's TodoWrite uses
-          // `{content, status}`. Normalizing here means one renderer, not two.
+        case 'todo_list': {
+          // app-server carries three states; older SDK items carry a boolean.
+          // Both use the existing TodoWrite surface without losing in-progress.
+          if (!Array.isArray(raw.items)) {
+            console.warn('[Codex] Invalid todo_list items:', { sessionId, itemId });
+            return [];
+          }
+          const todos = raw.items.flatMap((value: unknown) => {
+            const item = readObjectRecord(value);
+            const content = readNonEmptyString(item?.text);
+            if (!content?.trim() || !item) return [];
+            const status = item.status === 'inProgress' || item.status === 'in_progress'
+              ? 'in_progress'
+              : item.status === 'pending' || item.status === 'completed'
+                ? item.status
+                : item.status === undefined && typeof item.completed === 'boolean'
+                  ? item.completed ? 'completed' : 'pending'
+                  : null;
+            return status ? [{ content, status }] : [];
+          });
+          const invalidSteps = raw.items.length - todos.length;
+          if (invalidSteps > 0) {
+            console.warn('[Codex] Invalid todo_list steps ignored:', { sessionId, itemId, invalidSteps });
+          }
+          if (todos.length === 0) return [];
+
           return [createNormalizedMessage({
             id: itemId,
             sessionId,
@@ -2307,14 +2400,45 @@ export class CodexSessionsProvider implements IProviderSessions {
             provider: PROVIDER,
             kind: 'tool_use',
             toolName: 'TodoWrite',
-            toolInput: {
-              todos: (Array.isArray(raw.items) ? raw.items : []).map((item: AnyRecord) => ({
-                content: String(item?.text ?? ''),
-                status: item?.completed ? 'completed' : 'pending',
-              })),
-            },
+            toolInput: { todos },
             toolId: itemId,
+            // Writing this snapshot is finished even while its steps are not.
+            // A turn ending/aborting must never manufacture completed steps.
+            status: 'completed',
+            toolResult: { content: '', isError: false },
           })];
+        }
+        case 'image_view':
+          return [createNormalizedMessage({
+            id: itemId,
+            sessionId,
+            timestamp: ts,
+            provider: PROVIDER,
+            kind: 'tool_use',
+            toolName: 'ImageView',
+            toolInput: { path: raw.path },
+            toolId: itemId,
+            status: raw.status,
+          })];
+        case 'image_generation':
+          return [createNormalizedMessage({
+            id: itemId,
+            sessionId,
+            timestamp: ts,
+            provider: PROVIDER,
+            kind: 'tool_use',
+            toolName: 'ImageGeneration',
+            toolInput: raw.item,
+            toolId: itemId,
+            status: raw.item?.status,
+          })];
+        case 'hook_prompt':
+        case 'sub_agent_activity':
+        case 'sleep':
+        case 'entered_review_mode':
+        case 'exited_review_mode':
+        case 'context_compaction':
+          return [];
         case 'error':
           return [createNormalizedMessage({
             id: itemId,
@@ -2361,10 +2485,7 @@ export class CodexSessionsProvider implements IProviderSessions {
     return [];
   }
 
-  /**
-   * Loads Codex JSONL history and keeps token usage metadata when the
-   * transcript reported it.
-   */
+
   async fetchHistory(
     sessionId: string,
     options: FetchHistoryOptions = {},

@@ -15,7 +15,8 @@ import { useTranslation } from 'react-i18next';
 import { api } from '@/shared/api';
 import { PROVIDER_PERMISSION_PREFERENCE_KEYS } from '@/shared/constants';
 import { readUserPreference } from '@/shared/userSettings';
-import type { BackgroundSendChoice, BackgroundSendPrompt, CommandModalPayload, CostCommandData, HelpCommandData, MarkSessionProcessing, ModelCommandData, QueuedDraft, SessionActivityMap, StatusCommandData,QueuedSendOptions,ChatAttachment,ChatMessage,PendingPermissionRequest,PermissionMode,SessionEstablishedContext,Project,ProjectSession,LLMProvider,SlashCommand } from '@/shared/types';
+import type { BackgroundSendChoice, BackgroundSendPrompt, CommandModalPayload, CostCommandData, CodexRuntimeMode, HelpCommandData, MarkSessionProcessing, ModelCommandData, QueuedDraft, SessionActivityMap, StatusCommandData,QueuedSendOptions,ChatAttachment,ChatMessage,PendingPermissionRequest,PermissionMode,SessionEstablishedContext,Project,ProjectSession,LLMProvider,SlashCommand } from '@/shared/types';
+
 import { grantClaudeToolPermission } from '@/modules/chat/utils/chatPermissions';
 import {
   clearQueuedMessage,
@@ -46,6 +47,9 @@ type UseChatComposerStateArgs = {
    */
   currentProviderModel: string;
   currentProviderEffort: string;
+  codexFast?: boolean;
+  codexFastReady?: boolean;
+  onCodexFastSessionCreated?: (sessionId: string, enabled: boolean) => void;
   isLoading: boolean;
   processingSessions?: SessionActivityMap;
   canAbortSession: boolean;
@@ -74,6 +78,13 @@ type MentionableFile = {
   path: string;
 };
 
+type ProviderPermissionSettings = {
+  allowedTools: string[];
+  disallowedTools: string[];
+  skipPermissions: boolean;
+  runtimeMode?: CodexRuntimeMode;
+};
+
 type CommandExecutionResult = {
   type: 'builtin' | 'custom';
   action?: string;
@@ -82,10 +93,6 @@ type CommandExecutionResult = {
   hasBashCommands?: boolean;
   hasFileIncludes?: boolean;
 };
-
-
-
-
 
 type SubmitOptions = {
   /**
@@ -133,7 +140,6 @@ const uploadAttachmentFiles = async (files: File[]): Promise<unknown[]> => {
   }
   return result.attachments;
 };
-
 
 const restoreQueuedDraft = (sessionKey: string): QueuedDraft | null => {
   const saved = readQueuedMessage(sessionKey);
@@ -187,6 +193,9 @@ export function useChatComposerState({
   resolvePermissionModeForProvider,
   currentProviderModel,
   currentProviderEffort,
+  codexFast = false,
+  codexFastReady = true,
+  onCodexFastSessionCreated,
   isLoading,
   processingSessions,
   canAbortSession,
@@ -648,7 +657,7 @@ export function useChatComposerState({
   // queued message keeps the provider settings it was composed under even if
   // it is later dispatched outside this composer (app-level auto-send).
   const buildSendOptions = useCallback((currentInput: string): QueuedSendOptions => {
-    const getToolsSettings = () => readUserPreference(
+    const getToolsSettings = () => readUserPreference<ProviderPermissionSettings>(
       PROVIDER_PERMISSION_PREFERENCE_KEYS[provider],
       {
         allowedTools: [],
@@ -663,11 +672,15 @@ export function useChatComposerState({
       model: currentProviderModel,
       effort: currentProviderEffort,
       permissionMode: resolvePermissionModeForProvider(provider, permissionMode),
+      ...(provider === 'codex'
+        ? { codexRuntimeMode: toolsSettings?.runtimeMode === 'sdk' ? 'sdk' : 'app-server', codexFast }
+        : {}),
       toolsSettings,
       skipPermissions: toolsSettings?.skipPermissions || false,
       sessionSummary: getNotificationSessionSummary(selectedSession, currentInput),
     };
   }, [
+    codexFast,
     currentProviderEffort,
     currentProviderModel,
     permissionMode,
@@ -777,6 +790,7 @@ export function useChatComposerState({
         return;
       }
 
+      if (provider === 'codex' && !codexFastReady) return;
       // A turn is already in flight: stash this message instead of sending it.
       // Upload attached files now so the queued record contains durable image
       // descriptors that can be sent even if another session is open later.
@@ -793,6 +807,7 @@ export function useChatComposerState({
         const queuedOptions = buildSendOptions(currentInput);
         const queuedSessionKey = sessionKey;
         let uploadedAttachments: unknown[] = [];
+
         try {
           uploadedAttachments = await uploadAttachmentFiles(currentAttachments);
         } catch (error) {
@@ -852,6 +867,10 @@ export function useChatComposerState({
         }
       }
 
+      // Capture before uploads/session allocation so every send keeps its
+      // click-time choices even if the switch changes while transport awaits.
+      if (provider === 'codex' && !codexFastReady) return;
+      const submissionOptions = queuedSubmission?.options ?? buildSendOptions(currentInput);
       const messageContent = currentInput;
 
       let uploadedAttachments = previouslyUploadedAttachments;
@@ -885,6 +904,7 @@ export function useChatComposerState({
             provider,
             projectPath: resolvedProjectPath,
             initialMessage: messageContent,
+            ...(provider === 'codex' ? { codexFast: submissionOptions.codexFast === true } : {}),
           });
           if (!response.ok) {
             throw new Error(`Failed to create session (${response.status})`);
@@ -919,6 +939,7 @@ export function useChatComposerState({
           return;
         }
 
+        if (provider === 'codex') onCodexFastSessionCreated?.(targetSessionId, submissionOptions.codexFast === true);
         onSessionEstablished?.(targetSessionId, {
           provider,
           project: selectedProject,
@@ -993,7 +1014,7 @@ export function useChatComposerState({
         ...(editingAnchorId ? { anchorId: editingAnchorId } : {}),
         content: messageContent,
         options: {
-          ...(queuedSubmission?.options ?? buildSendOptions(messageContent)),
+          ...submissionOptions,
           attachments: uploadedAttachments,
         },
       });
@@ -1024,6 +1045,8 @@ export function useChatComposerState({
       askBeforeSendingOverBackgroundWork,
       attachedFiles,
       buildSendOptions,
+      codexFastReady,
+      onCodexFastSessionCreated,
       currentSessionId,
       editingAnchorId,
       executeCommand,
@@ -1215,17 +1238,17 @@ export function useChatComposerState({
     setIsTextareaExpanded(false);
   }, [input]);
 
-  const handleInputChange = useCallback(
-    (event: ChangeEvent<HTMLTextAreaElement>) => {
-      const newValue = event.target.value;
-      const cursorPos = event.target.selectionStart;
+  const updateInputFromTextarea = useCallback(
+    (target: HTMLTextAreaElement) => {
+      const newValue = target.value;
+      const cursorPos = target.selectionStart;
 
       setInput(newValue);
       inputValueRef.current = newValue;
       setCursorPosition(cursorPos);
 
       if (!newValue.trim()) {
-        event.target.style.height = 'auto';
+        target.style.height = 'auto';
         setIsTextareaExpanded(false);
         resetCommandMenuState();
         return;
@@ -1236,8 +1259,54 @@ export function useChatComposerState({
     [handleCommandInputChange, resetCommandMenuState, setCursorPosition],
   );
 
+  const handleInputChange = useCallback(
+    (event: ChangeEvent<HTMLTextAreaElement>) => updateInputFromTextarea(event.target),
+    [updateInputFromTextarea],
+  );
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
+      const composing = event.nativeEvent?.isComposing || event.nativeEvent?.keyCode === 229 || isComposingRef.current;
+      const endedJustNow = performance.now() - lastCompositionEndAtRef.current < SAFARI_IME_RACE_WINDOW_MS;
+      if (event.defaultPrevented || composing || (event.key === 'Enter' && endedJustNow)) return;
+
+      const key = event.key.toLowerCase();
+      if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && (key === 'k' || key === 'u')) {
+        const target = event.currentTarget;
+        if (target.disabled || target.readOnly) return;
+        event.preventDefault();
+        // Keep Ctrl+K inside the focused composer instead of opening the palette.
+        event.stopPropagation();
+
+        const { value, selectionStart: start, selectionEnd: end } = target;
+        let from = start;
+        let to = end;
+        if (start === end) {
+          if (key === 'u') from = start === 0 ? 0 : value.lastIndexOf('\n', start - 1) + 1;
+          else {
+            const newline = value.indexOf('\n', end);
+            to = newline === -1 ? value.length : newline === end ? end + 1 : newline;
+          }
+        }
+        if (from === to) return;
+
+        target.setSelectionRange(from, to);
+        const expected = value.slice(0, from) + value.slice(to);
+        try {
+          // Native editing retains undo history where supported; the input event
+          // is not emitted consistently, so sync the controlled draft below too.
+          target.ownerDocument.execCommand?.('delete');
+        } catch {
+          // Fall back when the browser rejects or lacks the native edit command.
+        }
+        if (target.value !== expected) target.setRangeText(expected, 0, target.value.length, 'start');
+        target.setSelectionRange(from, from);
+        updateInputFromTextarea(target);
+        resizeTextarea(target);
+        syncInputOverlayScroll(target);
+        return;
+      }
+
       if (handleCommandMenuKeyDown(event)) {
         return;
       }
@@ -1257,12 +1326,6 @@ export function useChatComposerState({
       }
 
       if (event.key === 'Enter') {
-        const endedJustNow =
-          performance.now() - lastCompositionEndAtRef.current < SAFARI_IME_RACE_WINDOW_MS;
-        if (event.nativeEvent.isComposing || isComposingRef.current || endedJustNow) {
-          return;
-        }
-
         if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
           event.preventDefault();
           handleSubmit(event);
@@ -1278,6 +1341,9 @@ export function useChatComposerState({
       handleFileMentionsKeyDown,
       handleHistoryKeyDown,
       handleSubmit,
+      updateInputFromTextarea,
+      resizeTextarea,
+      syncInputOverlayScroll,
       sendByCtrlEnter,
       showCommandMenu,
       showFileDropdown,
@@ -1294,11 +1360,14 @@ export function useChatComposerState({
   const handleTextareaInput = useCallback(
     (event: FormEvent<HTMLTextAreaElement>) => {
       const target = event.currentTarget;
+      // Native edits/undo can bypass React's change detection after a scripted
+      // deletion. Keep both the displayed draft and immediate-send mirror fresh.
+      if (target.value !== inputValueRef.current) updateInputFromTextarea(target);
       resizeTextarea(target);
       setCursorPosition(target.selectionStart);
       syncInputOverlayScroll(target);
     },
-    [resizeTextarea, setCursorPosition, syncInputOverlayScroll],
+    [resizeTextarea, setCursorPosition, syncInputOverlayScroll, updateInputFromTextarea],
   );
 
   const handleClearInput = useCallback(() => {
@@ -1395,6 +1464,7 @@ export function useChatComposerState({
   }, [setInput]);
 
   return {
+    buildSendOptions,
     input,
     setInput,
     editingAnchorId,

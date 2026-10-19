@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 
 import { useTheme } from '@/shared/context/ThemeContext';
 import { api } from '@/shared/api';
+import { backendWebSocketUrl } from '@/shared/utils';
 import { usePlugins } from '@/modules/plugins/context/PluginsContext';
 import type { Project, ProjectSession } from '@/shared/types';
 
@@ -107,6 +108,14 @@ export default function PluginTabContent({
           onContextChange(cb: (ctx: PluginContext) => void): () => void {
             contextCallbacks.add(cb);
             return () => contextCallbacks.delete(cb);
+          },
+
+          // Resolve on every reconnect so plugins share the API origin and current login.
+          getWebSocketUrl(): string {
+            const url = new URL(backendWebSocketUrl(`/plugin-ws/${encodeURIComponent(pluginName)}`));
+            const token = localStorage.getItem('auth-token');
+            if (token) url.searchParams.set('token', token);
+            return url.href;
           },
 
           async rpc(method: string, path: string, body?: unknown): Promise<unknown> {

@@ -59,16 +59,24 @@ export default function PermissionRequestsBanner({
           );
         }
 
+        const isCodexRequest = request.provider === 'codex';
         const rawInput = formatToolInputForDisplay(request.input);
         const permissionEntry = buildClaudeToolPermissionEntry(request.toolName, rawInput);
         const settings = getClaudeSettings();
-        const alreadyAllowed = permissionEntry ? settings.allowedTools.includes(permissionEntry) : false;
-        const rememberLabel = alreadyAllowed ? 'Allow (saved)' : 'Allow & remember';
-        const matchingRequestIds = permissionEntry
+        const alreadyAllowed = !isCodexRequest && permissionEntry
+          ? settings.allowedTools.includes(permissionEntry)
+          : false;
+        const rememberLabel = isCodexRequest
+          ? 'Allow for session'
+          : alreadyAllowed
+            ? 'Allow (saved)'
+            : 'Allow & remember';
+        const matchingRequestIds = !isCodexRequest && permissionEntry
           ? pendingPermissionRequests
               .filter(
                 (item) =>
-                  buildClaudeToolPermissionEntry(item.toolName, formatToolInputForDisplay(item.input)) === permissionEntry,
+                  item.provider === request.provider
+                  && buildClaudeToolPermissionEntry(item.toolName, formatToolInputForDisplay(item.input)) === permissionEntry,
               )
               .map((item) => item.requestId)
           : [request.requestId];
@@ -113,7 +121,7 @@ export default function PermissionRequestsBanner({
               <ConfirmationAction
                 variant="outline"
                 onClick={() => {
-                  if (permissionEntry && !alreadyAllowed) {
+                  if (!isCodexRequest && permissionEntry && !alreadyAllowed) {
                     handleGrantToolPermission({ entry: permissionEntry, toolName: request.toolName });
                   }
                   handlePermissionDecision(matchingRequestIds, { allow: true, rememberEntry: permissionEntry });

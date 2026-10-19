@@ -145,6 +145,11 @@
       "willSend": "将在当前完成后发送",
       "edit": "编辑排队消息",
       "delete": "删除排队消息"
+    },
+    "fast": {
+      "label": "请求 Fast",
+      "hint": "更快响应 · 更高用量",
+      "retry": "设置失败，点击重试"
     }
   },
   "providerSelection": {
@@ -304,5 +309,19 @@
     "customModelsOnlyHint": "在所有模型选择器中隐藏 {{provider}} 的内置模型，并将您的第一个模型设为默认模型。在您添加模型之前，内置模型仍会显示。",
     "builtInModelsHidden": "开启“仅使用我的模型”时，这些模型不会出现在模型选择器中。",
     "customModelsOnlyFailed": "无法更改此设置。"
+  },
+  "misc": {
+    "contextOccupancy": "上下文占用：{{percentage}}",
+    "contextUsed": "已使用上下文",
+    "contextMaximum": "可用上下文上限",
+    "contextUnknown": "尚未获取",
+    "contextInput": "输入 Token",
+    "contextOutput": "输出 Token",
+    "configuredContextWindow": "模型配置窗口",
+    "autoCompactThreshold": "自动压缩阈值",
+    "contextStages": "上下文用量进度",
+    "compactStage": "自动压缩",
+    "configuredValues": "设定值",
+    "actualValues": "当前值"
   }
 }

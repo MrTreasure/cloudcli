@@ -3,6 +3,7 @@ import { I18nextProvider } from 'react-i18next';
 
 import { ThemeProvider } from '@/shared/context/ThemeContext';
 import { UiPreferencesProvider } from '@/shared/context/UiPreferencesContext';
+import { useApplicationFontSizes } from '@/shared/hooks/useFontSizes';
 import { AuthProvider, ProtectedRoute } from '@/modules/auth';
 import { TaskMasterProvider,TasksSettingsProvider } from '@/modules/task-master';
 import { WebSocketProvider } from '@/shared/context/WebSocketContext';
@@ -107,6 +108,7 @@ function detectRouterBasename() {
 
 /** Rendered by main.tsx; mounts the shared providers, the auth gate and the project workspace routes. */
 export default function App() {
+  useApplicationFontSizes();
   const routerBasename = detectRouterBasename();
 
   return (

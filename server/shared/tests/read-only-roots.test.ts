@@ -19,6 +19,8 @@ const outsideDirectory = path.join(fixtureRoot, 'outside');
 await mkdir(claudeProjectsRoot, { recursive: true });
 await mkdir(outsideDirectory);
 
+const previousWorkspacesRoot = process.env.WORKSPACES_ROOT;
+process.env.WORKSPACES_ROOT = fixtureHome;
 const previousHome = process.env.HOME;
 const previousUserProfile = process.env.USERPROFILE;
 process.env.HOME = fixtureHome;
@@ -27,6 +29,8 @@ process.env.USERPROFILE = fixtureHome;
 const { resolvePathUnderRoots, resolveReadOnlyRootPath, validateWorkspacePath } = await import('@/shared/utils.js');
 
 after(async () => {
+  if (previousWorkspacesRoot === undefined) delete process.env.WORKSPACES_ROOT;
+  else process.env.WORKSPACES_ROOT = previousWorkspacesRoot;
   if (previousHome === undefined) {
     delete process.env.HOME;
   } else {

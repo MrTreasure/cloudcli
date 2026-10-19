@@ -27,7 +27,7 @@
     "url": "https://github.com/siteboon/claudecodeui/issues"
   },
   "scripts": {
-    "dev": "concurrently --kill-others \"npm run server:dev\" \"npm run client\"",
+    "dev": "concurrently --kill-others \"pnpm run server:dev\" \"pnpm run client\"",
     "preserver": "node scripts/promote-dist-server.mjs recover",
     "server": "node dist-server/server/index.js",
     "server:dev": "tsx --tsconfig server/tsconfig.json server/index.ts",
@@ -36,12 +36,12 @@
     "desktop": "electron electron/main.js",
     "desktop:dev": "cross-env ELECTRON_DEV_URL=http://127.0.0.1:5173 electron electron/main.js",
     "desktop:stage": "node scripts/release/prepare-desktop-app.js",
-    "desktop:pack": "npm run build && npm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --dir",
-    "desktop:dist:mac": "npm run build && npm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --mac dmg",
-    "desktop:dist:win": "npm run build && npm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --win nsis",
-    "server:bundle": "npm run build && node scripts/release/build-server-bundle.js",
+    "desktop:pack": "pnpm run build && pnpm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --dir",
+    "desktop:dist:mac": "pnpm run build && pnpm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --mac dmg",
+    "desktop:dist:win": "pnpm run build && pnpm run desktop:stage && electron-builder --projectDir .desktop-build/desktop-app --win nsis",
+    "server:bundle": "pnpm run build && node scripts/release/build-server-bundle.js",
     "desktop:icon:mac": "node electron/scripts/generate-macos-icon.js",
-    "build": "npm run build:client && npm run build:server",
+    "build": "pnpm run build:client && pnpm run build:server",
     "build:client": "vite build",
     "prebuild:server": "node -e \"require('node:fs').rmSync('dist-server.next', { recursive: true, force: true })\"",
     "build:server": "tsc -p server/tsconfig.json && tsc-alias -p server/tsconfig.json",
@@ -49,14 +49,14 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p server/tsconfig.json",
     "test": "tsx --tsconfig server/tsconfig.json --test \"server/**/*.test.ts\" \"server/**/*.test.js\"",
-    "test:client": "vitest run",
+    "test:client": "cross-env NODE_ENV=test vitest run",
     "lint": "oxlint src/ server/",
     "lint:server": "oxlint server/",
     "lint:client": "oxlint src/",
     "lint:fix": "oxlint src/ server/ --fix",
-    "start": "npm run build && npm run server",
+    "start": "pnpm run build && pnpm run server",
     "release": "./release.sh",
-    "prepublishOnly": "npm run build",
+    "prepublishOnly": "pnpm run build",
     "postinstall": "node scripts/fix-node-pty.js",
     "prepare": "husky",
     "update:platform": "./update-platform.sh"
@@ -151,8 +151,7 @@
     "@codemirror/theme-one-dark": "^6.1.2",
     "@iarna/toml": "^2.2.5",
     "@octokit/rest": "^22.0.0",
-    "@openai/codex": "0.156.1",
-    "@openai/codex-sdk": "^0.156.0",
+    "@openai/codex-sdk": "0.162.0",
     "@replit/codemirror-minimap": "^0.5.2",
     "@tailwindcss/typography": "^0.5.16",
     "@uiw/react-codemirror": "^4.23.13",
@@ -201,7 +200,10 @@
     "remark-math": "^6.0.0",
     "tailwind-merge": "^3.3.1",
     "web-push": "^3.6.7",
-    "ws": "^8.14.2"
+    "ws": "^8.14.2",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/view": "^6.43.14",
+    "@codemirror/state": "^6.7.6"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.0",
@@ -244,9 +246,10 @@
     "tailwindcss": "^3.4.0",
     "tsc-alias": "^1.8.16",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3",
+    "typescript": "^7.0.2",
     "vite": "^7.0.4",
-    "vitest": "^3.2.7"
+    "vitest": "^3.2.7",
+    "@aws-sdk/client-s3": "3.1128.0"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx,js,jsx}": "oxlint",
@@ -255,5 +258,6 @@
   "optionalDependencies": {
     "@nut-tree-fork/nut-js": "^4.2.6",
     "screenshot-desktop": "^1.15.4"
-  }
+  },
+  "packageManager": "pnpm@12.3.4"
 }

@@ -375,7 +375,7 @@ export async function validateWorkspacePath(requestedPath: string): Promise<Work
 
     const resolvedWorkspaceRoot = normalizeProjectPath(await realpath(WORKSPACES_ROOT));
     if (
-      !resolvedPath.startsWith(`${resolvedWorkspaceRoot}${path.sep}`)
+      !resolvedPath.startsWith(resolvedWorkspaceRoot.endsWith(path.sep) ? resolvedWorkspaceRoot : `${resolvedWorkspaceRoot}${path.sep}`)
       && resolvedPath !== resolvedWorkspaceRoot
     ) {
       return {
@@ -392,7 +392,7 @@ export async function validateWorkspacePath(requestedPath: string): Promise<Work
         const resolvedSymlinkPath = path.resolve(path.dirname(absolutePath), symlinkTarget);
         const realSymlinkPath = await realpath(resolvedSymlinkPath);
         if (
-          !realSymlinkPath.startsWith(`${resolvedWorkspaceRoot}${path.sep}`)
+          !realSymlinkPath.startsWith(resolvedWorkspaceRoot.endsWith(path.sep) ? resolvedWorkspaceRoot : `${resolvedWorkspaceRoot}${path.sep}`)
           && realSymlinkPath !== resolvedWorkspaceRoot
         ) {
           return {
@@ -1354,3 +1354,16 @@ export function findApplicationRoot(startDirectory: string): string {
     ? path.dirname(parentDirectory)
     : parentDirectory;
 }
+
+/**
+ * Providers use the same system Codex launcher as interactive terminals.
+ * Deployments may set CODEX_CLI_PATH to an absolute launcher path; otherwise
+ * the executable is resolved through PATH. Always pass this explicitly to the
+ * SDK so it cannot fall back to a separately bundled CLI installation.
+ */
+export function resolveCodexExecutable(): string {
+  return process.env.CODEX_CLI_PATH?.trim() || 'codex';
+}
+
+// ---------------------------
+

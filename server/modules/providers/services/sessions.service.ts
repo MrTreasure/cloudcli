@@ -1,3 +1,4 @@
+import { readCodexContextLimits } from '@/modules/providers/services/codex-context-limits.service.js';
 import { randomUUID } from 'node:crypto';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
@@ -552,8 +553,21 @@ export const sessionsService = {
       });
     }
 
+    const codexLimits = provider === 'codex' ? readCodexContextLimits(session.model) : null;
+    const recordedUsage = result.tokenUsage && typeof result.tokenUsage === 'object'
+      ? result.tokenUsage as Record<string, unknown>
+      : null;
     return {
       ...result,
+      ...(codexLimits && recordedUsage
+        ? { tokenUsage: {
+            ...recordedUsage,
+            total: codexLimits.usableContextWindow,
+            configuredContextWindow: codexLimits.configuredContextWindow,
+            autoCompactThreshold: codexLimits.autoCompactThreshold,
+            postTurnCompactThreshold: codexLimits.postTurnCompactThreshold,
+          } }
+        : {}),
       messages: result.messages.map((message) => ({
         ...message,
         sessionId,

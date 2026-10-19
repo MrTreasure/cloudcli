@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-import type { Project, ProjectSession, QuickSettingsTab, SlashCommand } from '@/shared/types';
+import type { ContextWindowUsage, Project, ProjectSession, QuickSettingsTab, SlashCommand } from '@/shared/types';
 
 //----------------- DEPLOYMENT MODE ------------
 
@@ -10,6 +10,25 @@ import type { Project, ProjectSession, QuickSettingsTab, SlashCommand } from '@/
  * Read it to hide or gate features that only exist in one of the two deployments.
  */
 export const IS_PLATFORM = import.meta.env?.VITE_IS_PLATFORM === 'true';
+
+// ---------------------------
+
+//----------------- BACKEND TRANSPORT ------------
+
+/** Resolves backend paths for API, SSE, uploads and assets in split deployments. */
+export function backendUrl(path: string): string {
+  const origin = import.meta.env?.VITE_API_ORIGIN?.trim();
+  return origin && path.startsWith('/') && !path.startsWith('//')
+    ? new URL(path, origin).href
+    : path;
+}
+
+/** Resolves authenticated chat and terminal socket paths to the backend origin. */
+export function backendWebSocketUrl(path: string): string {
+  const url = new URL(backendUrl(path), window.location.origin);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  return url.href;
+}
 
 // ---------------------------
 
@@ -250,3 +269,21 @@ export const getQuickSettingsTabId = (tab: QuickSettingsTab): string => `quick-s
 
 /** DOM id of the tabpanel a quick settings tab controls; pairs with `getQuickSettingsTabId`. */
 export const getQuickSettingsTabPanelId = (tab: QuickSettingsTab): string => `quick-settings-tabpanel-${tab}`;
+
+//----------------- CONTEXT WINDOW USAGE ------------
+
+/** Used by chat's summary and details to interpret current occupancy without confusing missing data with zero. */
+export function readContextWindowUsage(usage: { used?: unknown; total?: unknown; contextUnavailable?: unknown } | null | undefined): ContextWindowUsage {
+  const usedValue = usage?.used == null ? NaN : Number(usage.used);
+  const totalValue = usage?.total == null ? NaN : Number(usage.total);
+  const used = !usage?.contextUnavailable && Number.isFinite(usedValue) && usedValue >= 0 ? usedValue : null;
+  const total = Number.isFinite(totalValue) && totalValue > 0 ? totalValue : null;
+  return { used, total, percentage: used !== null && total !== null ? Math.round(used / total * 1000) / 10 : null };
+}
+
+/** Used by chat context summaries and details to abbreviate counts in decimal thousands. */
+export function formatContextTokenCount(value: number): string {
+  return value >= 1000
+    ? `${(value / 1000).toLocaleString(undefined, { maximumFractionDigits: 1 })}K`
+    : value.toLocaleString(undefined, { maximumFractionDigits: 0 });
+}

@@ -1,3 +1,11 @@
 export { appendFilesInputTag, buildCodexInputItems, normalizeImageDescriptors } from './image-attachments.js';
-export { createCompleteMessage, createNormalizedMessage } from './utils.js';
-export type { AnyRecord, ProviderRuntimeContext, ProviderRuntimeWriter } from './types.js';
+export { resolveCodexExecutable, AppError, createCompleteMessage, createNormalizedMessage, readObjectRecord } from './utils.js';
+export type {
+  AnyRecord,
+  NormalizedMessage,
+  ProviderPermissionDecision,
+  ProviderRuntimeContext,
+  ProviderRuntimeWriter,
+} from './types.js';
+
+export type { JsonRpcId, JsonRpcWireFormat, JsonRpcRequest, JsonRpcNotification, JsonRpcErrorObject, JsonRpcSuccessResponse, JsonRpcErrorResponse, JsonRpcDiagnostic, JsonRpcTransportOptions, CodexAppServerClientInfo, CodexAppServerInitializeParams, CodexAppServerInitializeResult, CodexAppServerProcessState, CodexAppServerHealth, CodexAppServerHandshake, CodexAppServerDiagnostic, CodexAppServerProcess, CodexAppServerSpawn, CodexAppServerProcessManagerOptions, CodexAppServerRuntimeOptions, CodexContextLimits } from './types.js';

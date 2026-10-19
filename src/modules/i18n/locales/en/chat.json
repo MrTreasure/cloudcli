@@ -158,6 +158,11 @@
       "willSend": "Will send when this finishes",
       "edit": "Edit queued message",
       "delete": "Delete queued message"
+    },
+    "fast": {
+      "label": "Request Fast",
+      "hint": "Faster responses · Higher usage",
+      "retry": "Failed. Click to retry."
     }
   },
   "composer": {
@@ -393,7 +398,19 @@
     "tokensLabel_one": "token",
     "tokensLabel_other": "tokens",
     "escClosesModal": "Esc closes the modal.",
-    "close": "Close"
+    "close": "Close",
+    "contextOccupancy": "Context occupancy: {{percentage}}",
+    "contextUsed": "Context used",
+    "contextMaximum": "Usable context limit",
+    "contextUnknown": "Not reported",
+    "contextInput": "Input tokens",
+    "contextOutput": "Output tokens",
+    "configuredContextWindow": "Configured model window",
+    "autoCompactThreshold": "Auto compact threshold",
+    "contextStages": "Context usage progress",
+    "compactStage": "Auto compact",
+    "configuredValues": "Configured",
+    "actualValues": "Current"
   },
   "modelLibrary": {
     "effortLevels": "Reasoning levels",

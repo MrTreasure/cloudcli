@@ -138,6 +138,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     -- restores its exact runtime configuration instead of provider defaults.
     model TEXT,
     effort TEXT,
+    -- Explicit per-app-session Codex Fast intent; old/new sessions default off.
+    codex_fast INTEGER NOT NULL DEFAULT 0,
     -- The app session this one was branched from, NULL for sessions created
     -- normally. Informational only: a fork is a fully independent provider
     -- session, and deleting the source does not affect it.

@@ -64,6 +64,11 @@ type ChatComposerProps = {
   availableModelOptions: ProviderModelOption[];
   onSelectModel: (model: string) => void;
   modelsLoading: boolean;
+  codexFast?: boolean;
+  codexFastReady?: boolean;
+  codexFastBusy?: boolean;
+  codexFastError?: string | null;
+  onSelectCodexFast?: (enabled: boolean) => void;
   tokenBudget: Record<string, unknown> | null;
   onShowTokenUsage: () => void;
   slashCommandsCount: number;
@@ -141,6 +146,11 @@ export default function ChatComposer({
   availableModelOptions,
   onSelectModel,
   modelsLoading,
+  codexFast = false,
+  codexFastReady = true,
+  codexFastBusy = false,
+  codexFastError,
+  onSelectCodexFast,
   tokenBudget,
   onShowTokenUsage,
   slashCommandsCount,
@@ -484,7 +494,7 @@ export default function ChatComposer({
 
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
             <ScheduleMessagePopover
-              disabled={!input.trim()}
+              disabled={!input.trim() || !codexFastReady}
               onSchedule={onScheduleMessage}
             />
 
@@ -496,6 +506,10 @@ export default function ChatComposer({
               modelOptions={availableModelOptions}
               onSelectModel={onSelectModel}
               modelsLoading={modelsLoading}
+              codexFast={codexFast}
+              codexFastBusy={codexFastBusy}
+              codexFastError={codexFastError}
+              onSelectCodexFast={onSelectCodexFast}
             />
 
             <ComposerPermissionMenu
@@ -522,7 +536,7 @@ export default function ChatComposer({
                       : undefined
               }
               disabled={
-                isLoading
+                !codexFastReady && (!isLoading || canQueueDraft) ? true : isLoading
                   ? false
                   : isRecording
                     ? false

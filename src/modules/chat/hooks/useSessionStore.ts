@@ -754,7 +754,18 @@ export function useSessionStore() {
       msg.sessionId === sessionId
         ? msg
         : { ...msg, sessionId };
-    let updated = [...slot.realtimeMessages, normalizedMessage];
+    const existingIndex = slot.realtimeMessages.findIndex((message) => message.id === normalizedMessage.id);
+    let updated = [...slot.realtimeMessages];
+    if (existingIndex >= 0) {
+      // A live item (including a turn's plan) keeps its original transcript
+      // position even when later snapshots arrive after other messages.
+      updated[existingIndex] = {
+        ...normalizedMessage,
+        timestamp: slot.realtimeMessages[existingIndex].timestamp,
+      };
+    } else {
+      updated.push(normalizedMessage);
+    }
     if (updated.length > MAX_REALTIME_MESSAGES) {
       updated = updated.slice(-MAX_REALTIME_MESSAGES);
     }

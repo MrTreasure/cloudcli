@@ -1,4 +1,4 @@
-import { IS_PLATFORM } from '@/shared/utils';
+import { IS_PLATFORM, backendWebSocketUrl } from '@/shared/utils';
 import { getStoredAuthToken } from '@/shared/authToken';
 
 type ShellInitMessage = {
@@ -43,10 +43,9 @@ type ShellIncomingMessage =
   | { type: string; [key: string]: unknown };
 
 export function getShellWebSocketUrl(): string | null {
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
 
   if (IS_PLATFORM) {
-    return `${protocol}//${window.location.host}/shell`;
+    return backendWebSocketUrl('/shell');
   }
 
   const token = getStoredAuthToken();
@@ -55,7 +54,7 @@ export function getShellWebSocketUrl(): string | null {
     return null;
   }
 
-  return `${protocol}//${window.location.host}/shell?token=${encodeURIComponent(token)}`;
+  return backendWebSocketUrl(`/shell?token=${encodeURIComponent(token)}`);
 }
 
 export function parseShellMessage(payload: string): ShellIncomingMessage | null {

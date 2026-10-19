@@ -18,6 +18,7 @@ import {
   X,
 } from 'lucide-react';
 
+import { formatContextTokenCount, readContextWindowUsage } from '@/shared/utils';
 import { Badge, Button, Dialog, DialogContent, DialogTitle, Input } from '@/shared/ui';
 import type {
   LLMProvider,
@@ -419,63 +420,85 @@ function ModelsContent({
 }
 
 function CostContent({ data }: { data: CostCommandData }) {
-  const used = Number(data.tokenUsage?.used ?? 0);
-  const total = Number(data.tokenUsage?.total ?? 0);
+  const { t } = useTranslation('chat');
+  const usage = readContextWindowUsage(data.tokenUsage);
+  const { used } = usage;
+  const total = usage.total;
+  const percentage = total === null ? null : usage.percentage;
+  const compactThreshold = data.tokenUsage?.autoCompactThreshold ?? null;
+  const compactPercent = total && compactThreshold ? compactThreshold / total * 100 : null;
   const model = data.model || 'Unknown';
   const provider = getProviderLabel(data.provider, data.provider || 'Unknown');
   const hasBreakdown =
     typeof data.tokenBreakdown?.input === 'number' ||
     typeof data.tokenBreakdown?.output === 'number';
-  const usageRows = [
-    { label: 'Total tokens used', value: formatNumber(used), icon: Activity },
-    ...(hasBreakdown
-      ? [
-          {
-            label: 'Input tokens',
-            value: formatNumber(Number(data.tokenBreakdown?.input ?? 0)),
-            icon: TerminalSquare,
-          },
-          {
-            label: 'Output tokens',
-            value: formatNumber(Number(data.tokenBreakdown?.output ?? 0)),
-            icon: Coins,
-          },
-        ]
-      : [
-          {
-            label: 'Breakdown',
-            value: 'Unavailable',
-            icon: TerminalSquare,
-          },
-        ]),
-    // Only when it is consistent with what was actually used. Claude reports
-    // the window its model has once a turn completes, but until then (and for
-    // providers that report none) it is the CONTEXT_WINDOW setting, which cannot
-    // know whether a session runs a 200K or a 1M variant of the same model —
-    // and a row reading "used 404,009 / window 160,000" is worse than no row.
-    ...(total > used
-      ? [{ label: 'Context window', value: formatNumber(total), icon: Gauge }]
+  const configuredMetrics = [
+    ...(data.provider === 'codex' && data.tokenUsage?.configuredContextWindow
+      ? [{ label: t('misc.configuredContextWindow'), value: formatContextTokenCount(data.tokenUsage.configuredContextWindow) }]
       : []),
+    { label: t('misc.contextMaximum'), value: total === null ? t('misc.contextUnknown') : formatContextTokenCount(total) },
+    ...(data.provider === 'codex'
+      ? [{ label: t('misc.autoCompactThreshold'), value: compactThreshold === null
+        ? t('misc.contextUnknown')
+        : `${formatContextTokenCount(compactThreshold)}${compactPercent === null ? '' : ` · ${compactPercent.toFixed(1)}%`}` }]
+      : []),
+  ];
+  const actualMetrics = [
+    { label: t('misc.contextUsed'), value: used === null ? t('misc.contextUnknown') : `${formatContextTokenCount(used)}${percentage === null ? '' : ` · ${percentage}%`}` },
+    { label: t('misc.contextInput'), value: hasBreakdown ? formatContextTokenCount(Number(data.tokenBreakdown?.input ?? 0)) : t('misc.contextUnknown') },
+    { label: t('misc.contextOutput'), value: hasBreakdown ? formatContextTokenCount(Number(data.tokenBreakdown?.output ?? 0)) : t('misc.contextUnknown') },
   ];
 
   return (
     <div className="space-y-4">
+      {data.provider === 'codex' && total !== null && (
+        <div className="rounded-2xl border border-border/70 bg-background/75 p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-foreground">{t('misc.contextStages')}</p>
+            <span className="font-mono text-sm text-muted-foreground">{percentage === null ? '—' : `${percentage}%`}</span>
+          </div>
+          <div
+            role="progressbar"
+            aria-label={t('misc.contextStages')}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={percentage === null ? undefined : Math.min(100, Math.max(0, percentage))}
+            className="relative h-3 rounded-full bg-muted"
+          >
+            <div className="h-full rounded-full bg-primary transition-[width]" style={{ width: `${Math.min(100, Math.max(0, percentage ?? 0))}%` }} />
+            {compactPercent !== null && compactPercent <= 100 && (
+              <span className="absolute top-1/2 h-6 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-amber-500 ring-2 ring-background" style={{ left: `${compactPercent}%` }} />
+            )}
+          </div>
+          <div className="mt-3 text-xs">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span className="h-3 w-1.5 rounded-full bg-amber-500" />
+              <span>{t('misc.compactStage')}</span>
+              <span className="ml-auto font-mono text-foreground">{compactPercent === null || compactThreshold === null ? t('misc.contextUnknown') : `${compactPercent.toFixed(1)}% · ${formatContextTokenCount(compactThreshold)}`}</span>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="overflow-hidden rounded-2xl border border-border/70 bg-background/75">
-        {usageRows.map((row) => {
+        {([
+          { label: t('misc.configuredValues'), icon: Gauge, metrics: configuredMetrics },
+          { label: t('misc.actualValues'), icon: Activity, metrics: actualMetrics },
+        ]).map((row) => {
           const Icon = row.icon;
-
           return (
-            <div
-              key={row.label}
-              className="flex items-center justify-between gap-4 border-b border-border/60 px-4 py-3 last:border-b-0"
-            >
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                  <Icon className="h-4 w-4" />
-                </span>
-                <span className="truncate text-sm font-medium text-foreground">{row.label}</span>
+            <div key={row.label} className="grid gap-3 border-b border-border/60 px-4 py-3 last:border-b-0 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-center">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Icon className="h-4 w-4 text-primary" />
+                <span>{row.label}</span>
               </div>
-              <span className="shrink-0 font-mono text-sm font-semibold text-foreground">{row.value}</span>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 lg:grid-cols-3">
+                {row.metrics.map((metric) => (
+                  <div key={metric.label} className="min-w-0">
+                    <p className="truncate text-xs text-muted-foreground">{metric.label}</p>
+                    <p className="whitespace-nowrap font-mono text-sm font-semibold text-foreground">{metric.value}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           );
         })}
@@ -586,7 +609,7 @@ function CommandResultModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex h-[min(92dvh,48rem)] w-[calc(100vw-1rem)] max-w-5xl flex-col overflow-hidden rounded-3xl border-border/80 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl sm:w-[min(94vw,64rem)]">
+      <DialogContent className={`flex w-[calc(100vw-1rem)] max-w-5xl flex-col overflow-hidden rounded-3xl border-border/80 bg-popover/95 p-0 shadow-2xl backdrop-blur-xl sm:w-[min(94vw,64rem)] ${isModelsModal ? 'h-[min(92dvh,48rem)]' : 'h-auto max-h-[92dvh]'}`}>
         <DialogTitle>{activeMeta?.title || t('chat:misc.modalMeta.commandResult')}</DialogTitle>
 
         <div
@@ -627,7 +650,7 @@ function CommandResultModal({
           </Button>
         </div>
 
-        <div className="settings-content-enter min-h-0 flex-1 overflow-hidden px-4 py-4 sm:px-6 sm:py-5">
+        <div className={`settings-content-enter min-h-0 px-4 py-4 sm:px-6 sm:py-5 ${isModelsModal ? 'flex-1 overflow-hidden' : 'overflow-y-auto'}`}>
           {payload?.kind === 'help' && <HelpContent data={payload.data as HelpCommandData} />}
           {payload?.kind === 'models' && (
             <ModelsContent

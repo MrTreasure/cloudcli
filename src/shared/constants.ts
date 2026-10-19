@@ -28,6 +28,19 @@ export const CLOUDCLI_WORDMARK_FONT_FAMILY =
 
 // ---------------------------
 
+//----------------- FONT SIZE PREFERENCES ------------
+
+/** Default pixel sizes used by appearance settings and the shared font-size hooks. */
+export const FONT_SIZE_DEFAULTS = { interfaceFontSize: 16, fileNameFontSize: 16 } as const;
+
+/** Supported interface sizes; root rem units scale with this choice. */
+export const INTERFACE_FONT_SIZE_OPTIONS = [12, 14, 16, 18, 20] as const;
+
+/** Supported file name sizes, independent of interface and code body sizes. */
+export const FILE_NAME_FONT_SIZE_OPTIONS = [12, 14, 16, 18, 20, 22, 24] as const;
+
+// ---------------------------
+
 //----------------- APPLICATION VERSION ------------
 
 /**

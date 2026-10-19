@@ -319,5 +319,19 @@
     "customModelsOnlyHint": "在所有模型選擇器中隱藏 {{provider}} 的內建模型，並將您的第一個模型設為預設模型。在您新增模型之前，內建模型仍會顯示。",
     "builtInModelsHidden": "開啟「僅使用我的模型」時，這些模型不會出現在模型選擇器中。",
     "customModelsOnlyFailed": "無法變更此設定。"
+  },
+  "misc": {
+    "contextOccupancy": "上下文佔用：{{percentage}}",
+    "contextUsed": "已使用上下文",
+    "contextMaximum": "可用上下文上限",
+    "contextUnknown": "尚未取得",
+    "contextInput": "輸入 Token",
+    "contextOutput": "輸出 Token",
+    "configuredContextWindow": "模型設定視窗",
+    "autoCompactThreshold": "自動壓縮閾值",
+    "contextStages": "上下文用量進度",
+    "compactStage": "自動壓縮",
+    "configuredValues": "設定值",
+    "actualValues": "目前值"
   }
 }

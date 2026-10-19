@@ -18,11 +18,17 @@ import {
   appendFilesInputTag,
   buildCodexInputItems,
   normalizeImageDescriptors,
+  resolveCodexExecutable,
   createCompleteMessage,
   createNormalizedMessage,
 } from '@/shared/index.js';
 import { notifyRunFailed, notifyRunStopped } from '@/modules/notifications/index.js';
 import type { AnyRecord, ProviderRuntimeContext, ProviderRuntimeWriter } from '@/shared/index.js';
+
+import {
+  codexAppServerRuntime,
+} from './codex-app-server.runtime.js';
+import { resolveCodexRuntimeMode } from './codex-app-server.config.js';
 
 type ActiveCodexSession = {
   thread: Thread;
@@ -51,7 +57,8 @@ function readUsageNumber(value: unknown) {
 
 function extractCodexTokenBudget(event: AnyRecord) {
   const info = event?.info || event?.payload?.info || event?.usage?.info;
-  const usage = info?.total_token_usage || event?.usage?.total_token_usage || event?.usage;
+  const usage = info?.last_token_usage || event?.usage?.last_token_usage
+    || info?.total_token_usage || event?.usage?.total_token_usage || event?.usage;
   if (!usage || typeof usage !== 'object') {
     return null;
   }
@@ -252,11 +259,13 @@ function mapPermissionModeToCodexOptions(permissionMode: string): Pick<ThreadOpt
 
 /**
  * Execute a Codex query with streaming
+ * @deprecated Use the app-server runtime unless the user explicitly selects
+ * the SDK in settings.
  * @param {string} command - The prompt to send
  * @param {object} options - Options including cwd, sessionId, model, permissionMode
  * @param {WebSocket|object} ws - WebSocket connection or response writer
  */
-async function queryCodex(
+async function queryLegacyCodex(
   command: string,
   options: AnyRecord = {},
   ws: ProviderRuntimeWriter,
@@ -308,7 +317,12 @@ async function queryCodex(
   const sessionKey = () => sessionId || capturedSessionId || null;
 
   try {
-    codex = new Codex();
+    codex = new Codex({
+      codexPathOverride: resolveCodexExecutable(),
+      // SDK 0.162.0 exposes tier through CodexOptions.config, not ThreadOptions.
+      // Apply on every exec/resume to override both saved and global priority.
+      config: { service_tier: options.codexFast === true ? 'priority' : 'default' },
+    });
 
     const threadOptions: ThreadOptions = {
       workingDirectory,
@@ -502,15 +516,45 @@ async function queryCodex(
 }
 
 /**
+ * Selects the provider implementation without changing the browser contract.
+ * The mode is explicit: there is no automatic retry through a second runtime.
+ */
+async function queryCodex(
+  command: string,
+  options: AnyRecord = {},
+  ws: ProviderRuntimeWriter,
+  context: ProviderRuntimeContext,
+) {
+  const mode = resolveCodexRuntimeMode(options.codexRuntimeMode);
+  if (mode === 'sdk') {
+    return queryLegacyCodex(command, options, ws, context);
+  }
+
+  try {
+    return await codexAppServerRuntime.run(command, options, ws, context);
+  } catch (error) {
+    const content = error instanceof Error ? error.message : String(error);
+    sendMessage(ws, createNormalizedMessage({
+      kind: 'error',
+      content,
+      sessionId: options.sessionId || null,
+      provider: 'codex',
+    }));
+    throw error;
+  }
+}
+
+/**
  * Abort an active Codex session
  * @param {string} sessionId - Session ID to abort
- * @returns {boolean} - Whether abort was successful
+ * @returns {Promise<boolean>} - Whether abort was successful
  */
-function abortCodexSession(sessionId: string) {
+async function abortCodexSession(sessionId: string) {
+  const appServerAborted = await codexAppServerRuntime.abort(sessionId);
   const session = activeCodexSessions.get(sessionId);
 
   if (!session) {
-    return false;
+    return appServerAborted;
   }
 
   session.status = 'aborted';
@@ -523,10 +567,12 @@ function abortCodexSession(sessionId: string) {
   return true;
 }
 
-/** Used by the providers module's CodexProvider to run and abort SDK turns. */
+/** Used by the providers module's CodexProvider to select runtimes and expose lifecycle controls. */
 export const codexRuntime = {
   run: queryCodex,
   abort: abortCodexSession,
+  restart: codexAppServerRuntime.restart,
+  permissions: codexAppServerRuntime.permissions,
 };
 
 /**

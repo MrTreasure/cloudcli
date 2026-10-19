@@ -156,8 +156,10 @@ test('tokens refreshed while the workspace is open do not remount it', async () 
   await waitFor(() => assert.equal(seenToken, rotations[2]));
   assert.equal(workspaceMounts, 1);
   assert.equal(loadingPasses, 1);
+  // The aged token can legitimately trigger /api/auth/refresh on its timer.
+  // Only repeating the bootstrap would re-run loading and remount the workspace.
   assert.deepEqual(
-    requestedPaths.slice(bootstrapRequests).filter((path) => path.startsWith('/api/auth/')),
+    requestedPaths.slice(bootstrapRequests).filter((path) => path === '/api/auth/status' || path === '/api/auth/user'),
     [],
   );
 });
@@ -216,7 +218,7 @@ test('a language change after sign-in does not re-run the auth bootstrap', async
   assert.equal(workspaceMounts, 1);
   assert.equal(loadingPasses, 1);
   assert.deepEqual(
-    requestedPaths.slice(bootstrapRequests).filter((path) => path.startsWith('/api/auth/')),
+    requestedPaths.slice(bootstrapRequests).filter((path) => path === '/api/auth/status' || path === '/api/auth/user'),
     [],
   );
 });

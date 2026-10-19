@@ -8,6 +8,55 @@ import { closeConnection, initializeDatabase, sessionsDb } from '@/modules/datab
 import { CodexSessionSynchronizer } from '@/modules/providers/list/codex/codex-session-synchronizer.provider.js';
 import { CodexSessionsProvider, parseCodexExecScript, readCodexMemoryCitations } from '@/modules/providers/list/codex/codex-sessions.provider.js';
 
+const createSdkSessionsProvider = () => new CodexSessionsProvider();
+
+test('live todo items map all app-server states and settle only the snapshot write', () => {
+  const messages = createSdkSessionsProvider().normalizeMessage({
+    type: 'item', itemType: 'todo_list', itemId: 'plan-1', items: [
+      { text: 'Inspect', status: 'completed' },
+      { text: 'Implement', status: 'inProgress' },
+      { text: 'Verify', status: 'pending' },
+    ],
+  }, 'session-1');
+  assert.equal(messages.length, 1);
+  assert.equal(messages[0].id, 'plan-1');
+  assert.equal(messages[0].toolName, 'TodoWrite');
+  assert.deepEqual(messages[0].toolInput, { todos: [
+    { content: 'Inspect', status: 'completed' },
+    { content: 'Implement', status: 'in_progress' },
+    { content: 'Verify', status: 'pending' },
+  ] });
+  assert.equal(messages[0].status, 'completed');
+  assert.deepEqual(messages[0].toolResult, { content: '', isError: false });
+});
+
+test('legacy SDK todo items keep boolean completion without completing remaining steps', () => {
+  const [message] = createSdkSessionsProvider().normalizeMessage({
+    type: 'item', itemType: 'todo_list', itemId: 'sdk-plan', items: [
+      { text: 'Inspect', completed: true }, { text: 'Verify', completed: false },
+    ],
+  }, 'session-sdk');
+  assert.deepEqual(message.toolInput, { todos: [
+    { content: 'Inspect', status: 'completed' }, { content: 'Verify', status: 'pending' },
+  ] });
+});
+
+test('invalid live todo entries are diagnosed, not coerced to plausible pending tasks', (t) => {
+  const warnings = t.mock.method(console, 'warn', () => undefined);
+  const provider = createSdkSessionsProvider();
+  const raw = { type: 'item', itemType: 'todo_list', itemId: 'plan-invalid' };
+  const [message] = provider.normalizeMessage({ ...raw, items: [
+    { text: 'Valid', completed: false }, null, { text: 1, completed: true },
+    { text: ' ', completed: false }, { text: 'Bad state', status: 'unknown', completed: true },
+    { text: 'Missing state' }, { text: 'Invalid boolean', completed: 'false' },
+  ] }, 'session-1');
+  assert.deepEqual(message.toolInput, { todos: [{ content: 'Valid', status: 'pending' }] });
+  assert.deepEqual(provider.normalizeMessage({ ...raw, items: null }, 'session-1'), []);
+  assert.deepEqual(provider.normalizeMessage({ ...raw, items: [null] }, 'session-1'), []);
+  assert.deepEqual(provider.normalizeMessage({ ...raw, items: [] }, 'session-1'), []);
+  assert.equal(warnings.mock.callCount(), 3);
+});
+
 const patchHomeDir = (nextHomeDir: string) => {
   const original = os.homedir;
   (os as any).homedir = () => nextHomeDir;
@@ -152,6 +201,8 @@ test('Codex synchronizer leaves indexed sessions untitled when no name is availa
   }
 });
 
+
+
 test('Codex history translates wrapped exec scripts into the tools they ran', { concurrency: false }, async () => {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'codex-exec-history-'));
   const workspacePath = path.join(tempRoot, 'workspace');
@@ -217,7 +268,7 @@ test('Codex history translates wrapped exec scripts into the tools they ran', { 
       sessionsDb.assignProviderSessionId('app-exec-1', providerSessionId);
       await new CodexSessionSynchronizer().synchronize();
 
-      const history = await new CodexSessionsProvider().fetchHistory('app-exec-1');
+      const history = await createSdkSessionsProvider().fetchHistory('app-exec-1');
       const toolUses = history.messages.filter((message) => message.kind === 'tool_use');
       const toolUsesById = new Map(toolUses.map((message) => [message.toolId, message]));
 
@@ -276,7 +327,7 @@ test('Codex history strips the sandbox envelopes from shell output', { concurren
       sessionsDb.assignProviderSessionId('app-output-1', providerSessionId);
       await new CodexSessionSynchronizer().synchronize();
 
-      const history = await new CodexSessionsProvider().fetchHistory('app-output-1');
+      const history = await createSdkSessionsProvider().fetchHistory('app-output-1');
       const bash = history.messages.find((message) => message.kind === 'tool_use');
 
       assert.equal(bash?.toolName, 'Bash');
@@ -342,7 +393,7 @@ test('Codex history renders one file row per patched file, from the applied diff
       sessionsDb.assignProviderSessionId('app-patch-1', providerSessionId);
       await new CodexSessionSynchronizer().synchronize();
 
-      const history = await new CodexSessionsProvider().fetchHistory('app-patch-1');
+      const history = await createSdkSessionsProvider().fetchHistory('app-patch-1');
       const edits = history.messages.filter((message) => message.kind === 'tool_use');
 
       assert.equal(edits.length, 2, 'the patch must not be rendered twice');
@@ -439,7 +490,7 @@ test('Codex history attaches a spawned agent\'s own transcript to the Task row',
       sessionsDb.assignProviderSessionId('app-parent-2', providerSessionId);
       await new CodexSessionSynchronizer().synchronize();
 
-      const history = await new CodexSessionsProvider().fetchHistory('app-parent-2');
+      const history = await createSdkSessionsProvider().fetchHistory('app-parent-2');
       const task = history.messages.find((message) => message.kind === 'tool_use' && message.toolName === 'Task');
 
       assert.ok(task, 'a spawned agent must produce a Task row');
@@ -515,7 +566,7 @@ test('a plan followed by a memory citation is still recognized as a plan', async
       sessionsDb.assignProviderSessionId('app-plan-citation-1', providerSessionId);
       await new CodexSessionSynchronizer().synchronize();
 
-      const history = await new CodexSessionsProvider().fetchHistory('app-plan-citation-1');
+      const history = await createSdkSessionsProvider().fetchHistory('app-plan-citation-1');
       const plan = history.messages.find((message) => message.toolName === 'ExitPlanMode');
 
       assert.ok(plan, 'the trailing citation block must not hide the plan envelope');
@@ -597,7 +648,7 @@ test('Codex history restores user prompts from typed item_completed rows', { con
       sessionsDb.assignProviderSessionId('app-typed-1', providerSessionId);
       await new CodexSessionSynchronizer().synchronize();
 
-      const history = await new CodexSessionsProvider().fetchHistory('app-typed-1');
+      const history = await createSdkSessionsProvider().fetchHistory('app-typed-1');
       const users = history.messages.filter((message) => message.role === 'user');
       const images = users[0]?.images as Array<{ path?: string; data?: string }> | undefined;
 

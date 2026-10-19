@@ -1,0 +1,5 @@
+{
+  "base": "https://assets.mrtreasure.cc/cloudcli/v1/",
+  "bucket": "mrtreasure-assets",
+  "origin": "https://agent.mrtreasure.cc"
+}

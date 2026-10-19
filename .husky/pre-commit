@@ -1,1 +1,7 @@
-npx lint-staged
+pnpm exec lint-staged || exit 1
+
+# Every NAS feature branch maintains the comparison and staged path records.
+if [ -f docs/nas/upstream-base.txt ]; then
+  node scripts/record-nas-changes.mjs || exit 1
+  git add docs/nas/commit-log.md docs/nas/file-index.md
+fi

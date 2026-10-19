@@ -8,6 +8,7 @@ import { getConnectableHost, normalizeLoopbackHost } from './shared/networkHosts
 // version the server process is actually running. Reading package.json here and
 // injecting it keeps the frontend free of imports that reach outside src/.
 const pkg = createRequire(import.meta.url)('./package.json')
+const staticCdn = createRequire(import.meta.url)('./deploy/static-cdn.json')
 
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
@@ -24,8 +25,25 @@ export default defineConfig(({ mode }) => {
   // TODO: Remove support for legacy PORT variables in all locations in a future major release, leaving only SERVER_PORT.
   const serverPort = env.SERVER_PORT || env.PORT || 3001
 
+  // Ordinary clones build self-contained assets. The NAS publisher opts in to
+  // its CDN explicitly so a production build on another computer stays local.
+  const assetBase = mode === 'production' ? env.VITE_STATIC_ASSET_BASE || '/' : '/'
+
   return {
-    plugins: [react()],
+    base: assetBase,
+    plugins: [react(), {
+      name: 'keep-pwa-manifest-on-app-origin',
+      transformIndexHtml: {
+        order: 'post',
+        handler(html) {
+          // PWA start_url and service worker scope must remain on the app origin.
+          if (assetBase !== staticCdn.base) return html;
+          const withLocalManifest = html.replaceAll(`${assetBase}manifest.json`, '/manifest.json');
+          const cdnOrigin = new URL(assetBase).origin;
+          return withLocalManifest.replace('</head>', `    <link rel="preconnect" href="${cdnOrigin}" crossorigin />\n  </head>`);
+        }
+      }
+    }],
     define: {
       __APP_VERSION__: JSON.stringify(pkg.version)
     },

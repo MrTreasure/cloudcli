@@ -1,3 +1,4 @@
+import type { CodexContextLimits } from '@/shared/index.js';
 import fsSync, { type Dirent } from 'node:fs';
 import fsp from 'node:fs/promises';
 import os from 'node:os';
@@ -6,6 +7,7 @@ import path from 'node:path';
 import Database from 'better-sqlite3';
 
 import { sessionsDb } from '@/modules/database/index.js';
+import { readCodexContextLimits } from '@/modules/providers/services/codex-context-limits.service.js';
 import type { AnyRecord } from '@/shared/types.js';
 import { AppError, getOpenCodeDatabasePath } from '@/shared/utils.js';
 
@@ -26,6 +28,7 @@ type ProviderTokenUsageServiceDependencies = {
   readTextFile: (filePath: string) => Promise<string>;
   readTextFileTail: (filePath: string, maxBytes: number) => Promise<FileTail>;
   getClaudeContextWindow: () => string | undefined;
+  getCodexContextLimits: (model?: string | null) => CodexContextLimits | null;
   getReportedClaudeContextWindow: (providerSessionId: string) => number | undefined;
   isProviderSessionSuperseded: (providerSessionId: string, provider: string) => boolean;
 };
@@ -33,6 +36,9 @@ type ProviderTokenUsageServiceDependencies = {
 type TokenUsageResult = {
   used: number;
   total?: number;
+  configuredContextWindow?: number;
+  autoCompactThreshold?: number;
+  postTurnCompactThreshold?: number | null;
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens?: number;
@@ -93,6 +99,7 @@ const defaultDependencies: ProviderTokenUsageServiceDependencies = {
     }
   },
   getClaudeContextWindow: () => process.env.CONTEXT_WINDOW,
+  getCodexContextLimits: readCodexContextLimits,
   getReportedClaudeContextWindow: (providerSessionId) => getReportedClaudeContextWindow(providerSessionId),
   isProviderSessionSuperseded: (providerSessionId, provider) =>
     sessionsDb.isProviderSessionSuperseded(providerSessionId, provider),
@@ -198,10 +205,11 @@ function findCodexTokenUsage(fileContent: string): TokenUsageResult | null {
       let inputTokens = 0;
       let outputTokens = 0;
       let totalTokens = 0;
-      if (tokenInfo.total_token_usage) {
-        inputTokens = readUsageNumber(tokenInfo.total_token_usage.input_tokens);
-        outputTokens = readUsageNumber(tokenInfo.total_token_usage.output_tokens);
-        totalTokens = readUsageNumber(tokenInfo.total_token_usage.total_tokens)
+      const contextUsage = tokenInfo.last_token_usage ?? tokenInfo.total_token_usage;
+      if (contextUsage) {
+        inputTokens = readUsageNumber(contextUsage.input_tokens);
+        outputTokens = readUsageNumber(contextUsage.output_tokens);
+        totalTokens = readUsageNumber(contextUsage.total_tokens)
           || inputTokens + outputTokens;
       }
       return {
@@ -461,6 +469,16 @@ export function createProviderTokenUsageService(
       }
 
       if (session.provider === 'codex') {
+        const limits = dependencies.getCodexContextLimits(session.model);
+        const withCurrentLimits = (usage: TokenUsageResult): TokenUsageResult => limits
+          ? {
+              ...usage,
+              total: limits.usableContextWindow,
+              configuredContextWindow: limits.configuredContextWindow,
+              autoCompactThreshold: limits.autoCompactThreshold,
+              postTurnCompactThreshold: limits.postTurnCompactThreshold,
+            }
+          : usage;
         const indexedFilePath = session.jsonl_path && dependencies.fileExists(session.jsonl_path)
           ? session.jsonl_path
           : null;
@@ -480,13 +498,15 @@ export function createProviderTokenUsageService(
         const tail = await dependencies.readTextFileTail(sessionFilePath, TOKEN_USAGE_TAIL_BYTES);
         const tailUsage = findCodexTokenUsage(tail.content);
         if (tailUsage || tail.isComplete) {
-          return tailUsage ?? emptyCodexTokenUsage();
+          return withCurrentLimits(tailUsage ?? emptyCodexTokenUsage());
         }
 
         // A tail this large with no token_count row is pathological, but the
         // whole file is still authoritative when it happens.
-        return findCodexTokenUsage(await dependencies.readTextFile(sessionFilePath))
-          ?? emptyCodexTokenUsage();
+        return withCurrentLimits(
+          findCodexTokenUsage(await dependencies.readTextFile(sessionFilePath))
+            ?? emptyCodexTokenUsage(),
+        );
       }
 
       let sessionFilePath = session.jsonl_path;

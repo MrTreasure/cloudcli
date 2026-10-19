@@ -3,7 +3,7 @@ import {
   getStoredAuthToken,
   storeAuthToken,
 } from '@/shared/authToken';
-import { IS_PLATFORM } from '@/shared/utils';
+import { IS_PLATFORM, backendUrl } from '@/shared/utils';
 import { readVoiceConfig, voiceConfigHeaders } from '@/shared/voiceConfig';
 
 // Headers are a plain record rather than the full `HeadersInit` union so the
@@ -30,7 +30,7 @@ export const authenticatedFetch = (
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
 
-  return fetch(url, {
+  return fetch(backendUrl(url), {
     ...options,
     // Every response here can carry X-Refreshed-Token or X-Auth-Error, and a
     // served-from-cache response replays the headers it was stored with. Those
@@ -171,6 +171,11 @@ const del = withBody('DELETE');
 // Exported for the consumers that cannot go through `authenticatedFetch`:
 // `EventSource` and `XMLHttpRequest` need a bare URL.
 
+type SessionHistoryQuery = {
+  limit?: number | null;
+  offset?: number;
+};
+
 /**
  * Persisted messages for one session. Omitting `limit` requests the whole
  * transcript; passing one always pairs it with an explicit offset so automatic
@@ -178,19 +183,20 @@ const del = withBody('DELETE');
  */
 export const sessionMessagesUrl = (
   sessionId: string,
-  { limit = null, offset = 0 }: { limit?: number | null; offset?: number } = {},
+  { limit = null, offset = 0 }: SessionHistoryQuery = {},
 ): string => {
-  const base = `/api/providers/sessions/${encodeURIComponent(sessionId)}/messages`;
-  return limit === null || limit === undefined
-    ? base
-    : `${base}${query({ limit, offset: offset ?? 0 })}`;
+  const base = backendUrl(`/api/providers/sessions/${encodeURIComponent(sessionId)}/messages`);
+  return `${base}${query({
+    ...(limit === null || limit === undefined ? {} : { limit, offset: offset ?? 0 }),
+  })}`;
+
 };
 
 const fileContentPath = (projectId: string, filePath: string) =>
   `/api/file-tree/projects/${projectId}/files/content${query({ path: filePath })}`;
 
 const pluginAssetPath = (pluginName: string, assetFile: string) =>
-  `/api/plugins/${encodeURIComponent(pluginName)}/assets/${encodeURIComponent(assetFile)}`;
+  backendUrl(`/api/plugins/${encodeURIComponent(pluginName)}/assets/${encodeURIComponent(assetFile)}`);
 
 // ─── API endpoints ──────────────────────────────────────────────────────────
 // Every `/api/...` path the frontend talks to is declared here; components
@@ -199,13 +205,13 @@ const pluginAssetPath = (pluginName: string, assetFile: string) =>
 export const api = {
   // Auth endpoints (no token required)
   auth: {
-    status: () => fetch('/api/auth/status'),
-    login: (username: string, password: string) => fetch('/api/auth/login', {
+    status: () => fetch(backendUrl('/api/auth/status')),
+    login: (username: string, password: string) => fetch(backendUrl('/api/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
     }),
-    register: (username: string, password: string) => fetch('/api/auth/register', {
+    register: (username: string, password: string) => fetch(backendUrl('/api/auth/register'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password }),
@@ -255,13 +261,13 @@ export const api = {
   // EventSource cannot send an Authorization header, so the token rides along as
   // a query parameter on the streaming endpoints below.
   cloneProjectProgressUrl: ({ cloneId }: { cloneId: string }) =>
-    `/api/projects/clone-progress${query({ cloneId, token: getStoredAuthToken() })}`,
+    backendUrl(`/api/projects/clone-progress${query({ cloneId, token: getStoredAuthToken() })}`),
   searchConversationsUrl: (searchQuery: string, limit = 50) =>
-    `/api/providers/search/sessions${query({
+    backendUrl(`/api/providers/search/sessions${query({
       q: searchQuery,
       limit,
       token: getStoredAuthToken(),
-    })}`,
+    })}`),
 
   // Session endpoints. Provider/project metadata are resolved by the backend
   // from the session id.
@@ -287,6 +293,7 @@ export const api = {
     post(`/api/providers/sessions/${encodeURIComponent(sessionId)}/fork`, body),
   renameSession: (sessionId: string, summary: string) =>
     put(`/api/providers/sessions/${sessionId}`, { summary }),
+  restartCodexAppServer: () => post('/api/providers/codex/app-server/restart'),
   // What one agent of a workflow run did, read from its transcript on demand
   // when its row in the workflow card is opened.
   workflowAgentActivity: (sessionId: string, runId: string, agentId: string) =>
@@ -327,7 +334,7 @@ export const api = {
 
   // Uploads with a progress bar go through XMLHttpRequest, which needs the URL.
   uploadFilesUrl: (projectId: string) =>
-    `/api/file-tree/projects/${encodeURIComponent(projectId)}/files/upload`,
+    backendUrl(`/api/file-tree/projects/${encodeURIComponent(projectId)}/files/upload`),
 
   // Browse filesystem for project suggestions
   browseFilesystem: (dirPath: string | null = null) =>
@@ -434,14 +441,19 @@ export const api = {
       provider: string;
       projectPath: string;
       initialMessage?: unknown;
+      codexFast?: boolean;
     }) => post('/api/providers/sessions', payload),
     sessionMessages: (
       sessionId: string,
-      pagination: { limit?: number | null; offset?: number } = {},
+      pagination: SessionHistoryQuery = {},
       options: ApiRequestOptions = {},
     ) => get(sessionMessagesUrl(sessionId, pagination), options),
     sessionTokenUsage: (sessionId: string) =>
       get(`/api/providers/sessions/${encodeURIComponent(sessionId)}/token-usage`),
+    sessionCodexFast: (sessionId: string) =>
+      get(`/api/providers/sessions/${encodeURIComponent(sessionId)}/codex-fast`),
+    setSessionCodexFast: (sessionId: string, codexFast: boolean) =>
+      patch(`/api/providers/sessions/${encodeURIComponent(sessionId)}/codex-fast`, { codexFast }),
     sessionActiveModel: (provider: string, sessionId: string) =>
       get(`/api/providers/${provider}/sessions/${encodeURIComponent(sessionId)}/active-model`),
     setSessionActiveModel: (provider: string, sessionId: string, model: string) =>

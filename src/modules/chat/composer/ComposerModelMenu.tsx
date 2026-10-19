@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronRight, Zap } from 'lucide-react';
 
 import type { ProviderModelOption } from '@/shared/types';
 import { DEFAULT_EFFORT_VALUE } from '@/shared/constants';
@@ -25,6 +25,11 @@ type ComposerModelMenuProps = {
   modelOptions: ProviderModelOption[];
   onSelectModel: (model: string) => void;
   modelsLoading: boolean;
+  /** Only Codex exposes this independent per-session speed intent. */
+  codexFast?: boolean;
+  codexFastBusy?: boolean;
+  codexFastError?: string | null;
+  onSelectCodexFast?: (enabled: boolean) => void;
 };
 
 /**
@@ -39,6 +44,10 @@ function ComposerModelMenu({
   modelOptions,
   onSelectModel,
   modelsLoading,
+  codexFast = false,
+  codexFastBusy = false,
+  codexFastError,
+  onSelectCodexFast,
 }: ComposerModelMenuProps) {
   const { t } = useTranslation('chat');
   const [isOpen, setIsOpen] = useState(false);
@@ -69,11 +78,11 @@ function ComposerModelMenu({
 
   const hasEffortSection = resolvedEffortOptions.length > 0;
   const hasModelSection = modelOptions.length > 0 || modelsLoading;
-  if (!hasEffortSection && !hasModelSection) {
+  if (!hasEffortSection && !hasModelSection && !onSelectCodexFast) {
     return null;
   }
 
-  const triggerLabel = hasModelSection ? modelLabel : effortLabel;
+  const triggerLabel = hasModelSection || onSelectCodexFast ? modelLabel : effortLabel;
   const ariaLabel = t('composer.modelMenu', {
     defaultValue: 'Select model and reasoning effort',
   });
@@ -93,6 +102,9 @@ function ComposerModelMenu({
         aria-label={ariaLabel}
         title={ariaLabel}
       >
+        {onSelectCodexFast && codexFast && (
+          <Zap className="h-3.5 w-3.5 shrink-0 fill-current text-yellow-600 dark:text-yellow-400" aria-hidden="true" />
+        )}
         <span className="truncate">{triggerLabel}</span>
         {hasModelSection && hasEffortSection && effort !== DEFAULT_EFFORT_VALUE && (
           <span className="hidden shrink-0 capitalize text-muted-foreground sm:inline">· {effortLabel}</span>
@@ -101,6 +113,28 @@ function ComposerModelMenu({
 
       {isOpen && anchor && createPortal(
         <ComposerMenuSurface anchor={anchor} menuRef={menuRef} ariaLabel={ariaLabel}>
+          {onSelectCodexFast && (
+            <>
+              <ComposerMenuItem
+                role="switch"
+                label="Fast"
+                description={codexFastError
+                  ? t('input.fast.retry', { defaultValue: 'Failed. Click to retry.' })
+                  : t('input.fast.hint', { defaultValue: 'Faster responses · Higher usage' })}
+                icon={<Zap className="h-3.5 w-3.5" />}
+                isSelected={codexFast}
+                disabled={codexFastBusy}
+                trailing={
+                  <span aria-hidden="true" className={`relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors ${codexFast ? 'bg-primary' : 'bg-muted-foreground/30'}`}>
+                    <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${codexFast ? 'translate-x-4' : 'translate-x-0'}`} />
+                  </span>
+                }
+                onSelect={() => onSelectCodexFast(!codexFast)}
+              />
+              {(hasEffortSection || hasModelSection) && <ComposerMenuSeparator />}
+            </>
+          )}
+
           {hasEffortSection && (
             <>
               <ComposerMenuHeading>

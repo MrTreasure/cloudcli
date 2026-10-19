@@ -429,7 +429,14 @@ function createRealFileSystemService(projectRoot: string): FileTreeServices {
     projects: { getProjectPathById: async () => projectRoot },
     workspace: {
       rootPath: projectRoot,
-      validatePath: (candidatePath) => validateWorkspacePath(candidatePath),
+      validatePath: async (candidatePath) => {
+        // The fixture's write boundary must not inherit the NAS workspace root.
+        const relative = path.relative(projectRoot, path.resolve(candidatePath));
+        if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+          return { valid: false, error: 'Outside the test workspace root' };
+        }
+        return validateWorkspacePath(candidatePath);
+      },
       resolveReadOnlyRootPath: (candidatePath) => resolveReadOnlyRootPath(candidatePath),
     },
     resolveMimeType: () => 'text/plain',

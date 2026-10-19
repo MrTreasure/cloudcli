@@ -59,6 +59,7 @@ export function ComposerMenuItem({
   isSelected,
   onSelect,
   role = 'menuitemradio',
+  disabled = false,
   trailing,
   className,
 }: {
@@ -67,7 +68,8 @@ export function ComposerMenuItem({
   icon?: ReactNode;
   isSelected: boolean;
   onSelect: () => void;
-  role?: 'menuitemradio' | 'menuitem';
+  role?: 'menuitemradio' | 'switch' | 'menuitem';
+  disabled?: boolean;
   trailing?: ReactNode;
   className?: string;
 }) {
@@ -75,11 +77,12 @@ export function ComposerMenuItem({
     <button
       type="button"
       role={role}
-      aria-checked={role === 'menuitemradio' ? isSelected : undefined}
+      aria-checked={role !== 'menuitem' ? isSelected : undefined}
+      disabled={disabled}
       onClick={onSelect}
       className={cn(
         'flex w-full items-start gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors',
-        'hover:bg-accent focus-visible:bg-accent focus-visible:outline-none',
+        'hover:bg-accent focus-visible:bg-accent focus-visible:outline-none disabled:opacity-50',
         isSelected ? 'text-foreground' : 'text-foreground/90',
         className,
       )}

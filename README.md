@@ -275,3 +275,7 @@ CloudCLI UI - (https://cloudcli.ai).
 <div align="center">
  <strong>Made with care for the Claude Code, Cursor and Codex community.</strong>
 </div>
+
+## NAS 精简分支
+
+本分支基于官方 v1.37.5，仅保留约定的 NAS 功能；范围、路径、测试及回退依赖见 [维护指南](docs/nas/README.md)，跨电脑开发与 NAS 发布见 [部署说明](deploy/README.md)。

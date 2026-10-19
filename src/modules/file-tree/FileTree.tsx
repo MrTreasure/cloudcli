@@ -256,7 +256,8 @@ export default function FileTree({ selectedProject, onFileOpen, revealDirectory 
                   if (operations.isCreating) operations.handleConfirmCreate();
                 }, 100);
               }}
-              className="h-6 flex-1 text-sm"
+              className="h-auto min-h-7 flex-1 py-0.5 text-[length:var(--file-name-font-size,16px)] leading-normal"
+
               disabled={operationLoading}
             />
           </div>

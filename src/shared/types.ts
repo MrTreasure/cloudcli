@@ -448,6 +448,7 @@ export type PermissionGrantResult = {
 /** A tool-permission request awaiting the user's decision, identified by its requestId and carrying the tool name, input and context needed to render the prompt and reply to the backend. */
 export type PendingPermissionRequest = {
   requestId: string;
+  provider?: LLMProvider;
   toolName: string;
   input?: unknown;
   context?: unknown;
@@ -723,6 +724,8 @@ export type ModelCommandData = {
 /** Result payload of the chat `/cost` slash command, carrying the session's token usage totals and input/output breakdown for the command modal's usage view. */
 export type CostCommandData = {
   tokenUsage?: {
+    configuredContextWindow?: number;
+    autoCompactThreshold?: number;
     used?: number;
     total?: number;
   };
@@ -836,7 +839,10 @@ export type VoicePlayState = 'idle' | 'loading' | 'playing';
  * session's composer had at queue time — even from outside the composer,
  * e.g. the app-level auto-send that fires while another session is viewed.
  */
-export type QueuedSendOptions = Record<string, unknown>;
+export type QueuedSendOptions = Record<string, unknown> & {
+  /** Codex speed intent captured at send/queue/schedule time; false explicitly clears inherited priority. */
+  codexFast?: boolean;
+};
 
 // ---------------------------
 
@@ -1391,6 +1397,9 @@ export type AgentCategory = 'account' | 'permissions' | 'mcp' | 'skills';
 /** How much Codex may do without asking, from prompting on every edit to bypassing permission checks entirely; persisted as the Codex agent's permission setting. */
 export type CodexPermissionMode = 'default' | 'acceptEdits' | 'bypassPermissions';
 
+/** Selects whether Codex conversations use the persistent app-server protocol or the direct SDK adapter. */
+export type CodexRuntimeMode = 'app-server' | 'sdk';
+
 /** A project as the settings dialog needs it - a required identifier in `name` plus optional display name and paths - passed down to the MCP and skills panels so they can scope configuration to a project. */
 export type AgentSettingsProject = {
   name: string;
@@ -1857,3 +1866,8 @@ type TaskStatus =
 
 /** A TaskMaster task's priority; high, medium and low are the known values and the string fallback tolerates anything else TaskMaster emits. */
 type TaskPriority = 'high' | 'medium' | 'low' | string;
+
+//----------------- CONTEXT WINDOW USAGE ------------
+
+/** Parsed context occupancy shared by the composer badge and details. */
+export type ContextWindowUsage = { used: number | null; total: number | null; percentage: number | null };

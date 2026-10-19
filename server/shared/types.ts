@@ -1,5 +1,6 @@
 import type { IncomingMessage } from 'node:http';
-import type { Readable } from 'node:stream';
+import type { Readable, Writable } from 'node:stream';
+import type { SpawnOptions } from 'node:child_process';
 
 //----------------- HTTP RESPONSE SHAPES ------------
 /**
@@ -1610,4 +1611,213 @@ export type CliApplication = {
  */
 export type SandboxCommandService = {
   execute(argumentsList: string[]): Promise<number>;
+};
+
+// ---------------------------
+//----------------- CODEX APP-SERVER CONTRACTS ------------
+
+/** Correlates stdio requests with replies; string and numeric IDs remain distinct. */
+export type JsonRpcId = number | string;
+
+/** Selects whether outgoing stdio frames contain the JSON-RPC version field; Codex omits it. */
+export type JsonRpcWireFormat = 'json-rpc' | 'codex-app-server';
+
+/** Validated request envelope shared by transport, process manager and approval handlers. */
+export type JsonRpcRequest = {
+  jsonrpc: '2.0';
+  id: JsonRpcId;
+  method: string;
+  params?: unknown;
+};
+
+/** Notification envelope passed by transport to the Codex runtime; it has no reply ID. */
+export type JsonRpcNotification = {
+  jsonrpc: '2.0';
+  method: string;
+  params?: unknown;
+};
+
+/** Remote RPC failure; data is intentionally untrusted until the consumer validates it. */
+export type JsonRpcErrorObject = {
+  code: number;
+  message: string;
+  data?: unknown;
+};
+
+/** Successful RPC envelope containing a correlated request ID and an untrusted result. */
+export type JsonRpcSuccessResponse = {
+  jsonrpc: '2.0';
+  id: JsonRpcId;
+  result: unknown;
+};
+
+/** Failed RPC envelope containing a correlated request ID and remote error details. */
+export type JsonRpcErrorResponse = {
+  jsonrpc: '2.0';
+  id: JsonRpcId;
+  error: JsonRpcErrorObject;
+};
+
+/** Transport diagnostic union for invalid frames and stream failures; consumers must discriminate type. */
+export type JsonRpcDiagnostic =
+  | {
+      type: 'malformed_message';
+      line: string;
+      error: Error;
+    }
+  | {
+      type: 'invalid_message';
+      line: string;
+      reason: string;
+    }
+  | {
+      type: 'orphan_response';
+      response: JsonRpcSuccessResponse | JsonRpcErrorResponse;
+    }
+  | {
+      type: 'stderr';
+      text: string;
+    }
+  | {
+      type: 'handler_error';
+      method: string;
+      error: Error;
+    }
+  | {
+      type: 'unhandled_request';
+      request: JsonRpcRequest;
+    };
+
+/** Transport construction contract used by the managed process and isolated tests; deadlines bound RPCs, not turns. */
+export type JsonRpcTransportOptions = {
+  input: Readable;
+  output: Writable;
+  stderr?: Readable;
+  wireFormat?: JsonRpcWireFormat;
+  onNotification?: (notification: JsonRpcNotification) => void;
+  onRequest?: (request: JsonRpcRequest) => unknown | Promise<unknown>;
+  onDiagnostic?: (diagnostic: JsonRpcDiagnostic) => void;
+  onClose?: (error: Error) => void;
+};
+
+/** Client identity supplied in the initialize handshake by the process manager and tests. */
+export type CodexAppServerClientInfo = {
+  name: string;
+  title: string;
+  version: string;
+};
+
+/** Initialize request identity and optional capability flags; sent before provider requests. */
+export type CodexAppServerInitializeParams = {
+  clientInfo: CodexAppServerClientInfo;
+  capabilities?: Record<string, unknown>;
+};
+
+/** Initialize reply metadata; unknown version-specific fields are preserved. */
+export type CodexAppServerInitializeResult = {
+  userAgent?: string;
+  codexHome?: string;
+  platformFamily?: string;
+  platformOs?: string;
+  [key: string]: unknown;
+};
+
+/** Lifecycle states of the supervised child, distinct from any individual chat turn. */
+export type CodexAppServerProcessState = 'stopped' | 'starting' | 'ready' | 'stopping' | 'failed';
+
+/** Point-in-time process health; generation separates replacement children and nullable fields describe startup. */
+export type CodexAppServerHealth = {
+  state: CodexAppServerProcessState;
+  generation: number;
+  pid: number | null;
+  startedAt: string | null;
+  initializedAt: string | null;
+  lastError: string | null;
+};
+
+/** Successful initialization metadata tied to a single child generation. */
+export type CodexAppServerHandshake = {
+  generation: number;
+  initialize: CodexAppServerInitializeResult;
+  initializedAt: string;
+};
+
+/** Process and transport diagnostic union consumed by runtime failure handling and tests. */
+export type CodexAppServerDiagnostic =
+  | JsonRpcDiagnostic
+  | {
+      type: 'process_started';
+      generation: number;
+      pid: number | null;
+      executable: string;
+      args: string[];
+    }
+  | {
+      type: 'process_exit';
+      generation: number;
+      code: number | null;
+      signal: NodeJS.Signals | null;
+      expected: boolean;
+    }
+  | {
+      type: 'process_error';
+      generation: number;
+      error: Error;
+    };
+
+/** Narrow child-process stream and lifecycle contract so tests can provide an isolated process double. */
+export type CodexAppServerProcess = {
+  stdin: Writable;
+  stdout: Readable;
+  stderr: Readable;
+  pid?: number;
+  kill: (signal?: NodeJS.Signals | number) => boolean;
+  on: {
+    (event: 'error', listener: (error: Error) => void): CodexAppServerProcess;
+    (event: 'exit', listener: (code: number | null, signal: NodeJS.Signals | null) => void): CodexAppServerProcess;
+  };
+  once: {
+    (event: 'error', listener: (error: Error) => void): CodexAppServerProcess;
+    (event: 'exit', listener: (code: number | null, signal: NodeJS.Signals | null) => void): CodexAppServerProcess;
+  };
+};
+
+/** Injectable child factory used by the process manager and tests; stdout carries protocol data only. */
+export type CodexAppServerSpawn = (
+  executable: string,
+  args: string[],
+  options: SpawnOptions,
+) => CodexAppServerProcess;
+
+/** Managed process options and lifecycle callbacks; callers can inject transport doubles without launching a CLI. */
+export type CodexAppServerProcessManagerOptions = {
+  executable?: string;
+  args?: string[];
+  cwd?: string;
+  env?: NodeJS.ProcessEnv;
+  clientInfo?: Partial<CodexAppServerClientInfo> & Pick<CodexAppServerClientInfo, 'name'>;
+  capabilities?: Record<string, unknown>;
+  shutdownGracePeriodMs?: number;
+  handshakeTimeoutMs?: number;
+  spawn?: CodexAppServerSpawn;
+  onNotification?: (notification: JsonRpcNotification) => void;
+  onRequest?: (request: JsonRpcRequest) => unknown | Promise<unknown>;
+  onDiagnostic?: (diagnostic: CodexAppServerDiagnostic) => void;
+};
+
+/** Runtime factory configuration; optional process/request hooks enable isolated protocol tests. */
+export type CodexAppServerRuntimeOptions = {
+  managerOptions?: Omit<
+    CodexAppServerProcessManagerOptions,
+    'onNotification' | 'onRequest' | 'onDiagnostic'
+  >;
+  onRequest?: CodexAppServerProcessManagerOptions['onRequest'];
+};
+
+/** Locally resolved Codex window and compaction limits; only return this shape when a model catalog establishes the window. */
+export type CodexContextLimits = {
+  configuredContextWindow: number;
+  usableContextWindow: number;
+  autoCompactThreshold: number;
+  postTurnCompactThreshold: number | null;
 };

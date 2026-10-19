@@ -1,9 +1,8 @@
 import { spawn } from 'node:child_process';
 import { stat } from 'node:fs/promises';
-import { createRequire } from 'node:module';
 import readline from 'node:readline';
 
-import { AppError } from '@/shared/utils.js';
+import { AppError, resolveCodexExecutable } from '@/shared/utils.js';
 
 /**
  * Minimal JSON-RPC client for `codex app-server`.
@@ -43,25 +42,6 @@ export type CodexThreadFork = {
 };
 
 /**
- * Resolves the `codex` launcher shipped in node_modules.
- *
- * Deliberately not the `codex` on PATH: a machine can have a second, older
- * install, and the protocol this speaks is only guaranteed against the
- * version this package depends on.
- */
-function resolveCodexLauncher(): string {
-  const require_ = createRequire(import.meta.url);
-  try {
-    return require_.resolve('@openai/codex/bin/codex.js');
-  } catch {
-    throw new AppError('The Codex CLI package is not installed, so Codex conversations cannot be branched.', {
-      code: 'CODEX_APP_SERVER_UNAVAILABLE',
-      statusCode: 501,
-    });
-  }
-}
-
-/**
  * Runs one exchange against a freshly spawned `codex app-server`.
  *
  * A process per operation rather than a pooled long-lived one: the handshake
@@ -73,8 +53,8 @@ function resolveCodexLauncher(): string {
 async function withAppServer<T>(
   run: (call: (method: string, params: unknown) => Promise<unknown>) => Promise<T>,
 ): Promise<T> {
-  const launcher = resolveCodexLauncher();
-  const child = spawn(process.execPath, [launcher, 'app-server'], {
+  const launcher = resolveCodexExecutable();
+  const child = spawn(launcher, ['app-server'], {
     env: process.env,
     stdio: ['pipe', 'pipe', 'pipe'],
   });

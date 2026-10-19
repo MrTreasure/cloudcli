@@ -1,0 +1,13 @@
+{
+  "name": "host-dashboard",
+  "displayName": "仪表盘",
+  "version": "1.0.0",
+  "description": "实时查看本机 CPU、内存和磁盘占用。",
+  "author": "MrTreasure",
+  "icon": "icon.svg",
+  "type": "module",
+  "slot": "tab",
+  "entry": "dist/index.js",
+  "server": "dist/server.js",
+  "permissions": []
+}

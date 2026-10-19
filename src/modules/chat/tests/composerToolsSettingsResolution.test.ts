@@ -5,6 +5,7 @@ import { afterEach, beforeEach, test, vi } from 'vitest';
 
 import { useChatComposerState } from '@/modules/chat/hooks/useChatComposerState';
 import type { LLMProvider, PermissionMode, Project, ProjectSession } from '@/shared/types';
+import { resetChatDrafts } from '@/shared/chatDrafts';
 import { resetUserPreferences, writeUserPreference } from '@/shared/userSettings';
 
 /**
@@ -30,13 +31,15 @@ const SESSION: ProjectSession = { id: 'session-1' };
 type SentMessage = {
   type: string;
   options?: {
+    codexFast?: boolean;
     toolsSettings?: { allowedTools?: string[]; skipPermissions?: boolean };
     skipPermissions?: boolean;
+    codexRuntimeMode?: 'app-server' | 'sdk';
   };
 };
 
 /** Sends one message through the real submit path and returns its `chat.send` options. */
-const submit = async (provider: LLMProvider) => {
+const submit = async (provider: LLMProvider, codexFast = false, isLoading = false) => {
   const sent: SentMessage[] = [];
   const view = renderHook(() =>
     useChatComposerState({
@@ -49,7 +52,8 @@ const submit = async (provider: LLMProvider) => {
       resolvePermissionModeForProvider: () => 'default' as PermissionMode,
       currentProviderModel: 'test-model',
       currentProviderEffort: 'medium',
-      isLoading: false,
+      codexFast,
+      isLoading,
       canAbortSession: false,
       tokenBudget: null,
       sendMessage: (message) => {
@@ -69,6 +73,7 @@ const submit = async (provider: LLMProvider) => {
     await view.result.current.handleSubmit({ preventDefault: () => undefined } as never);
   });
 
+  if (isLoading) return view.result.current.queuedDraft?.options as NonNullable<SentMessage['options']>;
   const send = sent.find((message) => message.type === 'chat.send');
   assert.ok(send, 'expected the composer to dispatch a chat.send');
   return send.options ?? {};
@@ -104,6 +109,7 @@ beforeEach(() => {
   );
   // The preference store keeps its copy in memory, so clearing localStorage is
   // not enough to give each case a store with nothing in it.
+  resetChatDrafts();
   resetUserPreferences();
   localStorage.clear();
 });
@@ -111,6 +117,7 @@ beforeEach(() => {
 afterEach(() => {
   // Also drops the debounced save the seeding queued, so no preference write
   // outlives the stubbed fetch.
+  resetChatDrafts();
   resetUserPreferences();
   vi.unstubAllGlobals();
   localStorage.clear();
@@ -139,6 +146,20 @@ test('skipPermissions follows the sending provider, not Claude', async () => {
   assert.equal(opencodeOptions.skipPermissions, false);
 });
 
+test('a Codex send carries the selected runtime mode', async () => {
+  writeUserPreference('codexPermissions', { runtimeMode: 'sdk' });
+
+  const options = await submit('codex');
+
+  assert.equal(options.codexRuntimeMode, 'sdk');
+});
+
+test('Codex defaults to app-server when no runtime mode is stored', async () => {
+  const options = await submit('codex');
+
+  assert.equal(options.codexRuntimeMode, 'app-server');
+});
+
 test('a provider with nothing stored sends empty tool settings, not Claude settings', async () => {
   writeUserPreference('claudePermissions', {
     allowedTools: ['claude-tool'],
@@ -154,4 +175,15 @@ test('a provider with nothing stored sends empty tool settings, not Claude setti
     skipPermissions: false,
   });
   assert.equal(options.skipPermissions, false);
+});
+
+
+test('Fast intent is captured in ordinary and officially queued Codex messages', async () => {
+  assert.equal((await submit('codex', true)).codexFast, true);
+  assert.equal((await submit('codex', false)).codexFast, false);
+  assert.equal((await submit('codex', true, true)).codexFast, true);
+});
+
+test('other providers do not send Codex Fast intent', async () => {
+  assert.equal((await submit('claude', true)).codexFast, undefined);
 });

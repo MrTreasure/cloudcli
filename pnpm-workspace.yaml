@@ -1,0 +1,23 @@
+allowBuilds:
+  '@anthropic-ai/claude-code': true
+  protobufjs: true
+  tldjs: true
+  tree-sitter-bash: true
+  better-sqlite3: true
+  bcrypt: true
+  node-pty: true
+  esbuild: true
+  '@vscode/ripgrep': true
+  sharp: true
+  electron: false
+  electron-winstaller: false
+  unrs-resolver: true
+  '@nut-tree-fork/libnut': false
+  '@nut-tree-fork/nut-js': false
+enablePrePostScripts: true
+minimumReleaseAgeExclude:
+  - '@openai/codex-sdk@0.162.0'
+
+# NAS provides the single CLI; SDK callers pass codexPathOverride.
+overrides:
+  "@openai/codex": "-"

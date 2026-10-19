@@ -109,7 +109,8 @@ export default function FileTreeNode({
   const isDropTarget = isDirectory && dropTarget === item.path;
 
   const nameClassName = cn(
-    'text-[13px] leading-tight truncate',
+    'text-[length:var(--file-name-font-size,16px)] leading-normal truncate',
+
     isDirectory ? 'font-medium text-foreground' : 'text-foreground/90',
   );
 
@@ -150,7 +151,8 @@ export default function FileTreeNode({
               handleConfirmRename();
             }, 100);
           }}
-          className="h-6 flex-1 text-sm"
+          className="h-auto min-h-7 flex-1 py-0.5 text-[length:var(--file-name-font-size,16px)] leading-normal"
+
           disabled={operationLoading}
         />
       </div>
