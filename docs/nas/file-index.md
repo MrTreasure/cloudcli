@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`97f1aaa8b714a4493d87a25e6beb0d5ef2c63612`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`b3023bcc8842cc5c8e8f184d89ffd5f10656734e`。
 
-记录基线与当前暂存树之间的全部净差异，共 204 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 237 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -32,6 +32,7 @@
 | A | [docs/nas/file-index.md](../../docs/nas/file-index.md) | — |
 | A | [docs/nas/README.md](../../docs/nas/README.md) | — |
 | A | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
+| A | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
 | M | [index.html](../../index.html) | — |
 | A | [local-plugins/cloudcli-host-dashboard/icon.svg](../../local-plugins/cloudcli-host-dashboard/icon.svg) | — |
 | A | [local-plugins/cloudcli-host-dashboard/manifest.json](../../local-plugins/cloudcli-host-dashboard/manifest.json) | — |
@@ -47,13 +48,44 @@
 | M | [package.json](../../package.json) | — |
 | A | [pnpm-lock.yaml](../../pnpm-lock.yaml) | — |
 | A | [pnpm-workspace.yaml](../../pnpm-workspace.yaml) | — |
+| A | [public/favicon-c137-a6353f89.ico](../../public/favicon-c137-a6353f89.ico) | — |
+| A | [public/favicon-c137-a6353f89.png](../../public/favicon-c137-a6353f89.png) | — |
+| A | [public/favicon.ico](../../public/favicon.ico) | — |
+| M | [public/favicon.png](../../public/favicon.png) | — |
+| M | [public/favicon.svg](../../public/favicon.svg) | — |
+| A | [public/icons/c137-a6353f89-128.png](../../public/icons/c137-a6353f89-128.png) | — |
+| A | [public/icons/c137-a6353f89-144.png](../../public/icons/c137-a6353f89-144.png) | — |
+| A | [public/icons/c137-a6353f89-152.png](../../public/icons/c137-a6353f89-152.png) | — |
+| A | [public/icons/c137-a6353f89-180.png](../../public/icons/c137-a6353f89-180.png) | — |
+| A | [public/icons/c137-a6353f89-192.png](../../public/icons/c137-a6353f89-192.png) | — |
+| A | [public/icons/c137-a6353f89-384.png](../../public/icons/c137-a6353f89-384.png) | — |
+| A | [public/icons/c137-a6353f89-512.png](../../public/icons/c137-a6353f89-512.png) | — |
+| A | [public/icons/c137-a6353f89-72.png](../../public/icons/c137-a6353f89-72.png) | — |
+| A | [public/icons/c137-a6353f89-96.png](../../public/icons/c137-a6353f89-96.png) | — |
+| M | [public/icons/icon-128x128.png](../../public/icons/icon-128x128.png) | — |
+| M | [public/icons/icon-144x144.png](../../public/icons/icon-144x144.png) | — |
+| M | [public/icons/icon-152x152.png](../../public/icons/icon-152x152.png) | — |
+| A | [public/icons/icon-180x180.png](../../public/icons/icon-180x180.png) | — |
+| M | [public/icons/icon-192x192.png](../../public/icons/icon-192x192.png) | — |
+| M | [public/icons/icon-384x384.png](../../public/icons/icon-384x384.png) | — |
+| M | [public/icons/icon-512x512.png](../../public/icons/icon-512x512.png) | — |
+| M | [public/icons/icon-72x72.png](../../public/icons/icon-72x72.png) | — |
+| M | [public/icons/icon-96x96.png](../../public/icons/icon-96x96.png) | — |
+| M | [public/logo-128.png](../../public/logo-128.png) | — |
+| M | [public/logo-256.png](../../public/logo-256.png) | — |
+| M | [public/logo-32.png](../../public/logo-32.png) | — |
+| M | [public/logo-512.png](../../public/logo-512.png) | — |
+| M | [public/logo-64.png](../../public/logo-64.png) | — |
 | M | [public/manifest.json](../../public/manifest.json) | — |
+| M | [public/sw.js](../../public/sw.js) | — |
 | M | [README.md](../../README.md) | — |
+| A | [scripts/generate-brand-icons.mjs](../../scripts/generate-brand-icons.mjs) | — |
 | A | [scripts/record-nas-changes.mjs](../../scripts/record-nas-changes.mjs) | — |
 | M | [server/index.ts](../../server/index.ts) | — |
 | M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
 | M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
 | M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
+| M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
 | M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
 | M | [server/modules/notifications/index.ts](../../server/modules/notifications/index.ts) | — |
 | M | [server/modules/notifications/services/notification-orchestrator.service.js](../../server/modules/notifications/services/notification-orchestrator.service.js) | — |
@@ -207,6 +239,7 @@
 | M | [src/shared/tests/chatDrafts.test.ts](../../src/shared/tests/chatDrafts.test.ts) | — |
 | A | [src/shared/tests/fontSizes.test.tsx](../../src/shared/tests/fontSizes.test.tsx) | — |
 | M | [src/shared/tests/pageTitle.test.ts](../../src/shared/tests/pageTitle.test.ts) | — |
+| M | [src/shared/tests/readApiJson.test.ts](../../src/shared/tests/readApiJson.test.ts) | — |
 | M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 | M | [src/shared/utils.ts](../../src/shared/utils.ts) | — |
 | M | [tsconfig.json](../../tsconfig.json) | — |

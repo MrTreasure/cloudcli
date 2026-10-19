@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { ApiRequestError, readApiJson } from '@/shared/api';
+import { api, ApiRequestError, readApiJson } from '@/shared/api';
 
 const jsonResponse = (body: unknown, status = 200): Response =>
   new Response(JSON.stringify(body), {
@@ -61,5 +61,24 @@ describe('readApiJson', () => {
     expect(error).toBeInstanceOf(ApiRequestError);
     expect((error as ApiRequestError).message).toBe('Request failed (502)');
     expect((error as ApiRequestError).code).toBeUndefined();
+  });
+});
+
+
+describe('file browsing request', () => {
+  it('includes gitignored hidden configuration and preserves request cancellation', async () => {
+    const fetch = vi.fn<typeof globalThis.fetch>(async () => new Response('[]'));
+    vi.stubGlobal('fetch', fetch);
+    try {
+      const controller = new AbortController();
+      await api.getFiles('project-1', { signal: controller.signal });
+      const [input, options] = fetch.mock.calls[0];
+      const url = new URL(String(input), 'http://localhost');
+      expect(url.pathname).toBe('/api/file-tree/projects/project-1/files');
+      expect(url.searchParams.has('respectGitignore')).toBe(false);
+      expect(options?.signal).toBe(controller.signal);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

@@ -18,10 +18,13 @@ const HARD_EXCLUDED_DIRECTORY_NAMES = new Set([
 const IGNORED_DIRECTORY_NAMES = new Set([
   ...HARD_EXCLUDED_DIRECTORY_NAMES,
   'dist', 'build', '.next', '.nuxt', '.cache', '.parcel-cache',
-  '__pycache__', '.pytest_cache', '.mypy_cache', '.tox', 'venv', '.venv',
+  '__pycache__', '.pytest_cache', '.mypy_cache', '.ruff_cache', '.tox', '.nox', 'venv', '.venv',
+  '__pypackages__', 'site-packages', '.ipynb_checkpoints',
   'target', 'vendor',
-  '.gradle', '.idea', 'coverage', '.nyc_output',
+  '.gradle', 'out', '.vs', '.gocache', '.go-build', 'coverage', '.nyc_output',
 ]);
+
+const DOTNET_GENERATED_DIRECTORY_NAMES = new Set(['bin', 'obj', 'packages', 'TestResults']);
 
 const COMMON_WORKSPACE_DIRECTORY_NAMES = [
   'Desktop',
@@ -41,7 +44,17 @@ const MAXIMUM_FILE_TREE_ENTRIES = 10_000;
 type FileTreeEntryFilter = (entryPath: string, isDirectory: boolean) => boolean;
 
 function includeEntryByHardExclusions(entryPath: string, isDirectory: boolean): boolean {
-  return !isDirectory || !HARD_EXCLUDED_DIRECTORY_NAMES.has(path.basename(entryPath));
+  const name = path.basename(entryPath);
+  if (HARD_EXCLUDED_DIRECTORY_NAMES.has(name)) return false;
+  if (!isDirectory) return true;
+  // Preserve config folders and ordinary source packages; only skip cache
+  // subdirectories in their conventional language/package-manager locations.
+  const parent = path.basename(path.dirname(entryPath));
+  return !(parent === 'pkg' && ['mod', 'sumdb'].includes(name))
+    && !(parent === '.cargo' && ['registry', 'git'].includes(name))
+    && !(parent === '.nuget' && name === 'packages')
+    && !(parent === '.m2' && name === 'repository')
+    && !(parent === '.yarn' && ['cache', 'unplugged'].includes(name));
 }
 
 function includeEntryByFallbackDirectoryNames(entryPath: string, isDirectory: boolean): boolean {
@@ -201,11 +214,13 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
     remainingEntries: { value: number },
   ): Promise<FileTreeDirectoryEntry[]> {
     const visibleEntries: FileTreeDirectoryEntry[] = [];
+    let hasDotNetProject = false;
 
     await acquire();
     try {
       for await (const entry of fileSystem.openDirectory(directoryPath)) {
         const isDirectory = entry.isDirectory();
+        if (!isDirectory && /\.(?:csproj|fsproj|vbproj|sln|slnx)$/i.test(entry.name)) hasDotNetProject = true;
         if (!includeEntry(path.join(directoryPath, entry.name), isDirectory)) {
           continue;
         }
@@ -237,7 +252,11 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
       release();
     }
 
-    return visibleEntries;
+    // A generic bin/packages folder can hold source in other languages. Apply
+    // the .NET exclusions only beside an actual project or solution marker.
+    return hasDotNetProject
+      ? visibleEntries.filter((entry) => !entry.isDirectory() || !DOTNET_GENERATED_DIRECTORY_NAMES.has(entry.name))
+      : visibleEntries;
   }
 
   async function buildFileTree(

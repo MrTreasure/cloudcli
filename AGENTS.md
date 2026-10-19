@@ -22,3 +22,13 @@ For every task that creates, modifies, refactors, or reviews frontend code under
 - A local production build uses `/` for its assets by default. Set `VITE_STATIC_ASSET_BASE` only when the target deployment actually publishes those assets to that URL. Set `VITE_API_ORIGIN` only when the browser's backend is on a separate origin; configure the backend's `FRONTEND_ORIGIN` to match the frontend origin.
 - On this NAS, follow `deploy/README.md` and use `deploy/publish-frontend.py` to inject the NAS API and CDN URLs. The backend service, secrets, data paths, and Nginx setup are NAS-specific deployment state.
 - `AGENTS.md` guides the coding agent; it does not configure CloudCLI automatically. Each computer supplies its own ignored `.env`, installed CLIs, credentials, database, and provider session history. Git synchronizes committed source and these instructions, not that runtime state.
+
+
+## Upstream upgrades and retained features
+
+- Preserve the approved C137 feature list, including TypeScript 7, when upgrading official CloudCLI releases or incorporating upstream main changes.
+- When a retained feature conflicts with upstream behavior, present the behavior differences, impact, feasible options, and recommendation. Obtain the user's decision before removing or reducing that feature, changing its interaction, or merging/publishing the conflicting change. Do not resolve functional tradeoffs automatically by preferring upstream or custom code.
+- Continue independent upgrade work while the conflicting feature awaits a decision. Ordinary code conflicts with no functional tradeoff may be resolved according to confirmed requirements; uncertain equivalence requires user confirmation.
+- Record the user's resolution, rationale, owning paths, and rollback dependencies in `docs/nas/README.md`. The proposed broader branch/synchronization strategy in `docs/nas/upstream-sync-policy.md` remains pending confirmation where indicated.
+
+- Retain file-panel browsing of hidden files and directories while excluding `.git`, `node_modules`, and equivalent Java/Go/Python/Rust/.NET dependency or cache directories. Preserve hidden configuration and ordinary source directories; avoid blanket gitignore filtering or language-agnostic exclusion of common names such as `bin`, `pkg`, or `packages`. See the retained-feature policy for scope and restoration status; documentation alone does not mean the implementation has been restored.

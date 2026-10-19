@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`97f1aaa8b714a4493d87a25e6beb0d5ef2c63612`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`b3023bcc8842cc5c8e8f184d89ffd5f10656734e`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,94 +10,45 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [README.md](../../README.md) | — |
+| M | [AGENTS.md](../../AGENTS.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
+| A | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
 | M | [index.html](../../index.html) | — |
+| A | [public/favicon-c137-a6353f89.ico](../../public/favicon-c137-a6353f89.ico) | — |
+| A | [public/favicon-c137-a6353f89.png](../../public/favicon-c137-a6353f89.png) | — |
+| A | [public/favicon.ico](../../public/favicon.ico) | — |
+| M | [public/favicon.png](../../public/favicon.png) | — |
+| M | [public/favicon.svg](../../public/favicon.svg) | — |
+| A | [public/icons/c137-a6353f89-128.png](../../public/icons/c137-a6353f89-128.png) | — |
+| A | [public/icons/c137-a6353f89-144.png](../../public/icons/c137-a6353f89-144.png) | — |
+| A | [public/icons/c137-a6353f89-152.png](../../public/icons/c137-a6353f89-152.png) | — |
+| A | [public/icons/c137-a6353f89-180.png](../../public/icons/c137-a6353f89-180.png) | — |
+| A | [public/icons/c137-a6353f89-192.png](../../public/icons/c137-a6353f89-192.png) | — |
+| A | [public/icons/c137-a6353f89-384.png](../../public/icons/c137-a6353f89-384.png) | — |
+| A | [public/icons/c137-a6353f89-512.png](../../public/icons/c137-a6353f89-512.png) | — |
+| A | [public/icons/c137-a6353f89-72.png](../../public/icons/c137-a6353f89-72.png) | — |
+| A | [public/icons/c137-a6353f89-96.png](../../public/icons/c137-a6353f89-96.png) | — |
+| M | [public/icons/icon-128x128.png](../../public/icons/icon-128x128.png) | — |
+| M | [public/icons/icon-144x144.png](../../public/icons/icon-144x144.png) | — |
+| M | [public/icons/icon-152x152.png](../../public/icons/icon-152x152.png) | — |
+| A | [public/icons/icon-180x180.png](../../public/icons/icon-180x180.png) | — |
+| M | [public/icons/icon-192x192.png](../../public/icons/icon-192x192.png) | — |
+| M | [public/icons/icon-384x384.png](../../public/icons/icon-384x384.png) | — |
+| M | [public/icons/icon-512x512.png](../../public/icons/icon-512x512.png) | — |
+| M | [public/icons/icon-72x72.png](../../public/icons/icon-72x72.png) | — |
+| M | [public/icons/icon-96x96.png](../../public/icons/icon-96x96.png) | — |
+| M | [public/logo-128.png](../../public/logo-128.png) | — |
+| M | [public/logo-256.png](../../public/logo-256.png) | — |
+| M | [public/logo-32.png](../../public/logo-32.png) | — |
+| M | [public/logo-512.png](../../public/logo-512.png) | — |
+| M | [public/logo-64.png](../../public/logo-64.png) | — |
 | M | [public/manifest.json](../../public/manifest.json) | — |
-| M | [server/index.ts](../../server/index.ts) | — |
-| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
-| M | [server/modules/providers/list/codex/codex-runtime.provider.ts](../../server/modules/providers/list/codex/codex-runtime.provider.ts) | — |
-| M | [server/modules/providers/services/provider-runtime.service.ts](../../server/modules/providers/services/provider-runtime.service.ts) | — |
-| M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
-| M | [server/modules/scheduled-messages/scheduled-messages.routes.ts](../../server/modules/scheduled-messages/scheduled-messages.routes.ts) | — |
-| M | [server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts](../../server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts) | — |
-| M | [server/modules/scheduled-messages/tests/scheduled-messages.test.ts](../../server/modules/scheduled-messages/tests/scheduled-messages.test.ts) | — |
-| M | [server/modules/user/tests/user.service.test.ts](../../server/modules/user/tests/user.service.test.ts) | — |
-| M | [server/modules/user/user.service.ts](../../server/modules/user/user.service.ts) | — |
-| M | [server/modules/websocket/services/chat-run-registry.service.ts](../../server/modules/websocket/services/chat-run-registry.service.ts) | — |
-| M | [server/modules/websocket/services/chat-session-writer.service.ts](../../server/modules/websocket/services/chat-session-writer.service.ts) | — |
-| M | [server/modules/websocket/services/chat-websocket.service.ts](../../server/modules/websocket/services/chat-websocket.service.ts) | — |
-| M | [server/modules/websocket/tests/chat-run-registry.test.ts](../../server/modules/websocket/tests/chat-run-registry.test.ts) | — |
-| M | [server/shared/index.ts](../../server/shared/index.ts) | — |
-| M | [server/shared/interfaces.ts](../../server/shared/interfaces.ts) | — |
-| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
-| A | [src/assets/user-avatar.jpg](../../src/assets/user-avatar.jpg) | — |
-| M | [src/modules/auth/AuthLoadingScreen.tsx](../../src/modules/auth/AuthLoadingScreen.tsx) | — |
-| M | [src/modules/auth/AuthScreenLayout.tsx](../../src/modules/auth/AuthScreenLayout.tsx) | — |
-| M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
-| M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
-| M | [src/modules/chat/composer/QueuedMessageCard.tsx](../../src/modules/chat/composer/QueuedMessageCard.tsx) | — |
-| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
-| M | [src/modules/chat/tests/composerSendOverBackgroundWork.test.ts](../../src/modules/chat/tests/composerSendOverBackgroundWork.test.ts) | — |
-| M | [src/modules/chat/tests/sessionMessageReconciliation.test.ts](../../src/modules/chat/tests/sessionMessageReconciliation.test.ts) | — |
-| M | [src/modules/chat/transcript/MessageComponent.tsx](../../src/modules/chat/transcript/MessageComponent.tsx) | — |
-| M | [src/modules/chat/utils/sessionMessageReconciliation.ts](../../src/modules/chat/utils/sessionMessageReconciliation.ts) | — |
-| M | [src/modules/i18n/locales/cs/auth.json](../../src/modules/i18n/locales/cs/auth.json) | — |
-| M | [src/modules/i18n/locales/cs/common.json](../../src/modules/i18n/locales/cs/common.json) | — |
-| M | [src/modules/i18n/locales/cs/sidebar.json](../../src/modules/i18n/locales/cs/sidebar.json) | — |
-| M | [src/modules/i18n/locales/de/auth.json](../../src/modules/i18n/locales/de/auth.json) | — |
-| M | [src/modules/i18n/locales/de/common.json](../../src/modules/i18n/locales/de/common.json) | — |
-| M | [src/modules/i18n/locales/de/sidebar.json](../../src/modules/i18n/locales/de/sidebar.json) | — |
-| M | [src/modules/i18n/locales/en/auth.json](../../src/modules/i18n/locales/en/auth.json) | — |
-| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
-| M | [src/modules/i18n/locales/en/common.json](../../src/modules/i18n/locales/en/common.json) | — |
-| M | [src/modules/i18n/locales/en/sidebar.json](../../src/modules/i18n/locales/en/sidebar.json) | — |
-| M | [src/modules/i18n/locales/es/auth.json](../../src/modules/i18n/locales/es/auth.json) | — |
-| M | [src/modules/i18n/locales/es/common.json](../../src/modules/i18n/locales/es/common.json) | — |
-| M | [src/modules/i18n/locales/es/sidebar.json](../../src/modules/i18n/locales/es/sidebar.json) | — |
-| M | [src/modules/i18n/locales/fr/auth.json](../../src/modules/i18n/locales/fr/auth.json) | — |
-| M | [src/modules/i18n/locales/fr/common.json](../../src/modules/i18n/locales/fr/common.json) | — |
-| M | [src/modules/i18n/locales/fr/sidebar.json](../../src/modules/i18n/locales/fr/sidebar.json) | — |
-| M | [src/modules/i18n/locales/he/auth.json](../../src/modules/i18n/locales/he/auth.json) | — |
-| M | [src/modules/i18n/locales/he/common.json](../../src/modules/i18n/locales/he/common.json) | — |
-| M | [src/modules/i18n/locales/he/sidebar.json](../../src/modules/i18n/locales/he/sidebar.json) | — |
-| M | [src/modules/i18n/locales/id/auth.json](../../src/modules/i18n/locales/id/auth.json) | — |
-| M | [src/modules/i18n/locales/id/common.json](../../src/modules/i18n/locales/id/common.json) | — |
-| M | [src/modules/i18n/locales/id/sidebar.json](../../src/modules/i18n/locales/id/sidebar.json) | — |
-| M | [src/modules/i18n/locales/it/auth.json](../../src/modules/i18n/locales/it/auth.json) | — |
-| M | [src/modules/i18n/locales/it/common.json](../../src/modules/i18n/locales/it/common.json) | — |
-| M | [src/modules/i18n/locales/it/sidebar.json](../../src/modules/i18n/locales/it/sidebar.json) | — |
-| M | [src/modules/i18n/locales/ja/auth.json](../../src/modules/i18n/locales/ja/auth.json) | — |
-| M | [src/modules/i18n/locales/ja/common.json](../../src/modules/i18n/locales/ja/common.json) | — |
-| M | [src/modules/i18n/locales/ja/sidebar.json](../../src/modules/i18n/locales/ja/sidebar.json) | — |
-| M | [src/modules/i18n/locales/ko/auth.json](../../src/modules/i18n/locales/ko/auth.json) | — |
-| M | [src/modules/i18n/locales/ko/common.json](../../src/modules/i18n/locales/ko/common.json) | — |
-| M | [src/modules/i18n/locales/ko/sidebar.json](../../src/modules/i18n/locales/ko/sidebar.json) | — |
-| M | [src/modules/i18n/locales/pt-BR/auth.json](../../src/modules/i18n/locales/pt-BR/auth.json) | — |
-| M | [src/modules/i18n/locales/pt-BR/common.json](../../src/modules/i18n/locales/pt-BR/common.json) | — |
-| M | [src/modules/i18n/locales/pt-BR/sidebar.json](../../src/modules/i18n/locales/pt-BR/sidebar.json) | — |
-| M | [src/modules/i18n/locales/ru/auth.json](../../src/modules/i18n/locales/ru/auth.json) | — |
-| M | [src/modules/i18n/locales/ru/common.json](../../src/modules/i18n/locales/ru/common.json) | — |
-| M | [src/modules/i18n/locales/ru/sidebar.json](../../src/modules/i18n/locales/ru/sidebar.json) | — |
-| M | [src/modules/i18n/locales/tr/auth.json](../../src/modules/i18n/locales/tr/auth.json) | — |
-| M | [src/modules/i18n/locales/tr/common.json](../../src/modules/i18n/locales/tr/common.json) | — |
-| M | [src/modules/i18n/locales/tr/sidebar.json](../../src/modules/i18n/locales/tr/sidebar.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/auth.json](../../src/modules/i18n/locales/zh-CN/auth.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/common.json](../../src/modules/i18n/locales/zh-CN/common.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/sidebar.json](../../src/modules/i18n/locales/zh-CN/sidebar.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/auth.json](../../src/modules/i18n/locales/zh-TW/auth.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/common.json](../../src/modules/i18n/locales/zh-TW/common.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/sidebar.json](../../src/modules/i18n/locales/zh-TW/sidebar.json) | — |
-| M | [src/modules/sidebar/SidebarCollapsed.tsx](../../src/modules/sidebar/SidebarCollapsed.tsx) | — |
-| M | [src/modules/sidebar/SidebarFooter.tsx](../../src/modules/sidebar/SidebarFooter.tsx) | — |
-| M | [src/modules/sidebar/SidebarHeader.tsx](../../src/modules/sidebar/SidebarHeader.tsx) | — |
+| M | [public/sw.js](../../public/sw.js) | — |
+| A | [scripts/generate-brand-icons.mjs](../../scripts/generate-brand-icons.mjs) | — |
+| M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
+| M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
 | M | [src/shared/api.ts](../../src/shared/api.ts) | — |
-| M | [src/shared/chatDrafts.ts](../../src/shared/chatDrafts.ts) | — |
-| M | [src/shared/tests/chatDrafts.test.ts](../../src/shared/tests/chatDrafts.test.ts) | — |
-| M | [src/shared/tests/pageTitle.test.ts](../../src/shared/tests/pageTitle.test.ts) | — |
-| M | [src/shared/utils.ts](../../src/shared/utils.ts) | — |
+| M | [src/shared/tests/readApiJson.test.ts](../../src/shared/tests/readApiJson.test.ts) | — |
 
 ## NAS 主线提交
 
@@ -265,6 +216,102 @@
   - `docs/nas/file-index.md`
   - `src/assets/c137-logo.webp`
   - `src/modules/sidebar/SidebarHeader.tsx`
+
+### b3023bcc · 2026-10-19 · fix(nas): restore message insertion and C137 branding
+
+- 完整提交：`b3023bcc8842cc5c8e8f184d89ffd5f10656734e`
+- 相对第一父提交涉及文件：
+
+  - `README.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `index.html`
+  - `public/manifest.json`
+  - `server/index.ts`
+  - `server/modules/providers/list/codex/codex-app-server.runtime.ts`
+  - `server/modules/providers/list/codex/codex-runtime.provider.ts`
+  - `server/modules/providers/services/provider-runtime.service.ts`
+  - `server/modules/providers/tests/codex-app-server.runtime.test.ts`
+  - `server/modules/scheduled-messages/scheduled-messages.routes.ts`
+  - `server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts`
+  - `server/modules/scheduled-messages/tests/scheduled-messages.test.ts`
+  - `server/modules/user/tests/user.service.test.ts`
+  - `server/modules/user/user.service.ts`
+  - `server/modules/websocket/services/chat-run-registry.service.ts`
+  - `server/modules/websocket/services/chat-session-writer.service.ts`
+  - `server/modules/websocket/services/chat-websocket.service.ts`
+  - `server/modules/websocket/tests/chat-run-registry.test.ts`
+  - `server/shared/index.ts`
+  - `server/shared/interfaces.ts`
+  - `server/shared/types.ts`
+  - `src/assets/user-avatar.jpg`
+  - `src/modules/auth/AuthLoadingScreen.tsx`
+  - `src/modules/auth/AuthScreenLayout.tsx`
+  - `src/modules/chat/ChatInterface.tsx`
+  - `src/modules/chat/composer/ChatComposer.tsx`
+  - `src/modules/chat/composer/QueuedMessageCard.tsx`
+  - `src/modules/chat/hooks/useChatComposerState.ts`
+  - `src/modules/chat/tests/composerSendOverBackgroundWork.test.ts`
+  - `src/modules/chat/tests/sessionMessageReconciliation.test.ts`
+  - `src/modules/chat/transcript/MessageComponent.tsx`
+  - `src/modules/chat/utils/sessionMessageReconciliation.ts`
+  - `src/modules/i18n/locales/cs/auth.json`
+  - `src/modules/i18n/locales/cs/common.json`
+  - `src/modules/i18n/locales/cs/sidebar.json`
+  - `src/modules/i18n/locales/de/auth.json`
+  - `src/modules/i18n/locales/de/common.json`
+  - `src/modules/i18n/locales/de/sidebar.json`
+  - `src/modules/i18n/locales/en/auth.json`
+  - `src/modules/i18n/locales/en/chat.json`
+  - `src/modules/i18n/locales/en/common.json`
+  - `src/modules/i18n/locales/en/sidebar.json`
+  - `src/modules/i18n/locales/es/auth.json`
+  - `src/modules/i18n/locales/es/common.json`
+  - `src/modules/i18n/locales/es/sidebar.json`
+  - `src/modules/i18n/locales/fr/auth.json`
+  - `src/modules/i18n/locales/fr/common.json`
+  - `src/modules/i18n/locales/fr/sidebar.json`
+  - `src/modules/i18n/locales/he/auth.json`
+  - `src/modules/i18n/locales/he/common.json`
+  - `src/modules/i18n/locales/he/sidebar.json`
+  - `src/modules/i18n/locales/id/auth.json`
+  - `src/modules/i18n/locales/id/common.json`
+  - `src/modules/i18n/locales/id/sidebar.json`
+  - `src/modules/i18n/locales/it/auth.json`
+  - `src/modules/i18n/locales/it/common.json`
+  - `src/modules/i18n/locales/it/sidebar.json`
+  - `src/modules/i18n/locales/ja/auth.json`
+  - `src/modules/i18n/locales/ja/common.json`
+  - `src/modules/i18n/locales/ja/sidebar.json`
+  - `src/modules/i18n/locales/ko/auth.json`
+  - `src/modules/i18n/locales/ko/common.json`
+  - `src/modules/i18n/locales/ko/sidebar.json`
+  - `src/modules/i18n/locales/pt-BR/auth.json`
+  - `src/modules/i18n/locales/pt-BR/common.json`
+  - `src/modules/i18n/locales/pt-BR/sidebar.json`
+  - `src/modules/i18n/locales/ru/auth.json`
+  - `src/modules/i18n/locales/ru/common.json`
+  - `src/modules/i18n/locales/ru/sidebar.json`
+  - `src/modules/i18n/locales/tr/auth.json`
+  - `src/modules/i18n/locales/tr/common.json`
+  - `src/modules/i18n/locales/tr/sidebar.json`
+  - `src/modules/i18n/locales/zh-CN/auth.json`
+  - `src/modules/i18n/locales/zh-CN/chat.json`
+  - `src/modules/i18n/locales/zh-CN/common.json`
+  - `src/modules/i18n/locales/zh-CN/sidebar.json`
+  - `src/modules/i18n/locales/zh-TW/auth.json`
+  - `src/modules/i18n/locales/zh-TW/chat.json`
+  - `src/modules/i18n/locales/zh-TW/common.json`
+  - `src/modules/i18n/locales/zh-TW/sidebar.json`
+  - `src/modules/sidebar/SidebarCollapsed.tsx`
+  - `src/modules/sidebar/SidebarFooter.tsx`
+  - `src/modules/sidebar/SidebarHeader.tsx`
+  - `src/shared/api.ts`
+  - `src/shared/chatDrafts.ts`
+  - `src/shared/tests/chatDrafts.test.ts`
+  - `src/shared/tests/pageTitle.test.ts`
+  - `src/shared/utils.ts`
 
 ## 从 PR / 其他分支合入的提交
 

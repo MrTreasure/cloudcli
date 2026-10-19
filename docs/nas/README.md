@@ -1,11 +1,13 @@
 # NAS 精简分支维护指南
 
+保留项与后续官方升级策略的待确认方案见 [同步策略](upstream-sync-policy.md)。确认前不改变现有分支和升级流程。
+
 ## 官方基线与历史
 
 - 本分支 `nas-clean-v1.37.5` 直接建立在官方 `v1.37.5`（`0ce5630f46c283653359820870df1afd67cb1cf5`）之上。
 - 原 `nas` 的 `2ef0d625` 保留完整旧功能及升级合并历史，作为回退参考；此前官方基线为 `v1.37.4`（`7c3049fe8e157f12b7add3e496d8d2fe6fa5c014`）。本分支没有继承旧 NAS 功能提交。
-- 产品功能仅保留 Fast、实时 Todo、基础输入快捷键、界面与文件名字号、仪表盘、上下文百分比及压缩阈值布局，以及 C137 Logo、原用户头像和侧栏推广入口精简。重叠功能优先使用官方实现；消息排队在官方单条持久草稿上补齐发送/实时订阅修复，并按用户后续要求恢复 Codex 原生插入。命令列表、模型目录、认证和工具卡片仍采用官方实现。
-- 旧 FIFO 多条队列、原生命令定制/隐藏、品牌/头像设置、额外技能描述截断、隐藏文件过滤规则、Task Queue MCP/其他本地插件不移入本分支。
+- 产品功能仅保留 Fast、实时 Todo、基础输入快捷键、界面与文件名字号、仪表盘、上下文百分比及压缩阈值布局，以及隐藏文件展示/多语言依赖过滤、C137 Logo、原用户头像和侧栏推广入口精简。重叠功能优先使用官方实现；消息排队在官方单条持久草稿上补齐发送/实时订阅修复，并按用户后续要求恢复 Codex 原生插入。命令列表、模型目录、认证和工具卡片仍采用官方实现。
+- 旧 FIFO 多条队列、原生命令定制/隐藏、品牌/头像设置、额外技能描述截断、Task Queue MCP/其他本地插件不移入本分支。
 
 ## 构建及 NAS 部署适配
 
@@ -30,12 +32,13 @@
 | 基础快捷键 | 原生 textarea 的 Ctrl+K 删除至行尾、Ctrl+U 删除至行首（有选区时只删选区）；保留原生 Home/End、移动、撤销及 IME；`useChatComposerState.ts`、`CommandPalette.tsx` | 原 NAS `e5c0b2ec` 的编辑部分 | Composer 同时含 Fast 选项，单项回退需只移除键盘处理相关片段，避免覆盖其他保留功能。没有引入 CodeMirror 输入框。 |
 | 字号 | 界面与文件名字号独立持久化、默认 16px；`useFontSizes.ts`、`App.tsx`、外观设置、文件树、编辑器文件名头部、`UiPreferencesContext.tsx` | 原 NAS `c53be685` | 回退 CSS token 的消费者后移除 hook 和设置；保留旧偏好数据不会影响官方默认值。修改其他外观开关时仍保留字号偏好。 |
 | 仪表盘 | 独立插件 `local-plugins/cloudcli-host-dashboard/`，仅选中且页面可见时请求 CPU、内存、磁盘；Linux 使用可用内存口径，macOS 仅读启动盘且长路径省略 | 原 NAS `fcbf0846`、`ebfbce53`、`cc383f76`、`d4d35ba7` 的仪表盘部分 | 与核心功能独立，可禁用/移除该插件。没有引入 task-queue-mcp、项目统计、任务队列或定时提示插件。 |
+| 隐藏文件与依赖过滤 | 默认展示隐藏配置，不套用完整 gitignore；排除版本控制、Node/Java/Go/Python/Rust/.NET 依赖及构建/缓存目录；`server/modules/file-tree/file-tree.service.ts`、`src/shared/api.ts` 及对应测试 | 原 NAS `5c76762e`，本次恢复 | 前端查询参数与后端过滤需成组回退；配置父目录、普通 `pkg`/`bin`/`packages` 源码保留；不删除磁盘数据。 |
 | 上下文布局 | 底部只显示百分比；详情使用 K 缩写，设定/实际两行、可滚动、压缩阈值刻度；`TokenUsageSummary.tsx`、`CommandResultModal.tsx`、共享 context 工具/类型、`codex-context-limits.service.ts`、token usage/history 服务 | 原 NAS 上下文显示系列修改，重新应用于官方 1.37.5 | 前端与元数据读取一起回退。共享 Composer 和 session 服务不能整文件覆盖其他保留项。只展示压缩，不展示摘要、不添加压缩执行入口；不修改本机 CLI 阈值。 |
 
 ## 明确使用官方实现的部分
 
 - 官方 1.37.5 的发送、后台任务确认及单条 `session_drafts` 持久排队结构保留；队列分发、草稿竞态与实时订阅已修复，另恢复 `turn/steer` 插入，不移入旧 NAS FIFO 表/队列。
-- 命令菜单、模型目录、技能描述、Question 卡片、loading/会话活跃状态、文件浏览过滤、注册/登录按官方实现；Logo、静态用户头像与侧栏推广入口保留 NAS 外观定制。原来隐藏的 `/help`、`/model` 等命令不再由 NAS 定制过滤。
+- 命令菜单、模型目录、技能描述、Question 卡片、loading/会话活跃状态、注册/登录按官方实现；Logo、静态用户头像与侧栏推广入口保留 NAS 外观定制。原来隐藏的 `/help`、`/model` 等命令不再由 NAS 定制过滤。
 - Codex 历史、分页、文件缓存及引用式 fork 历史继续使用官方 JSONL 读取；没有新增 app-server 历史端点。官方 fork 客户端只适配本机 CLI 入口，不改为共享长连接 fork。
 - NAS 分离部署仅额外保留 URL/CORS、自动化 API key 作用域和根工作空间路径的必要适配。普通电脑默认同源；部署脚本中的域名、路径和密码本配置不自动应用于其他电脑。
 - 未改动 `.env`、密码本、用户数据库、Codex/Claude 配置、已安装插件和系统服务；旧功能对应的数据库表/偏好数据也未删除。
@@ -50,7 +53,7 @@
 
 精简分支仅包含官方基线之后的整理提交，可整体 `git revert <精简提交 SHA>` 回到官方源码。单项回退按上表处理共享文件依赖；完整路径由 [文件索引](file-index.md) 记录。原 `nas` 分支及 `2ef0d625` 不被改写，需要旧功能时切回该分支；不要对远端 `nas` 强推覆盖。
 
-后续升级先比较 `docs/nas/upstream-base.txt` 的官方基线，优先采用官方重叠实现，再逐项审核上表。确认升级完成后再更新基线。提交钩子先检查暂存源码，再重新生成提交记录与文件索引，避免带入旧 NAS 的反复修订历史。
+后续升级先比较 `docs/nas/upstream-base.txt` 的官方基线，逐项审核保留项。无功能冲突且行为等价时优先复用官方实现；保留项与官方主分支/发布版本存在功能冲突时，必须先说明差异、影响及可选方案，由用户确认取舍，再合入和发布。未确认期间可以继续处理不受影响的升级工作。最终决定、理由、涉及路径和回退依赖记录在本指南。确认升级完成后再更新基线。提交钩子先检查暂存源码，再重新生成提交记录与文件索引，避免带入旧 NAS 的反复修订历史。
 
 运行实例生效需要单独发布前端并重启后端。插件变更需独立构建/发布插件；切换源代码、创建提交或完成构建均不等于运行实例已更新。
 
@@ -139,3 +142,34 @@
 按用户要求，应用显示名称统一为“C137控制台”：各语言侧栏标题、登录/加载文案、版本行、空闲/项目浏览器标题、HTML 初始标题、Apple 安装名称和 PWA manifest 同步更新。会话打开时仍以会话标题作为浏览器标题；包名、上游项目引用、接口及认证配置不变。所属路径为 `src/modules/i18n/locales/*/{sidebar,common,auth}.json`、`src/modules/auth/{AuthLoadingScreen,AuthScreenLayout}.tsx`、`src/modules/sidebar/SidebarFooter.tsx`、`src/shared/utils.ts` 及标题测试、`index.html`、`public/manifest.json`。来源为用户 NAS 品牌要求，回退只恢复这些显示字符串，保留 C137 Logo/头像及消息链路修改；发布前端生效，不需要重启后端。
 
 验证与发布：5 项标题测试、类型检查及 lint 通过；NAS 前端构建/增量发布完成，已核对本机页面入口和 manifest 名称为“C137控制台”，入口缓存已清理。此次只更新前端名称，后端沿用已健康重启的运行实例。
+
+
+## 浏览器与安装图标统一为 C137
+
+目的：修正只替换侧栏 Logo、favicon/PWA 仍显示官方图标的遗漏。`scripts/generate-brand-icons.mjs` 使用 `src/assets/c137-logo.webp` 和已有 sharp 生成多尺寸 PNG、包含 6 个分辨率的真实 ICO、Apple 安装图标和通知图标；同步 `index.html`、`public/manifest.json`、`public/sw.js`。版本文件名使用源图片内容哈希，绕过旧 favicon/CDN 缓存，服务工作线程同时更新缓存名称。旧固定路径 favicon/PNG 也替换为 C137，其他 provider 图标不变。
+
+所属路径：生成脚本、`index.html`、`public/{favicon*,logo-*.png,manifest.json,sw.js}` 和 `public/icons/{c137-*.png,icon-*x*.png}`。来源为本分支原 C137 图片；调整图片后执行 `node scripts/generate-brand-icons.mjs` 并重新发布前端。回退时将图标文件与 HTML/manifest/SW 引用成组恢复，不涉及后端、账户和模型配置。浏览器采用版本化新地址；已安装 PWA 的桌面图标何时刷新由操作系统决定。
+
+验证与发布：8 个 PWA 图标尺寸与 manifest 一致，ICO 内 6 个 PNG 帧尺寸及索引有效，Apple 180px 引用正确，生成脚本及 SW 语法检查通过。前端构建与发布完成，28 个变更资源发布、145 个未变化资源本机跳过，入口缓存已清理，本机入口及 manifest 新图标引用已确认。未检测公网首页、未逐个探测 CDN，未重启后端。
+
+
+## 补充保留：隐藏文件展示与多语言依赖排除（源码已恢复）
+
+用户补充确认此能力必须长期保留：默认展示隐藏文件/目录，同时排除 `.git`、`node_modules` 及 Java、Go、Python、Rust、C# 等语言的依赖库/缓存目录。应保留 `.env`、`.github`、`.agents`、`.vscode` 及包管理配置，避免按完整 gitignore 或通用名字误过滤正常源码。分语言示例及边界见 [同步策略](upstream-sync-policy.md#文件面板保留规则用户补充确认)。
+
+来源：旧 `nas` 的 `5c76762e`；原所属路径 `server/modules/file-tree/file-tree.service.ts`、`src/shared/api.ts` 和对应测试。已从旧实现恢复默认浏览与分语言过滤：界面 `getFiles` 不再强制 `respectGitignore=true`，后端保留显式 gitignore 查询能力并排除依赖/缓存；隐藏 `.idea` 等配置可见，`.git` 文件（包括 worktree/submodule 指针）也不显示。已恢复对应后端用例，并在现有前端 API 测试中验证请求参数及 AbortSignal。回退时成组恢复默认浏览行为，不删除磁盘数据。若与官方文件浏览行为存在功能冲突，先由用户确认取舍。
+
+
+### 本次恢复的目录规则
+
+| 范围 | 默认排除 |
+| --- | --- |
+| 版本控制 / Node | `.git`、`.svn`、`.hg`、`node_modules`；`.yarn/cache`、`.yarn/unplugged` |
+| 通用构建/缓存 | `dist`、`build`、`.next`、`.nuxt`、`.cache`、`.parcel-cache`、`coverage`、`.nyc_output` |
+| Java | `target`、`.gradle`、`out`、`build`；`.m2/repository` |
+| Go | `vendor`、`.gocache`、`.go-build`；`pkg/mod`、`pkg/sumdb`，普通 `pkg` 源码保留 |
+| Python | `venv`、`.venv`、`.tox`、`.nox`、`__pycache__`、`.pytest_cache`、`.mypy_cache`、`.ruff_cache`、`__pypackages__`、`site-packages`、`.ipynb_checkpoints` |
+| Rust | `target`；`.cargo/registry`、`.cargo/git`，保留 `.cargo/config.toml` |
+| C# / .NET | `.vs`、`.nuget/packages`；有 `.csproj`、`.fsproj`、`.vbproj`、`.sln` 或 `.slnx` 的同级目录下排除 `bin`、`obj`、`packages`、`TestResults`；其他普通同名源码目录保留 |
+
+验证：后端文件树定向 13 项、前端 API 定向 5 项通过；全量前端 118 个文件、840 项通过；全量后端 841 项，其中 840 通过、1 项原有真实 fork 集成测试跳过、0 失败。前后端类型检查、完整构建和 lint 通过；保留既有规则警告与 Vite 大包提示。没有新增前端单测文件，API 参数与取消信号回归补在现有 `src/shared/tests/readApiJson.test.ts`。此项尚未发布；源码提交和本地构建不等于当前运行实例已生效。最新图标修复之前已发布，本次不会重复发布或重启。
