@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`04bb14392e1bf1d8af3166ccc0a1be3b1a3142e1`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`34c072bff77936a4b265a3126c627da31494acbc`。
 
-记录基线与当前暂存树之间的全部净差异，共 134 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 136 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -89,6 +89,7 @@
 | M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
 | M | [server/tsconfig.json](../../server/tsconfig.json) | — |
 | M | [src/App.tsx](../../src/App.tsx) | — |
+| A | [src/assets/c137-logo.webp](../../src/assets/c137-logo.webp) | — |
 | M | [src/modules/auth/tests/authTokenRefreshRemount.test.tsx](../../src/modules/auth/tests/authTokenRefreshRemount.test.tsx) | — |
 | M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
 | M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
@@ -130,6 +131,7 @@
 | A | [src/modules/settings/tests/codexPermissionsRuntime.test.tsx](../../src/modules/settings/tests/codexPermissionsRuntime.test.tsx) | — |
 | A | [src/modules/settings/tests/fontSizeControls.test.tsx](../../src/modules/settings/tests/fontSizeControls.test.tsx) | — |
 | M | [src/modules/shell/utils/socket.ts](../../src/modules/shell/utils/socket.ts) | — |
+| M | [src/modules/sidebar/SidebarHeader.tsx](../../src/modules/sidebar/SidebarHeader.tsx) | — |
 | M | [src/modules/sidebar/tests/recentConversationTitleSync.test.ts](../../src/modules/sidebar/tests/recentConversationTitleSync.test.ts) | — |
 | M | [src/shared/api.ts](../../src/shared/api.ts) | — |
 | M | [src/shared/constants.ts](../../src/shared/constants.ts) | — |

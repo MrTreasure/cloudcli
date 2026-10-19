@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`04bb14392e1bf1d8af3166ccc0a1be3b1a3142e1`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`34c072bff77936a4b265a3126c627da31494acbc`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,12 +10,9 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [deploy/publish-frontend.py](../../deploy/publish-frontend.py) | — |
-| M | [deploy/publish-plugins.py](../../deploy/publish-plugins.py) | — |
-| M | [deploy/publish-static.mjs](../../deploy/publish-static.mjs) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [package.json](../../package.json) | — |
-| M | [pnpm-lock.yaml](../../pnpm-lock.yaml) | — |
+| A | [src/assets/c137-logo.webp](../../src/assets/c137-logo.webp) | — |
+| M | [src/modules/sidebar/SidebarHeader.tsx](../../src/modules/sidebar/SidebarHeader.tsx) | — |
 
 ## NAS 主线提交
 
@@ -158,6 +155,20 @@
   - `tsconfig.json`
   - `vite.config.js`
   - `vitest.setup.ts`
+
+### 34c072bf · 2026-10-19 · fix(deploy): publish changed assets and declare YAML dependency
+
+- 完整提交：`34c072bff77936a4b265a3126c627da31494acbc`
+- 相对第一父提交涉及文件：
+
+  - `deploy/publish-frontend.py`
+  - `deploy/publish-plugins.py`
+  - `deploy/publish-static.mjs`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `package.json`
+  - `pnpm-lock.yaml`
 
 ## 从 PR / 其他分支合入的提交
 
