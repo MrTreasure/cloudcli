@@ -5,7 +5,8 @@ import os,shutil,subprocess
 root=Path(__file__).resolve().parent.parent
 runtime=Path.home()/'.claude-code-ui/plugins'
 for source in sorted((root/'local-plugins').iterdir()):
- if not source.is_dir():continue
+ # Removed plugins may leave ignored build caches after a branch switch.
+ if not source.is_dir() or not (source/'package.json').is_file() or not (source/'manifest.json').is_file():continue
  subprocess.run(['pnpm','run','build'],cwd=source,check=True)
  target=runtime/source.name
  if not target.is_dir():raise RuntimeError('Install plugin before publishing: '+source.name)

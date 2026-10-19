@@ -64,10 +64,26 @@ try {
       { ID: 'cloudcli-static-read', AllowedOrigins: [origin], AllowedMethods: ['GET', 'HEAD'], ExposeHeaders: ['ETag'], MaxAgeSeconds: 3600 },
     ] } }));
   }
-  const files = await filesUnder(directory);
+  const allFiles = await filesUnder(directory);
+  // The local deployment mirror represents the previous successful upload.
+  // Compare locally so unchanged assets do not issue per-object CDN/R2 requests.
+  const previousDirectory = process.env.CLOUDCLI_PUBLISHED_ASSET_DIR;
+  const candidates = await Promise.all(allFiles.map(async name => {
+    if (!previousDirectory) return name;
+    try {
+      const [current, previous] = await Promise.all([
+        readFile(resolve(directory, name)), readFile(resolve(previousDirectory, name)),
+      ]);
+      return current.equals(previous) ? null : name;
+    } catch (error) {
+      if (error.code === 'ENOENT') return name;
+      throw error;
+    }
+  }));
+  const files = candidates.filter(name => name !== null);
   let index = 0;
   await Promise.all(Array.from({ length: 4 }, async () => { while (index < files.length) await publish(files[index++]); }));
-  console.log(`All ${files.length} static resources published; HTML may now be published.`);
+  console.log(`${files.length} changed resources published; ${allFiles.length - files.length} unchanged resources skipped locally; HTML may now be published.`);
 } catch (error) {
   console.error(`Static publication stopped: ${error.name}, HTTP ${error.$metadata?.httpStatusCode ?? 'unknown'}`);
   process.exitCode = 1;
