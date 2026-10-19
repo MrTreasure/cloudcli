@@ -711,6 +711,16 @@ export const sessionsDb = {
       .run(providerSessionId, provider).changes > 0;
   },
 
+  /** Used by provider watcher startup to repair stale activity from indexed transcripts without rescanning their content. Never moves activity backwards or changes session identity/name. */
+  updateSessionActivity(sessionId: string, updatedAt: string): boolean {
+    const timestamp = normalizeTimestamp(updatedAt);
+    if (!timestamp) return false;
+    return getConnection().prepare(
+      `UPDATE sessions SET updated_at = ?
+       WHERE session_id = ? AND julianday(COALESCE(updated_at, created_at)) < julianday(?)`
+    ).run(timestamp, sessionId, timestamp).changes > 0;
+  },
+
   /**
    * Lists every indexed session that claims a transcript file on disk.
    *

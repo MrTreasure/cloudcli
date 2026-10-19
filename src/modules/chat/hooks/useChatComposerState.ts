@@ -104,7 +104,6 @@ type SubmitOptions = {
    * run that command instead of being sent.
    */
   skipCommandInterception?: boolean;
-  queueOnly?: boolean;
 };
 
 const createFakeSubmitEvent = () => {
@@ -834,20 +833,7 @@ export function useChatComposerState({
           uploadedAttachments,
           options: queuedOptions,
         }, queuedSessionKey);
-        if (provider === 'codex' && queuedSessionKey && !submitOptions?.queueOnly) {
-          setQueuedSendBusy(true);
-          try {
-            await persistChatDraft(queuedSessionKey);
-            const saved = readQueuedMessage(queuedSessionKey);
-            if (saved) await readApiJson(await api.scheduledMessages.sendQueuedNow(queuedSessionKey, saved));
-            await hydrateChatDrafts();
-            if (sessionKeyRef.current === queuedSessionKey && !readQueuedMessage(queuedSessionKey)) setQueuedDraft(null);
-          } catch (error) {
-            if (sessionKeyRef.current === queuedSessionKey) setQueuedSendError(error instanceof Error ? error.message : String(error));
-          } finally {
-            setQueuedSendBusy(false);
-          }
-        }
+        // Immediate insertion is an explicit action on the queued card.
         return;
       }
 
@@ -1310,6 +1296,8 @@ export function useChatComposerState({
       const composing = event.nativeEvent?.isComposing || event.nativeEvent?.keyCode === 229 || isComposingRef.current;
       const endedJustNow = performance.now() - lastCompositionEndAtRef.current < SAFARI_IME_RACE_WINDOW_MS;
       if (event.defaultPrevented || composing || (event.key === 'Enter' && endedJustNow)) return;
+      // Leave newline insertion to the textarea, including while a menu is open.
+      if (event.key === 'Enter' && event.shiftKey) return;
 
       const key = event.key.toLowerCase();
       if (event.ctrlKey && !event.metaKey && !event.altKey && !event.shiftKey && (key === 'k' || key === 'u')) {
@@ -1367,10 +1355,7 @@ export function useChatComposerState({
       }
 
       if (event.key === 'Enter') {
-        if (event.shiftKey && !event.ctrlKey && !event.metaKey && isLoading && provider === 'codex') {
-          event.preventDefault();
-          handleSubmit(event, undefined, { queueOnly: true });
-        } else if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
+        if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
           event.preventDefault();
           handleSubmit(event);
         } else if (!event.shiftKey && !event.ctrlKey && !event.metaKey && !sendByCtrlEnter) {
@@ -1389,8 +1374,6 @@ export function useChatComposerState({
       resizeTextarea,
       syncInputOverlayScroll,
       sendByCtrlEnter,
-      isLoading,
-      provider,
       showCommandMenu,
       showFileDropdown,
     ],

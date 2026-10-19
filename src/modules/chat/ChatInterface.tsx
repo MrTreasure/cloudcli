@@ -561,7 +561,6 @@ function ChatInterface({
           availablePermissionModes={availablePermissionModes}
           onSelectPermissionMode={selectPermissionMode}
           providerLabel={selectedProviderLabel}
-          provider={provider}
           effort={currentProviderEffort}
           availableEffortOptions={currentProviderEffortOptions}
           onSelectEffort={handleSelectComposerEffort}

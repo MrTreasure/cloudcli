@@ -14,7 +14,7 @@ import { PaperclipIcon, MessageSquareIcon, XIcon, Loader2, ArrowUpIcon, PencilIc
 
 import { useVoiceInput } from '@/modules/chat/hooks/useVoiceInput';
 import { useVoiceAvailable } from '@/modules/chat/hooks/useVoiceAvailable';
-import type { BackgroundSendChoice, BackgroundSendPrompt, QueuedDraft, ScheduledMessage, SlashCommand,SessionActivity,PendingPermissionRequest,PermissionMode,ProviderModelOption, LLMProvider } from '@/shared/types';
+import type { BackgroundSendChoice, BackgroundSendPrompt, QueuedDraft, ScheduledMessage, SlashCommand,SessionActivity,PendingPermissionRequest,PermissionMode,ProviderModelOption } from '@/shared/types';
 import {
   PromptInput,
   PromptInputHeader,
@@ -57,7 +57,6 @@ type ChatComposerProps = {
   availablePermissionModes: PermissionMode[];
   onSelectPermissionMode: (mode: PermissionMode) => void;
   providerLabel: string;
-  provider?: LLMProvider;
   effort: string;
   availableEffortOptions: NonNullable<ProviderModelOption['effort']>['values'];
   onSelectEffort: (effort: string) => void;
@@ -143,7 +142,6 @@ export default function ChatComposer({
   availablePermissionModes,
   onSelectPermissionMode,
   providerLabel,
-  provider,
   effort,
   availableEffortOptions,
   onSelectEffort,
@@ -276,18 +274,12 @@ export default function ChatComposer({
 
   const hasQueuedDraft = Boolean(queuedDraft);
   const canQueueDraft = isLoading && Boolean(input.trim() || attachedFiles.length > 0);
-  const submitHint = canQueueDraft && provider === 'codex'
-    ? t('input.hintText.insert')
-    : canQueueDraft
-    ? hasQueuedDraft
-      ? t('input.hintText.updateQueued', { defaultValue: 'Enter to update queued message' })
-      : t('input.hintText.queue', { defaultValue: 'Enter to queue your next message' })
+  const submitHint = canQueueDraft
+    ? t(sendByCtrlEnter ? 'input.hintText.ctrlQueue' : 'input.hintText.queue')
     : sendByCtrlEnter
       ? t('input.hintText.ctrlEnter')
       : t('input.hintText.enter');
-  const submitAriaLabel = canQueueDraft && provider === 'codex'
-    ? t('input.queue.insertNow')
-    : canQueueDraft
+  const submitAriaLabel = canQueueDraft
     ? hasQueuedDraft
       ? t('input.queue.update', { defaultValue: 'Update queued message' })
       : t('input.queue.sendNext', { defaultValue: 'Queue next message' })
@@ -350,7 +342,6 @@ export default function ChatComposer({
           onSendNow={onSendQueuedDraftNow}
           sending={queuedSendBusy}
           error={queuedSendError}
-          insertIntoActiveRun={isLoading && provider === 'codex'}
           onEdit={onEditQueuedDraft}
           onDelete={onDeleteQueuedDraft}
         />

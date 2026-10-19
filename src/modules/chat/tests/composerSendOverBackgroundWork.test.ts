@@ -217,14 +217,14 @@ test('a session with nothing in the background sends without asking', async () =
 });
 
 
-test('queued card exposes explicit send/insert actions and blocks duplicate clicks while sending', () => {
+test('queued card exposes Send now and blocks duplicate clicks while sending', () => {
   const onSendNow = vi.fn();
   const props = { content: 'pending', onEdit: vi.fn(), onDelete: vi.fn(), onSendNow };
   const view = renderComponent(createElement(QueuedMessageCard, props));
   fireEvent.click(screen.getByRole('button', { name: 'Send now' }));
   assert.equal(onSendNow.mock.calls.length, 1);
-  view.rerender(createElement(QueuedMessageCard, { ...props, insertIntoActiveRun: true, sending: true }));
-  const stop = screen.getByRole('button', { name: 'Insert now' }) as HTMLButtonElement;
+  view.rerender(createElement(QueuedMessageCard, { ...props, sending: true }));
+  const stop = screen.getByRole('button', { name: 'Send now' }) as HTMLButtonElement;
   assert.equal(stop.disabled, true);
   fireEvent.click(stop);
   assert.equal(onSendNow.mock.calls.length, 1);
@@ -243,28 +243,67 @@ test('manual queued send uses the server claim endpoint with saved attachments a
 });
 
 
-test('sending during a Codex turn inserts through the native endpoint without starting a second turn', async () => {
-  const insertion = vi.spyOn(api.scheduledMessages, 'sendQueuedNow').mockResolvedValue(new Response(JSON.stringify({ success: true, data: { status: 'inserted' } })));
+test('sending during a Codex turn queues text and durable attachments without immediate insertion', async () => {
+  const insertion = vi.spyOn(api.scheduledMessages, 'sendQueuedNow');
   const { view, sends } = render(new Map(), true);
-  await act(async () => { view.result.current.setInput('also check compatibility'); });
+  await act(async () => {
+    view.result.current.setInput('also check compatibility');
+    view.result.current.setAttachedFiles([new File(['notes'], 'notes.txt', { type: 'text/plain' })]);
+  });
   await act(async () => { await view.result.current.handleSubmit({ preventDefault: () => undefined } as never); });
-  assert.equal(insertion.mock.calls.length, 1);
-  assert.equal(insertion.mock.calls[0][0], SESSION.id);
-  assert.equal((insertion.mock.calls[0][1] as { content: string }).content, 'also check compatibility');
+  assert.equal(insertion.mock.calls.length, 0);
+  assert.equal(view.result.current.queuedDraft?.content, 'also check compatibility');
+  assert.deepEqual(readQueuedMessage(SESSION.id)?.attachments, [UPLOADED]);
   assert.equal(sends().length, 0);
   assert.equal(view.result.current.input, '');
   insertion.mockRestore();
 });
 
-test('Shift+Enter during a Codex turn saves a queue without requesting insertion', async () => {
+test.each([false, true])('Shift+Enter leaves native newlines available (running Codex: %s)', async (runningCodex) => {
   const insertion = vi.spyOn(api.scheduledMessages, 'sendQueuedNow');
-  const { view, sends } = render(new Map(), true);
+  const { view, sends } = render(new Map(), runningCodex);
   await act(async () => { view.result.current.setInput('after this turn'); });
   const preventDefault = vi.fn();
   await act(async () => { view.result.current.handleKeyDown({ key: 'Enter', shiftKey: true, preventDefault } as never); });
-  await waitFor(() => assert.equal(view.result.current.queuedDraft?.content, 'after this turn'));
-  assert.ok(preventDefault.mock.calls.length > 0);
+  assert.equal(preventDefault.mock.calls.length, 0);
+  assert.equal(view.result.current.input, 'after this turn');
+  assert.equal(view.result.current.queuedDraft, null);
   assert.equal(insertion.mock.calls.length, 0);
+  assert.equal(sends().length, 0);
+  insertion.mockRestore();
+});
+
+test('Send now on the queued card explicitly inserts into the running Codex turn', async () => {
+  const insertion = vi.spyOn(api.scheduledMessages, 'sendQueuedNow').mockResolvedValue(new Response(JSON.stringify({ success: true, data: { status: 'inserted' } })));
+  const { view, sends } = render(new Map(), true);
+  await act(async () => { view.result.current.setInput('after this turn'); });
+  await act(async () => { await view.result.current.handleSubmit({ preventDefault: () => undefined } as never); });
+  assert.equal(view.result.current.queuedDraft?.content, 'after this turn');
+  assert.equal(view.result.current.input, '');
+  assert.equal(insertion.mock.calls.length, 0);
+  renderComponent(createElement(QueuedMessageCard, {
+    content: view.result.current.queuedDraft!.content,
+    onSendNow: view.result.current.sendQueuedDraftNow,
+    onEdit: vi.fn(),
+    onDelete: vi.fn(),
+  }));
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: 'Send now' })); });
+  assert.equal(insertion.mock.calls.length, 1);
+  assert.equal(insertion.mock.calls[0][0], SESSION.id);
+  assert.equal((insertion.mock.calls[0][1] as { content: string }).content, 'after this turn');
+  assert.equal(sends().length, 0);
+  insertion.mockRestore();
+});
+
+test('Enter during a Codex turn only queues the message', async () => {
+  const insertion = vi.spyOn(api.scheduledMessages, 'sendQueuedNow');
+  const { view, sends } = render(new Map(), true);
+  await act(async () => { view.result.current.setInput('queue this'); });
+  const preventDefault = vi.fn();
+  await act(async () => { view.result.current.handleKeyDown({ key: 'Enter', preventDefault } as never); });
+  await waitFor(() => assert.equal(view.result.current.queuedDraft?.content, 'queue this'));
+  assert.equal(insertion.mock.calls.length, 0);
+  assert.ok(preventDefault.mock.calls.length > 0);
   assert.equal(sends().length, 0);
   insertion.mockRestore();
 });
@@ -274,6 +313,8 @@ test('rejected insertion keeps the message and displays the failure without anot
   const { view, sends } = render(new Map(), true);
   await act(async () => { view.result.current.setInput('retain on failure'); });
   await act(async () => { await view.result.current.handleSubmit({ preventDefault: () => undefined } as never); });
+  assert.equal(insertion.mock.calls.length, 0);
+  await act(async () => { await view.result.current.sendQueuedDraftNow(); });
   assert.equal(view.result.current.queuedDraft?.content, 'retain on failure');
   assert.ok(view.result.current.queuedSendError);
   assert.equal(sends().length, 0);

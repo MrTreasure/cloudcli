@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`b3023bcc8842cc5c8e8f184d89ffd5f10656734e`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`cb24516c2304a29808b0d54cf309e24858449923`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,44 +11,21 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [AGENTS.md](../../AGENTS.md) | — |
+| M | [README.md](../../README.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| A | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
-| M | [index.html](../../index.html) | — |
-| A | [public/favicon-c137-a6353f89.ico](../../public/favicon-c137-a6353f89.ico) | — |
-| A | [public/favicon-c137-a6353f89.png](../../public/favicon-c137-a6353f89.png) | — |
-| A | [public/favicon.ico](../../public/favicon.ico) | — |
-| M | [public/favicon.png](../../public/favicon.png) | — |
-| M | [public/favicon.svg](../../public/favicon.svg) | — |
-| A | [public/icons/c137-a6353f89-128.png](../../public/icons/c137-a6353f89-128.png) | — |
-| A | [public/icons/c137-a6353f89-144.png](../../public/icons/c137-a6353f89-144.png) | — |
-| A | [public/icons/c137-a6353f89-152.png](../../public/icons/c137-a6353f89-152.png) | — |
-| A | [public/icons/c137-a6353f89-180.png](../../public/icons/c137-a6353f89-180.png) | — |
-| A | [public/icons/c137-a6353f89-192.png](../../public/icons/c137-a6353f89-192.png) | — |
-| A | [public/icons/c137-a6353f89-384.png](../../public/icons/c137-a6353f89-384.png) | — |
-| A | [public/icons/c137-a6353f89-512.png](../../public/icons/c137-a6353f89-512.png) | — |
-| A | [public/icons/c137-a6353f89-72.png](../../public/icons/c137-a6353f89-72.png) | — |
-| A | [public/icons/c137-a6353f89-96.png](../../public/icons/c137-a6353f89-96.png) | — |
-| M | [public/icons/icon-128x128.png](../../public/icons/icon-128x128.png) | — |
-| M | [public/icons/icon-144x144.png](../../public/icons/icon-144x144.png) | — |
-| M | [public/icons/icon-152x152.png](../../public/icons/icon-152x152.png) | — |
-| A | [public/icons/icon-180x180.png](../../public/icons/icon-180x180.png) | — |
-| M | [public/icons/icon-192x192.png](../../public/icons/icon-192x192.png) | — |
-| M | [public/icons/icon-384x384.png](../../public/icons/icon-384x384.png) | — |
-| M | [public/icons/icon-512x512.png](../../public/icons/icon-512x512.png) | — |
-| M | [public/icons/icon-72x72.png](../../public/icons/icon-72x72.png) | — |
-| M | [public/icons/icon-96x96.png](../../public/icons/icon-96x96.png) | — |
-| M | [public/logo-128.png](../../public/logo-128.png) | — |
-| M | [public/logo-256.png](../../public/logo-256.png) | — |
-| M | [public/logo-32.png](../../public/logo-32.png) | — |
-| M | [public/logo-512.png](../../public/logo-512.png) | — |
-| M | [public/logo-64.png](../../public/logo-64.png) | — |
-| M | [public/manifest.json](../../public/manifest.json) | — |
-| M | [public/sw.js](../../public/sw.js) | — |
-| A | [scripts/generate-brand-icons.mjs](../../scripts/generate-brand-icons.mjs) | — |
-| M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
-| M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
-| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
-| M | [src/shared/tests/readApiJson.test.ts](../../src/shared/tests/readApiJson.test.ts) | — |
+| M | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
+| M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
+| M | [server/modules/providers/services/sessions-watcher.service.ts](../../server/modules/providers/services/sessions-watcher.service.ts) | — |
+| A | [server/modules/providers/tests/sessions-watcher.test.ts](../../server/modules/providers/tests/sessions-watcher.test.ts) | — |
+| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
+| M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
+| M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
+| M | [src/modules/chat/composer/QueuedMessageCard.tsx](../../src/modules/chat/composer/QueuedMessageCard.tsx) | — |
+| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
+| M | [src/modules/chat/tests/composerSendOverBackgroundWork.test.ts](../../src/modules/chat/tests/composerSendOverBackgroundWork.test.ts) | — |
+| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
 
 ## NAS 主线提交
 
@@ -312,6 +289,53 @@
   - `src/shared/tests/chatDrafts.test.ts`
   - `src/shared/tests/pageTitle.test.ts`
   - `src/shared/utils.ts`
+
+### cb24516c · 2026-10-19 · feat(nas): restore filtered file browsing and retain C137 assets
+
+- 完整提交：`cb24516c2304a29808b0d54cf309e24858449923`
+- 相对第一父提交涉及文件：
+
+  - `AGENTS.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-sync-policy.md`
+  - `index.html`
+  - `public/favicon-c137-a6353f89.ico`
+  - `public/favicon-c137-a6353f89.png`
+  - `public/favicon.ico`
+  - `public/favicon.png`
+  - `public/favicon.svg`
+  - `public/icons/c137-a6353f89-128.png`
+  - `public/icons/c137-a6353f89-144.png`
+  - `public/icons/c137-a6353f89-152.png`
+  - `public/icons/c137-a6353f89-180.png`
+  - `public/icons/c137-a6353f89-192.png`
+  - `public/icons/c137-a6353f89-384.png`
+  - `public/icons/c137-a6353f89-512.png`
+  - `public/icons/c137-a6353f89-72.png`
+  - `public/icons/c137-a6353f89-96.png`
+  - `public/icons/icon-128x128.png`
+  - `public/icons/icon-144x144.png`
+  - `public/icons/icon-152x152.png`
+  - `public/icons/icon-180x180.png`
+  - `public/icons/icon-192x192.png`
+  - `public/icons/icon-384x384.png`
+  - `public/icons/icon-512x512.png`
+  - `public/icons/icon-72x72.png`
+  - `public/icons/icon-96x96.png`
+  - `public/logo-128.png`
+  - `public/logo-256.png`
+  - `public/logo-32.png`
+  - `public/logo-512.png`
+  - `public/logo-64.png`
+  - `public/manifest.json`
+  - `public/sw.js`
+  - `scripts/generate-brand-icons.mjs`
+  - `server/modules/file-tree/file-tree.service.ts`
+  - `server/modules/file-tree/tests/file-tree.service.test.ts`
+  - `src/shared/api.ts`
+  - `src/shared/tests/readApiJson.test.ts`
 
 ## 从 PR / 其他分支合入的提交
 

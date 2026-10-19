@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`b3023bcc8842cc5c8e8f184d89ffd5f10656734e`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`cb24516c2304a29808b0d54cf309e24858449923`。
 
-记录基线与当前暂存树之间的全部净差异，共 237 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 239 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -102,6 +102,7 @@
 | M | [server/modules/providers/services/provider-runtime.service.ts](../../server/modules/providers/services/provider-runtime.service.ts) | — |
 | A | [server/modules/providers/services/provider-session-settings.service.ts](../../server/modules/providers/services/provider-session-settings.service.ts) | — |
 | M | [server/modules/providers/services/provider-token-usage.service.ts](../../server/modules/providers/services/provider-token-usage.service.ts) | — |
+| M | [server/modules/providers/services/sessions-watcher.service.ts](../../server/modules/providers/services/sessions-watcher.service.ts) | — |
 | M | [server/modules/providers/services/sessions.service.ts](../../server/modules/providers/services/sessions.service.ts) | — |
 | M | [server/modules/providers/tests/claude-runtime-hold.test.ts](../../server/modules/providers/tests/claude-runtime-hold.test.ts) | — |
 | A | [server/modules/providers/tests/codex-app-server.process.test.ts](../../server/modules/providers/tests/codex-app-server.process.test.ts) | — |
@@ -114,6 +115,7 @@
 | M | [server/modules/providers/tests/provider-runtime.service.test.ts](../../server/modules/providers/tests/provider-runtime.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider-token-usage.service.test.ts](../../server/modules/providers/tests/provider-token-usage.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider.routes.test.ts](../../server/modules/providers/tests/provider.routes.test.ts) | — |
+| A | [server/modules/providers/tests/sessions-watcher.test.ts](../../server/modules/providers/tests/sessions-watcher.test.ts) | — |
 | M | [server/modules/scheduled-messages/scheduled-messages.routes.ts](../../server/modules/scheduled-messages/scheduled-messages.routes.ts) | — |
 | M | [server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts](../../server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts) | — |
 | M | [server/modules/scheduled-messages/tests/scheduled-messages.test.ts](../../server/modules/scheduled-messages/tests/scheduled-messages.test.ts) | — |

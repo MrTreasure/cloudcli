@@ -120,17 +120,18 @@
     "send": "傳送",
     "stop": "停止",
     "hintText": {
+      "queue": "Enter 加入佇列 · Shift+Enter 換行",
+      "ctrlQueue": "Ctrl+Enter 加入佇列 · Shift+Enter 換行",
       "ctrlEnter": "Ctrl+Enter 傳送 • Shift+Enter 換行 • Tab 切換模式 • / 斜線指令",
-      "enter": "Enter 傳送 • Shift+Enter 換行 • Tab 切換模式 • / 斜線指令",
-      "insert": "Enter 插入 · Shift+Enter 排隊"
+      "enter": "Enter 傳送 • Shift+Enter 換行 • Tab 切換模式 • / 斜線指令"
     },
     "clickToChangeMode": "點擊變更權限模式（或在輸入框中按 Tab）",
     "showAllCommands": "顯示所有指令",
     "clearInput": "清空輸入",
     "scrollToBottom": "捲動到底部",
     "queue": {
-      "sendNow": "立即傳送",
-      "insertNow": "立即插入"
+      "sendNext": "排隊傳送下一則訊息",
+      "sendNow": "立即傳送"
     }
   },
   "thinkingMode": {

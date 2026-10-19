@@ -4,6 +4,7 @@ import { promises as fsPromises } from 'node:fs';
 
 import chokidar, { type FSWatcher } from 'chokidar';
 
+import { sessionsDb } from '@/modules/database/index.js';
 import { sessionSynchronizerService } from '@/modules/providers/services/session-synchronizer.service.js';
 import { broadcastSessionUpsertedBatch } from '@/modules/websocket/index.js';
 import type { LLMProvider } from '@/shared/types.js';
@@ -204,11 +205,31 @@ export async function initializeSessionsWatcher(): Promise<void> {
     failures: initialSync.failures,
   });
 
+  // A previous watcher may have missed writes before this process started.
+  // Repair known rows from stat only; do not parse every historical transcript
+  // or reset the global incremental scan cursor.
+  const repairedSessionIds: string[] = [];
+  for (const row of sessionsDb.getSessionsWithTranscriptPath()) {
+    try {
+      const metadata = await fsPromises.stat(row.jsonl_path);
+      if (sessionsDb.updateSessionActivity(row.session_id, metadata.mtime.toISOString())) {
+        repairedSessionIds.push(row.session_id);
+      }
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== 'ENOENT' && code !== 'EACCES') console.warn('Could not reconcile session activity', { sessionId: row.session_id, code });
+    }
+  }
+  if (repairedSessionIds.length > 0) await broadcastSessionUpsertedBatch(repairedSessionIds);
+
   for (const { provider, rootPath } of PROVIDER_WATCH_PATHS) {
     try {
       await fsPromises.mkdir(rootPath, { recursive: true });
 
-      const watcher = chokidar.watch(rootPath, {
+      // NAS CLI homes may use a symlink for the root sessions folder. Resolve
+      // that trusted root while still refusing symlink traversal inside it.
+      const resolvedRootPath = await fsPromises.realpath(rootPath);
+      const watcher = chokidar.watch(resolvedRootPath, {
         ignored: WATCHER_IGNORED_PATTERNS,
         persistent: true,
         ignoreInitial: true,

@@ -173,3 +173,49 @@
 | C# / .NET | `.vs`、`.nuget/packages`；有 `.csproj`、`.fsproj`、`.vbproj`、`.sln` 或 `.slnx` 的同级目录下排除 `bin`、`obj`、`packages`、`TestResults`；其他普通同名源码目录保留 |
 
 验证：后端文件树定向 13 项、前端 API 定向 5 项通过；全量前端 118 个文件、840 项通过；全量后端 841 项，其中 840 通过、1 项原有真实 fork 集成测试跳过、0 失败。前后端类型检查、完整构建和 lint 通过；保留既有规则警告与 Vite 大包提示。没有新增前端单测文件，API 参数与取消信号回归补在现有 `src/shared/tests/readApiJson.test.ts`。此项尚未发布；源码提交和本地构建不等于当前运行实例已生效。最新图标修复之前已发布，本次不会重复发布或重启。
+
+
+## 恢复本机自定义模型目录（使用官方配置）
+
+根因：旧 NAS 将 GPT-6.1 Sol 和 DeepSeek 写在 provider 的源码默认模型目录中。精简为官方实现后，这些硬编码随之移除，而本机 `provider_models` 自定义模型表为空、`CUSTOM_MODELS_ONLY` 未设置，界面只显示官方内置模型。这次恢复用户已有模型选择需求，使用官方自定义模型 API，不修改共享源码默认目录或 CLI/认证配置。
+
+- Codex：新增自定义 `gpt-6.1-sol`，显示 GPT-6.1 Sol；推理档位 low/medium/high/xhigh/max，默认 medium。保留原有官方可选模型。
+- Claude：新增原 NAS 的 `deepseek-v4-pro` / DeepSeek V4 Pro 与 `deepseek-flash` / DeepSeek Flash；推理档位 low/high/max，默认 high；打开官方“仅自定义模型”开关，目录默认 DeepSeek V4 Pro。
+- 路径/来源：官方 `server/modules/providers/services/provider-models.service.ts`、`provider.routes.ts` 及本机 `provider_models`、`app_config`；旧 NAS 模型 ID/档位参考原 provider 目录。此次仅调整运行数据并记录维护说明，没有修改这些模块源码。
+- 验证：本机认证 API 回读确认 GPT-6.1 Sol 可选、Claude 仅列出上述两个自定义模型；现有 provider-models 服务 25 项测试通过。未向真实模型发送验收请求，没有改变当前会话模型、CLI 模型配置或任何凭据。本机立即生效，已打开页面需刷新模型目录，不需要发布或重启。
+- 操作前后目录与创建记录保存于 `/vol1/1000/appdata/cloudcli/operations/model-catalog-20261019-180446/`。回退通过官方模型管理删除本次新增记录、恢复此前的 custom-only 状态；删除前检查后续会话对这些模型的引用，不直接覆盖整库。
+
+后续升级要核对并保留本机自定义模型记录与各 provider 的 custom-only 设置；源码从旧定制目录迁移到官方模型管理时，必须迁移原选择，不能只移除默认列表。模型配置属于各电脑的运行数据，Git 拉取不自动复制；Mac 若需要同样目录，使用模型库新增上述模型并设置 Claude 的“仅自定义模型”，不要将 NAS 供应商模型写入公共默认值。
+
+
+## 会话活动时间修复
+
+实际核对发现“CloudCLI更新”“控制台”等 Codex 会话 JSONL 当天持续写入，而数据库 `updated_at` 仍是十月九日。侧栏按 API 的 `lastActivity` 显示旧值，问题发生在索引同步而非相对时间格式化。
+
+根因有两处：NAS 的 `~/.codex/sessions` 是符号链接，watcher 设置 `followSymlinks:false`，未跟进真实根目录；补偿扫描 `findFilesRecursivelyCreatedAfter` 只比较 birthtime，持续追加的老文件被已推进的扫描游标排除。
+
+所属路径及修复：
+
+- `server/modules/providers/services/sessions-watcher.service.ts`：先 realpath 解析可信 provider 监听根目录，保持目录内部不跟随符号链接；启动时只 stat 已登记的 transcript，补回较新的文件修改时间，并广播 session_upserted。不会重读所有历史正文或重置全局游标。
+- `server/shared/utils.ts`：增量发现兼顾创建与修改时间，捕获旧会话的新内容，供各 provider 的补偿同步使用。
+- `server/modules/database/repositories/sessions.db.ts`：新增单调递增的活动时间更新，只更新 timestamp，不修改标题、映射、模型或归档状态。
+- `server/modules/providers/tests/sessions-watcher.test.ts`：隔离 HOME 和数据库；覆盖老文件新增内容的发现、未变文件排除、真实符号链接根目录的追加事件、启动旧时间校正及不回退时间/不改标题。NAS 临时目录的 ACL 可能呈现 mode 000，测试 fixture 显式设置 owner-read 位以符合真实 Codex 文件权限，没有修改运行目录权限。
+
+来源为本次本机实测与现有官方 watcher/增量索引实现。回退应一并处理 watcher、共享文件发现工具、活动时间 DB 方法和对应测试；已校正的时间数据无须恢复旧值，不删除日志。已有模型配置通过官方目录管理保留，CLI 中已配置的模型不会自动进入官方静态模型选项，此行为与本次时间修复分开处理。
+
+验证：两项定向测试通过（包含真实符号链接、真实文件追加监听及启动修复）；全量前端 840 项通过；后端 843 项中 842 通过、1 项原有真实 fork 集成测试跳过，0 失败。类型检查、前后端构建和 lint 通过（保留既有警告）。启动校正将补回旧会话时间，后续写入由 watcher 同步。此次无前端功能改动，不需要单独更新前端来修复活动时间。运行实例状态另见重启操作记录，不将构建完成视为已经生效。
+
+
+活动时间后端修复已重启生效：本机健康、旧会话活动时间校正、最近会话 API、GPT-6.1 Sol 和 Claude 自定义目录检查通过。操作记录：`/vol1/1000/appdata/cloudcli/operations/session-activity-20261019-181707/result.json`。只重启后端，未重新发布前端；当时源码尚未提交，后续提交见 Git 变更记录。
+
+
+## 2026-10-19 修复换行冲突并调整为先排队、手动立即发送
+
+用户最终确认交互：默认 Enter/发送按钮在空闲时直接发送，响应中只将消息加入官方单条队列；点击队列卡片“立即发送”，Codex 才通过原生 `turn/steer` 插入当前轮。若不点击，保留已有整轮（含后台工作）结束后的自动分发。Shift+Enter 在空闲、运行中及候选菜单打开时始终交由 textarea 原生换行；已有 Ctrl+Enter 发送偏好仍生效。撤回未发布的独立“排队”按钮方案，队列卡片统一显示“立即发送”。
+
+- 目的/取舍：用户希望先检查队列内容，再主动选择立即插入；因此删除普通提交后的自动 send-now 调用，保留卡片显式动作、失败保护与原生插入能力。不修改后端队列调度或会话隔离，不停止正在执行的工具。
+- 来源：本次用户交互确认，基于官方 v1.37.5 单条队列及此前恢复的 Codex 原生插入，不是新增上游 PR。此前章节中 Enter 插入、Shift+Enter 排队属于旧交互，本节与保留项策略表为当前要求。
+- 所属路径：`src/modules/chat/hooks/useChatComposerState.ts`（放行换行，响应中提交只入队）、`src/modules/chat/ChatInterface.tsx`、`src/modules/chat/composer/ChatComposer.tsx`（连接动作与入队提示）、`src/modules/chat/composer/QueuedMessageCard.tsx`（统一“立即发送”）；`src/modules/i18n/locales/{en,zh-CN,zh-TW}/chat.json`；现有 `composerSendOverBackgroundWork.test.ts` 回归测试。没有新增前端测试文件。
+- 回退：整体回退上述前端动作、卡片、翻译和测试，并恢复相应文档；不回退后端 steer/队列修复，不清除用户已排队消息。仍沿用官方单条队列，新消息更新该草稿，没有引入多条 FIFO。
+- 验证：37 项定向测试通过，覆盖响应中 Enter/提交仅入队、耐久附件、卡片“立即发送”触发插入、不重复 chat.send、失败后保留草稿及提示、Shift+Enter 放行、空闲正常发送和基本编辑快捷键；全量前端 118 个文件、843 项全部通过，类型检查、前端构建和 lint 通过（保留既有 lint 警告与 Vite 大包提示）。
+- 发布状态：源码已修复；本轮只改前端，无须重启后端，尚未发布当前界面；本次与此前已验证的模型维护记录和活动时间修复一并提交；提交与推送不表示已发布。

@@ -7,7 +7,6 @@ type QueuedMessageCardProps = {
   onSendNow?: () => void;
   sending?: boolean;
   error?: string | null;
-  insertIntoActiveRun?: boolean;
   onEdit: () => void;
   onDelete: () => void;
 };
@@ -22,7 +21,6 @@ export default function QueuedMessageCard({
   onSendNow,
   sending = false,
   error,
-  insertIntoActiveRun = false,
   onEdit,
   onDelete,
 }: QueuedMessageCardProps) {
@@ -52,10 +50,10 @@ export default function QueuedMessageCard({
         <div className="flex shrink-0 items-center gap-0.5">
           {onSendNow && (
             <button type="button" disabled={sending} onClick={onSendNow}
-              title={t(insertIntoActiveRun ? 'input.queue.insertNow' : 'input.queue.sendNow')}
+              title={t('input.queue.sendNow')}
               className="inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-primary transition-colors hover:bg-accent disabled:opacity-50">
               {sending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SendIcon className="h-3.5 w-3.5" />}
-              {t(insertIntoActiveRun ? 'input.queue.insertNow' : 'input.queue.sendNow')}
+              {t('input.queue.sendNow')}
             </button>
           )}
           <button

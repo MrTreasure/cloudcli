@@ -144,9 +144,9 @@
     "hintText": {
       "ctrlEnter": "Ctrl+Enter to send • Shift+Enter for new line • Tab to change modes • / for slash commands",
       "enter": "Enter to send • Shift+Enter for new line • Tab to change modes • / for slash commands",
-      "queue": "Enter to queue your next message",
-      "updateQueued": "Enter to update queued message",
-      "insert": "Enter to insert · Shift+Enter to queue"
+      "queue": "Enter to queue · Shift+Enter for new line",
+      "ctrlQueue": "Ctrl+Enter to queue · Shift+Enter for new line",
+      "updateQueued": "Enter to update queued message"
     },
     "clickToChangeMode": "Click to change permission mode (or press Tab in input)",
     "showAllCommands": "Show all commands",
@@ -159,8 +159,7 @@
       "willSend": "Will send when this finishes",
       "edit": "Edit queued message",
       "delete": "Delete queued message",
-      "sendNow": "Send now",
-      "insertNow": "Insert now"
+      "sendNow": "Send now"
     },
     "fast": {
       "label": "Request Fast",
