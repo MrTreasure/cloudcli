@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`83d3f8042e8c4bf4b01ecb873f2d881f59cdf150`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`574ac952effcb88655befdf7278bdf11989ba80a`。
 
-记录基线与当前暂存树之间的全部净差异，共 244 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 247 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -82,6 +82,8 @@
 | A | [scripts/generate-brand-icons.mjs](../../scripts/generate-brand-icons.mjs) | — |
 | A | [scripts/record-nas-changes.mjs](../../scripts/record-nas-changes.mjs) | — |
 | M | [server/index.ts](../../server/index.ts) | — |
+| M | [server/modules/assets/assets.routes.ts](../../server/modules/assets/assets.routes.ts) | — |
+| M | [server/modules/assets/services/image-assets.service.ts](../../server/modules/assets/services/image-assets.service.ts) | — |
 | M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
 | M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
 | A | [server/modules/database/repositories/codex-context.db.ts](../../server/modules/database/repositories/codex-context.db.ts) | — |
@@ -130,6 +132,7 @@
 | M | [server/modules/websocket/services/chat-session-writer.service.ts](../../server/modules/websocket/services/chat-session-writer.service.ts) | — |
 | M | [server/modules/websocket/services/chat-websocket.service.ts](../../server/modules/websocket/services/chat-websocket.service.ts) | — |
 | M | [server/modules/websocket/tests/chat-run-registry.test.ts](../../server/modules/websocket/tests/chat-run-registry.test.ts) | — |
+| M | [server/shared/image-attachments.ts](../../server/shared/image-attachments.ts) | — |
 | M | [server/shared/index.ts](../../server/shared/index.ts) | — |
 | M | [server/shared/interfaces.ts](../../server/shared/interfaces.ts) | — |
 | M | [server/shared/tests/read-only-roots.test.ts](../../server/shared/tests/read-only-roots.test.ts) | — |

@@ -2,8 +2,7 @@ import express from 'express';
 import multer from 'multer';
 
 import {
-  buildStoredAttachmentRecords,
-  buildStoredImageRecords,
+  prepareStoredAttachmentRecords,
   ensureImageAssetsDir,
   isAllowedImageMimeType,
   openStoredAttachmentAsset,
@@ -65,7 +64,9 @@ router.post('/images', (req, res) => {
       return res.status(400).json({ error: 'No image files provided' });
     }
 
-    res.json({ images: buildStoredImageRecords(files) });
+    void prepareStoredAttachmentRecords(files).then(images => res.json({ images })).catch(() => {
+      res.status(500).json({ error: 'Unable to prepare uploaded images' });
+    });
   });
 });
 
@@ -86,7 +87,9 @@ router.post('/files', (req, res) => {
       return res.status(400).json({ error: 'No files provided' });
     }
 
-    res.json({ attachments: buildStoredAttachmentRecords(files) });
+    void prepareStoredAttachmentRecords(files).then(attachments => res.json({ attachments })).catch(() => {
+      res.status(500).json({ error: 'Unable to prepare uploaded attachments' });
+    });
   });
 });
 
@@ -95,7 +98,7 @@ router.post('/files', (req, res) => {
  * global assets folder are reachable; traversal attempts resolve to null.
  */
 router.get('/images/:filename', async (req, res) => {
-  const asset = await openStoredAttachmentAsset(req.params.filename);
+  const asset = await openStoredAttachmentAsset(req.params.filename, req.query.format === 'webp');
   if (asset.status === 'invalid') {
     return res.status(400).json({ error: 'Invalid asset filename' });
   }
@@ -114,7 +117,7 @@ router.get('/images/:filename', async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment');
   }
   asset.stream.pipe(res);
-  asset.stream.on('error', (error) => {
+  asset.stream.on('error', (error: unknown) => {
     console.error('Error streaming image asset:', error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Error reading asset' });
@@ -139,7 +142,7 @@ router.get('/files/:filename', async (req, res) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Content-Disposition', `attachment; filename="${req.params.filename.replace(/["\r\n]/g, '_')}"`);
   asset.stream.pipe(res);
-  asset.stream.on('error', (error) => {
+  asset.stream.on('error', (error: unknown) => {
     console.error('Error streaming attachment asset:', error);
     if (!res.headersSent) {
       res.status(500).json({ error: 'Error reading asset' });

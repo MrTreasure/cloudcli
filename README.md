@@ -288,6 +288,16 @@ CloudCLI UI - (https://cloudcli.ai).
 NAS 外观继续保留 C137 Logo 和原用户头像，并隐藏侧栏的报告问题、加入社区及 GitHub Star 入口（含手机和折叠侧栏）。
 
 
+### CloudCLI 公共 WebP 图片转换
+
+公共 `optimizeImageBuffer`（`server/shared/utils.ts`，从 shared 入口导出）供上传、Provider 及其他后端功能复用。`/api/assets/images`、`/api/assets/files` 上传图片时预生成缓存，返回的原图路径、MIME、大小不变；Claude 构造图片内容和 Codex app-server 实际 HTTP 请求过滤调用同一转换，不各自实现编码。默认图片读取仍返回原图，认证后的 `/api/assets/images/:filename?format=webp` 可获取更小的 WebP 预览副本；无收益或不支持时返回原格式，应以响应 Content-Type 为准。
+
+PNG 使用**无损 WebP**，JPEG 使用默认**质量 85**，不缩小分辨率，按 EXIF 修正方向；仅在转换后更小时采用。GIF、SVG、已有 WebP、动画、超过 32 MP/64 MiB 的输入及解码失败均保留原格式，不让转换失败中断对话。上传文件、原生既有历史、Codex 原图档案不改写。Claude 新写入的原生历史包含实际发送的 WebP 内容，上传原文件仍保留在附件目录；这不是批量改写旧历史。Cursor/OpenCode 的本地路径读取和显式 Codex SDK 模式尚未自动接入该转换；公共函数和预览接口可供后续功能直接复用。
+
+默认开启，环境变量：`CLOUDCLI_IMAGE_WEBP_ENABLED=false` 关闭全部接入处；`CLOUDCLI_IMAGE_WEBP_QUALITY=85` 调整 JPEG 质量（1–100）；`CLOUDCLI_IMAGE_WEBP_CACHE_BYTES=268435456` 设置副本缓存上限（默认 256 MiB）；`CLOUDCLI_IMAGE_WEBP_CACHE_DIR` 可选择本机缓存目录，默认 `~/.cloudcli/image-variants`。按原始内容、编码器版本和质量缓存，不重复压缩同图；原图预览不依赖缓存。最多同时编码 2 张、排队共 32 张，超额回退原格式。缓存淘汰仅删除可再生成的副本，不删除原图；缓存不随 Git 同步。`sharp` 已改为生产依赖，随各台电脑的 pnpm 安装提供对应平台二进制。
+
+Codex 先按原有原图 JSON 字节预算决定保留项，再压缩实际保留/勾选的图片，避免编码已经过期的历史图；预算准入保持保守，实际发送和超额提示按转换后大小统计。现有 HTTP 字节统计同时反映历史裁剪和 WebP 转换，不能据此单独断言 CPA 下游或模型 token 同比例减少。浏览器首次上传原图到 CloudCLI 的流量不因服务端转换减少。
+
 ### Codex 长会话图片上下文
 
 Codex app-server 会把历史 `input_image`（包括压缩后的 `replacement_history` 中的 Base64）再次带入模型请求。CloudCLI 通过仅监听本机回环地址的 HTTP 转发，在**实际发往上游的请求体**中把过期图片替换为可追溯的本地引用。原始 rollout JSONL 和聊天界面图片不变，不依赖 NAS、R2 或额外 MCP 服务。

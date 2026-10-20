@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`83d3f8042e8c4bf4b01ecb873f2d881f59cdf150`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`574ac952effcb88655befdf7278bdf11989ba80a`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -15,26 +15,14 @@
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
 | M | [package.json](../../package.json) | — |
 | M | [pnpm-lock.yaml](../../pnpm-lock.yaml) | — |
-| M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
-| A | [server/modules/database/repositories/codex-context.db.ts](../../server/modules/database/repositories/codex-context.db.ts) | — |
-| M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
+| M | [server/modules/assets/assets.routes.ts](../../server/modules/assets/assets.routes.ts) | — |
+| M | [server/modules/assets/services/image-assets.service.ts](../../server/modules/assets/services/image-assets.service.ts) | — |
 | M | [server/modules/providers/README.md](../../server/modules/providers/README.md) | — |
-| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
-| M | [server/modules/providers/list/codex/codex-runtime.provider.ts](../../server/modules/providers/list/codex/codex-runtime.provider.ts) | — |
-| M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
-| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
-| A | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
-| A | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
-| M | [server/modules/providers/services/provider-runtime.service.ts](../../server/modules/providers/services/provider-runtime.service.ts) | — |
+| M | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
+| M | [server/shared/image-attachments.ts](../../server/shared/image-attachments.ts) | — |
+| M | [server/shared/index.ts](../../server/shared/index.ts) | — |
 | M | [server/shared/types.ts](../../server/shared/types.ts) | — |
-| M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
-| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
-| A | [src/modules/chat/modals/CodexContextPanel.tsx](../../src/modules/chat/modals/CodexContextPanel.tsx) | — |
-| M | [src/modules/chat/modals/CommandResultModal.tsx](../../src/modules/chat/modals/CommandResultModal.tsx) | — |
-| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
-| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
+| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
 
 ## NAS 主线提交
 
@@ -369,6 +357,39 @@
   - `src/modules/i18n/locales/en/chat.json`
   - `src/modules/i18n/locales/zh-CN/chat.json`
   - `src/modules/i18n/locales/zh-TW/chat.json`
+
+### 574ac952 · 2026-10-19 · feat(codex): reduce historical image uploads with local filtering
+
+- 完整提交：`574ac952effcb88655befdf7278bdf11989ba80a`
+- 相对第一父提交涉及文件：
+
+  - `.env.example`
+  - `README.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `package.json`
+  - `pnpm-lock.yaml`
+  - `server/modules/database/index.ts`
+  - `server/modules/database/repositories/codex-context.db.ts`
+  - `server/modules/database/schema.ts`
+  - `server/modules/providers/README.md`
+  - `server/modules/providers/list/codex/codex-app-server.runtime.ts`
+  - `server/modules/providers/list/codex/codex-runtime.provider.ts`
+  - `server/modules/providers/list/codex/codex-sessions.provider.ts`
+  - `server/modules/providers/provider.routes.ts`
+  - `server/modules/providers/services/codex-image-context.service.ts`
+  - `server/modules/providers/services/codex-image-proxy.service.ts`
+  - `server/modules/providers/services/provider-runtime.service.ts`
+  - `server/shared/types.ts`
+  - `src/modules/chat/ChatInterface.tsx`
+  - `src/modules/chat/hooks/useChatComposerState.ts`
+  - `src/modules/chat/modals/CodexContextPanel.tsx`
+  - `src/modules/chat/modals/CommandResultModal.tsx`
+  - `src/modules/i18n/locales/en/chat.json`
+  - `src/modules/i18n/locales/zh-CN/chat.json`
+  - `src/modules/i18n/locales/zh-TW/chat.json`
+  - `src/shared/api.ts`
 
 ## 从 PR / 其他分支合入的提交
 

@@ -1,5 +1,5 @@
 export { appendFilesInputTag, buildCodexInputItems, normalizeImageDescriptors, isImageAttachmentDescriptor } from './image-attachments.js';
-export { resolveCodexExecutable, AppError, createCompleteMessage, createNormalizedMessage, readObjectRecord } from './utils.js';
+export { optimizeImageBuffer, resolveCodexExecutable, AppError, createCompleteMessage, createNormalizedMessage, readObjectRecord } from './utils.js';
 export type {
   AnyRecord,
   NormalizedMessage,

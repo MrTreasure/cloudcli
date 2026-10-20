@@ -5,6 +5,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 
 import { codexContextDb, sessionsDb, getConnection, getDatabasePath } from '@/modules/database/index.js';
+import { optimizeImageBuffer } from '@/shared/index.js';
 import type { AnyRecord, CodexContextState, CodexImageContextPolicy, CodexImageFilterLease, ProviderRuntimeContext } from '@/shared/types.js';
 import { AppError } from '@/shared/utils.js';
 
@@ -158,7 +159,7 @@ export const codexImageContextService = {
     if (!Array.isArray(body.input)) return { prunedImageCount: 0 };
     const { state } = sessionState(sessionId);
     const input = body.input as AnyRecord[];
-    const entries: Array<{ image: NonNullable<Awaited<ReturnType<typeof archive>>>; index: number; bytes: number; replace: (value: AnyRecord) => void; required: boolean; currentUser: boolean }> = [];
+    const entries: Array<{ image: NonNullable<Awaited<ReturnType<typeof archive>>>; item: AnyRecord; index: number; bytes: number; replace: (value: AnyRecord) => void; required: boolean; currentUser: boolean }> = [];
     let newestUser = -1;
     input.forEach((item, index) => { if (item.type === 'message' && item.role === 'user') newestUser = index; });
     let lastResponse = -1;
@@ -175,7 +176,7 @@ export const codexImageContextService = {
         // User/steer images remain protected for the admitted turn. Tool images
         // may expire after a later model response has consumed them.
         if (currentUserImage) lease.protectedIds.add(image.id);
-        entries.push({ image, index, bytes: jsonBytes(item), replace, required, currentUser: currentUserImage });
+        entries.push({ image, item, index, bytes: jsonBytes(item), replace, required, currentUser: currentUserImage });
       }
     }
     entries.forEach(entry => lease.knownIds.add(entry.image.id));
@@ -183,6 +184,7 @@ export const codexImageContextService = {
     const pins = new Set(lease.policy.pinnedImageIds);
     const requiredIds = new Set(entries.filter(entry => entry.required).map(entry => entry.image.id));
     const historicalEntries = entries.filter(entry => !entry.required);
+    const historicalImageBytes = historicalEntries.reduce((sum, entry) => sum + entry.bytes, 0);
     const historical = historicalEntries.filter(entry => !requiredIds.has(entry.image.id));
     const keep = new Set<string>(pins);
     let retainedBytes = state.images.filter(image => pins.has(image.id)).reduce((sum,image) => sum + image.encodedBytes, 0);
@@ -197,10 +199,20 @@ export const codexImageContextService = {
     }
     let prunedImageCount = 0;
     const seen = new Set<string>();
+    const wireBytes = new Map<string, number>();
     for (const entry of [...entries].reverse()) {
       const id = entry.image.id;
       const retain = entry.currentUser || (entry.required ? !seen.has(id) : !requiredIds.has(id) && keep.has(id) && !seen.has(id));
-      if (retain) seen.add(id);
+      if (retain) {
+        seen.add(id);
+        // Archive the original first, then compress only images that will
+        // actually be sent. Retention admission keeps its original byte budget.
+        const original = Buffer.from(entry.item.image_url.slice(entry.item.image_url.indexOf(',') + 1), 'base64');
+        const optimized = await optimizeImageBuffer(original);
+        if (optimized) entry.item.image_url = `data:${optimized.mimeType};base64,${optimized.bytes.toString('base64')}`;
+        entry.bytes = jsonBytes(entry.item);
+        wireBytes.set(id, entry.bytes);
+      }
       else {
         entry.replace({ type: 'input_text', text: `[Archived image ${id.slice(0,12)}; original: ${entry.image.path}. Use view_image on explicit need.]` });
         prunedImageCount += 1;
@@ -212,15 +224,20 @@ export const codexImageContextService = {
       user.content.push({ type: 'input_text', text: `[CloudCLI image archive: ${file}. Contains this conversation's image numbers, hashes and local paths. Read the catalogue and use view_image only when an earlier image is needed.]` });
       const present = new Set(entries.map(entry => entry.image.id));
       for (const image of state.images.filter(image => pins.has(image.id) && !present.has(image.id))) {
-        user.content.push({ type: 'input_text', text: `Explicit comparison image ${image.id.slice(0,12)}` }, { type: 'input_image', image_url: `data:${image.mime};base64,${(await readFile(image.path)).toString('base64')}` });
+        const original = await readFile(image.path);
+        const optimized = await optimizeImageBuffer(original);
+        const item = { type: 'input_image', image_url: `data:${optimized?.mimeType ?? image.mime};base64,${(optimized?.bytes ?? original).toString('base64')}` };
+        user.content.push({ type: 'input_text', text: `Explicit comparison image ${image.id.slice(0,12)}` }, item);
+        wireBytes.set(image.id, jsonBytes(item));
       }
     }
+    retainedBytes = [...keep].reduce((sum, id) => sum + (wireBytes.get(id) ?? 0), 0);
     const latest = sessionState(sessionId).state;
     latest.images = [...new Map([...latest.images, ...state.images].map(image => [image.id,image])).values()];
     latest.activeImageIds = [...seen];
     const required = entries.filter(entry => entry.required);
     Object.assign(latest.metrics, { historicalImageCount: historicalEntries.length,
-      historicalImageBytes: historicalEntries.reduce((sum,entry) => sum + entry.bytes,0),
+      historicalImageBytes,
       retainedImageCount: keep.size, retainedImageBytes: retainedBytes,
       currentImageCount: required.length, currentImageBytes: required.reduce((sum,entry) => sum + entry.bytes,0),
       budgetExceeded: retainedBytes > lease.policy.imageBytes || required.reduce((sum,entry) => sum + entry.bytes,0) > lease.policy.imageBytes,

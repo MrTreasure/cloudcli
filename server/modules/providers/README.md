@@ -411,3 +411,21 @@ alongside the implementation.
 HTTP transport preserves request encoding, raw SSE responses, upstream headers, cancellation and host proxy settings. Metrics measure serialized HTTP bodies and decoded JSON, not TLS traffic or CPA's downstream uploads. Archive/body capacity failures are explicit; history is never rewritten. `codex_context_state` persists per-session settings, image metadata and metrics. Ordinary sends/compaction keep the native thread; only explicit clear stores a previous-rollout segment and atomically changes the native mapping. History parsing reads those retained segments, making older segments read-only while keeping current anchors.
 
 The authenticated `/sessions/:sessionId/image-context` GET/PATCH endpoints expose policy and metadata. The usage modal invokes `/compact` or `/clear` through normal chat admission/abort handling without consuming the composer draft. Explicit SDK mode reports unsupported context controls. See root README and `docs/nas/README.md` for defaults, verification, limitations and rollback.
+
+## Shared CloudCLI image conversion
+
+Image encoding belongs to the public `optimizeImageBuffer` utility exported by
+`server/shared/index.ts`, not the Codex provider. Assets uploads prewarm it,
+Claude's shared content builder uses its bytes and MIME together, and Codex
+HTTP filtering calls it only for retained/pinned images after archiving originals.
+PNG is lossless; JPEG defaults to WebP quality 85 without downscaling. Unsupported,
+animated, invalid, oversized or non-beneficial conversions preserve the input.
+The common private content/version/quality cache is bounded and limits concurrent
+encoding; conversion/cache failures must not break an otherwise valid send.
+
+The original Codex JSON byte budget still decides retention admission; retained
+and current byte metrics reflect encoded variants, and the HTTP transport measures
+the whole final body. Archive IDs/paths continue to describe originals. Existing
+WebP/file-ID/opaque content is not transcoded. Cursor/OpenCode path readers and
+explicit Codex SDK mode do not automatically convert images yet. See the root
+README for the opt-in WebP assets endpoint, machine-local settings and boundaries.

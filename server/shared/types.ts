@@ -1903,3 +1903,18 @@ export type CodexContextState = {
   activeImageIds: string[];
   metrics: CodexContextMetrics;
 };
+
+//----------------- SHARED IMAGE OPTIMIZATION ------------
+/**
+ * A smaller WebP derivative returned by the shared image optimizer. Buffers
+ * are model/preview variants, never replacements for an uploaded or archived
+ * original. MIME and bytes must be used together when constructing content.
+ */
+export type OptimizedImage = {
+  bytes: Buffer;
+  mimeType: 'image/webp';
+  originalBytes: number;
+  lossless: boolean;
+};
+
+// ---------------------------

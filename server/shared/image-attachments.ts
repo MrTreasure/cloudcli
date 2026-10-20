@@ -2,6 +2,8 @@ import { promises as fs, realpathSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { optimizeImageBuffer } from '@/shared/utils.js';
+
 /**
  * Shared chat-attachment plumbing for every provider runtime.
  *
@@ -390,12 +392,13 @@ export async function buildClaudeUserContent(
       }
 
       const bytes = await fs.readFile(canonicalPath);
+      const optimized = await optimizeImageBuffer(bytes);
       blocks.push({
         type: 'image',
         source: {
           type: 'base64',
-          media_type: mediaType,
-          data: bytes.toString('base64'),
+          media_type: optimized?.mimeType ?? mediaType,
+          data: (optimized?.bytes ?? bytes).toString('base64'),
         },
       });
     } catch (error) {

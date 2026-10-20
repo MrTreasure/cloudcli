@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import {
   access,
@@ -8,7 +8,9 @@ import {
   readdir,
   readlink,
   realpath,
+  rename,
   stat,
+  unlink,
   writeFile,
 } from 'node:fs/promises';
 import os from 'node:os';
@@ -17,6 +19,7 @@ import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import sharp from 'sharp';
 
 import { parseFrontMatter } from '@/shared/frontmatter.js';
 import type {
@@ -24,6 +27,7 @@ import type {
   ApiSuccessShape,
   AppErrorOptions,
   NormalizedMessage,
+  OptimizedImage,
   ProviderCurrentActiveModel,
   ProviderModelsDefinition,
   ProviderSkillSource,
@@ -39,6 +43,99 @@ import type {
  * Environment variables must be loaded before this module is evaluated.
  */
 export const IS_PLATFORM = process.env.VITE_IS_PLATFORM === 'true';
+
+// ---------------------------
+
+//----------------- SHARED IMAGE OPTIMIZATION ------------
+const imageJobs = new Map<string, Promise<OptimizedImage | null>>();
+const imageWaiters: Array<() => void> = [];
+let activeImageJobs = 0;
+let imageCacheTail = Promise.resolve();
+
+function imageInteger(value: string | undefined, fallback: number, minimum: number, maximum: number) {
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum ? parsed : fallback;
+}
+
+async function writeImageVariant(directory: string, key: string, bytes: Buffer, maximum: number) {
+  if (bytes.length > maximum) return;
+  // Serialize cache eviction and publication. Only reproducible variants in this
+  // private directory are removable; uploaded and archived originals never are.
+  const write = imageCacheTail.then(async () => {
+    await mkdir(directory, { recursive: true, mode: 0o700 });
+    const files = await Promise.all((await readdir(directory)).filter(name => /^[a-f0-9]{64}\.(webp|json)$/.test(name)).map(async name => {
+      const file = path.join(directory, name);
+      const info = await stat(file);
+      return { file, size: info.size, modified: info.mtimeMs };
+    }));
+    let usage = files.reduce((sum, file) => sum + file.size, 0);
+    for (const file of files.sort((a, b) => a.modified - b.modified)) {
+      if (usage + bytes.length <= maximum) break;
+      await unlink(file.file); usage -= file.size;
+    }
+    const destination = path.join(directory, key);
+    const temporary = destination + '.' + randomUUID() + '.tmp';
+    try {
+      await writeFile(temporary, bytes, { mode: 0o600, flag: 'wx' });
+      await rename(temporary, destination);
+    } finally { await unlink(temporary).catch(() => {}); }
+  });
+  imageCacheTail = write.catch(() => {});
+  await write;
+}
+
+/**
+ * Assets uploads, Claude content builders and Codex HTTP filtering reuse this
+ * conversion. PNG uses lossless WebP and JPEG uses configurable quality (85 by
+ * default), preserving dimensions/orientation. Animated/other formats, invalid
+ * or oversized inputs and conversions that do not save bytes return null: the
+ * caller must retain its original. Original bytes are never modified. Content,
+ * codec version and quality key a bounded private disk cache; only two encodes
+ * run concurrently and at most 32 distinct images are admitted at once.
+ */
+export async function optimizeImageBuffer(bytes: Buffer): Promise<OptimizedImage | null> {
+  if (process.env.CLOUDCLI_IMAGE_WEBP_ENABLED === 'false' || bytes.length < 256 || bytes.length > 64 * 1048576) return null;
+  const png = bytes.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  const jpeg = bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (!png && !jpeg) return null;
+  const quality = imageInteger(process.env.CLOUDCLI_IMAGE_WEBP_QUALITY, 85, 1, 100);
+  const maximum = imageInteger(process.env.CLOUDCLI_IMAGE_WEBP_CACHE_BYTES, 256 * 1048576, 1048576, 2 * 1024 * 1048576);
+  const key = createHash('sha256').update(`webp-v1:${sharp.versions.vips}:${sharp.versions.webp}:${quality}:`).update(bytes).digest('hex');
+  const existing = imageJobs.get(key);
+  if (existing) return existing;
+  if (imageJobs.size >= 32) return null;
+  const job = (async (): Promise<OptimizedImage | null> => {
+    if (activeImageJobs >= 2) await new Promise<void>(resolve => imageWaiters.push(resolve));
+    else activeImageJobs += 1;
+    try {
+      const directory = process.env.CLOUDCLI_IMAGE_WEBP_CACHE_DIR || path.join(os.homedir(), '.cloudcli', 'image-variants');
+      try {
+        const cached = await readFile(path.join(directory, key + '.webp'));
+        if (cached.length < bytes.length) return { bytes: cached, mimeType: 'image/webp', originalBytes: bytes.length, lossless: png };
+      } catch { /* Missing/evicted variants are safe to regenerate. */ }
+      try { await access(path.join(directory, key + '.json')); return null; }
+      catch { /* No smaller-result decision has been cached yet. */ }
+      const image = sharp(bytes, { animated: true, limitInputPixels: 32 * 1024 * 1024 });
+      const metadata = await image.metadata();
+      if ((metadata.pages ?? 1) > 1 || metadata.width! * metadata.height! > 32 * 1024 * 1024) return null;
+      const converted = await image.rotate().webp({ lossless: png, quality, effort: 4 }).toBuffer();
+      const smaller = converted.length < bytes.length;
+      try {
+        await writeImageVariant(directory, key + (smaller ? '.webp' : '.json'), smaller ? converted : Buffer.from('{"smaller":false}'), maximum);
+      } catch { console.warn('[Images]', { code: 'IMAGE_VARIANT_CACHE_WRITE' }); }
+      return smaller ? { bytes: converted, mimeType: 'image/webp', originalBytes: bytes.length, lossless: png } : null;
+    } catch {
+      // Never log image data, paths, prompts, metadata or codec error strings.
+      console.warn('[Images]', { code: 'IMAGE_WEBP_FALLBACK' });
+      return null;
+    } finally {
+      const next = imageWaiters.shift();
+      if (next) next(); else activeImageJobs -= 1;
+    }
+  })();
+  imageJobs.set(key, job);
+  try { return await job; } finally { imageJobs.delete(key); }
+}
 
 // ---------------------------
 //----------------- NORMALIZED MESSAGE HELPER INPUT TYPES ------------

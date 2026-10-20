@@ -1,9 +1,11 @@
 import fsSync, { promises as fs } from 'node:fs';
 import path from 'node:path';
+import { Readable } from 'node:stream';
 
 import mime from 'mime-types';
 
 import { getGlobalImageAssetsDir, toPosixPath } from '@/shared/image-attachments.js';
+import { optimizeImageBuffer } from '@/shared/index.js';
 
 /**
  * Image mime types accepted for chat attachment uploads. SVG is allowed for
@@ -74,6 +76,21 @@ export function buildStoredAttachmentRecords(files: UploadedAttachmentFile[]): S
 }
 
 /**
+ * Upload routes precompute the common WebP cache for image attachments while
+ * returning original paths, MIME and sizes for unchanged previews/history.
+ * Model builders and opt-in WebP preview requests reuse these same variants.
+ */
+export async function prepareStoredAttachmentRecords(files: UploadedAttachmentFile[]): Promise<StoredImageAsset[]> {
+  const records = buildStoredAttachmentRecords(files);
+  for (const record of records) {
+    if (!['image/png', 'image/jpeg'].includes(record.mimeType) && !/\.(png|jpe?g)$/i.test(record.path)) continue;
+    try { await optimizeImageBuffer(await fs.readFile(record.path)); }
+    catch { console.warn('[Images]', { code: 'IMAGE_UPLOAD_VARIANT_FALLBACK' }); }
+  }
+  return records;
+}
+
+/**
  * Resolves one asset filename to its absolute path inside the global assets
  * folder, or null when the name is empty, contains path separators/traversal,
  * or would escape the folder. This is the only lookup the serving route uses,
@@ -107,7 +124,7 @@ export function resolveAttachmentAssetFile(filename: string): string | null {
  * filesystem reads. The route translates the lookup status and streams the
  * returned direct-child file to the authenticated client.
  */
-export async function openStoredAttachmentAsset(filename: string) {
+export async function openStoredAttachmentAsset(filename: string, webp = false) {
   const resolved = resolveAttachmentAssetFile(filename);
   if (!resolved) {
     return { status: 'invalid' as const };
@@ -117,6 +134,13 @@ export async function openStoredAttachmentAsset(filename: string) {
     await fs.access(resolved);
   } catch {
     return { status: 'missing' as const };
+  }
+
+  if (webp && /\.(png|jpe?g)$/i.test(resolved)) {
+    try {
+      const optimized = await optimizeImageBuffer(await fs.readFile(resolved));
+      if (optimized) return { status: 'found' as const, contentType: optimized.mimeType, stream: Readable.from([optimized.bytes]) };
+    } catch { console.warn('[Images]', { code: 'IMAGE_PREVIEW_VARIANT_FALLBACK' }); }
   }
 
   return {
