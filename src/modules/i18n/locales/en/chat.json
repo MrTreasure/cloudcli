@@ -11,6 +11,8 @@
     "saved": "Saved; applies next turn",
     "stats": "History: {{count}} images / {{bytes}} · Detached this request: {{pruned}} · Compactions: {{compactions}}",
     "measurement": "Latest HTTP body {{before}} → {{after}} · Total saved {{saved}} ({{requests}} requests). Excludes traffic beyond CPA.",
+    "transportLatest": "Latest body encoding {{encoding}}: JSON {{before}} → {{after}} · {{ms}} ms · Status {{status}}",
+    "transportTotals": "CloudCLI → upstream cumulative request bodies {{total}} ({{requests}} requests) · Average {{average}} · Maximum {{maximum}}. Excludes CPA → ChatGPT traffic; measured samples since this feature was installed only.",
     "exceeded": "History budget {{budget}} exceeded: retained history {{retained}}; current input {{count}} images / about {{bytes}}. Latest and comparison images remain available.",
     "images": "Historical image references ({{count}})",
     "reload": "Select images to reload or keep for comparison, then save. They load on your next send. Unselected images follow the recent-count and byte limits.",

@@ -17,6 +17,11 @@ type ContextData = {
     requests: number; requestBytesBefore: number; requestBytesAfter: number;
     jsonBytesBefore: number; jsonBytesAfter: number; savedBytes: number; uploadedBytes: number;
     prunedImageCount: number;
+    transport?: {
+      requests: number; totalJsonBytes: number; totalWireBytes: number; maxWireBytes: number;
+      lastEncoding: string; lastJsonBytes: number; lastWireBytes: number; lastCompressionMs: number;
+      lastStatus: number | string;
+    };
   };
 };
 const size = (bytes: number) => bytes >= 1048576 ? `${(bytes / 1048576).toFixed(2)} MiB` : `${(bytes / 1024).toFixed(1)} KiB`;
@@ -74,6 +79,18 @@ export function CodexContextPanel({ sessionId, busy, onAction }: {
       </div>
       <p className="text-xs text-muted-foreground">{t('contextPolicy.stats', { count: data.metrics.historicalImageCount, bytes: size(data.metrics.historicalImageBytes), pruned: data.metrics.prunedImageCount, compactions: data.metrics.compactions })}</p>
       <p className="text-xs text-muted-foreground">{data.metrics.requests > 0 ? t('contextPolicy.measurement', { before: size(data.metrics.requestBytesBefore), after: size(data.metrics.requestBytesAfter), saved: size(data.metrics.savedBytes), requests: data.metrics.requests }) : t('contextPolicy.unmeasured')}</p>
+      {data.metrics.transport && data.metrics.transport.requests > 0 && <>
+        <p className="text-xs text-muted-foreground">{t('contextPolicy.transportLatest', {
+          encoding: data.metrics.transport.lastEncoding, before: size(data.metrics.transport.lastJsonBytes),
+          after: size(data.metrics.transport.lastWireBytes), ms: data.metrics.transport.lastCompressionMs,
+          status: data.metrics.transport.lastStatus,
+        })}</p>
+        <p className="text-xs text-muted-foreground">{t('contextPolicy.transportTotals', {
+          total: size(data.metrics.transport.totalWireBytes), requests: data.metrics.transport.requests,
+          average: size(data.metrics.transport.totalWireBytes / data.metrics.transport.requests),
+          maximum: size(data.metrics.transport.maxWireBytes),
+        })}</p>
+      </>}
       {data.metrics.budgetExceeded && <p role="status" className="text-xs text-amber-600">{t('contextPolicy.exceeded', { count: data.metrics.currentImageCount, bytes: size(data.metrics.currentImageBytes), retained: size(data.metrics.retainedImageBytes), budget: size(data.policy.imageBytes) })}</p>}
       <details>
         <summary className="cursor-pointer text-xs font-medium">{t('contextPolicy.images', { count: data.images.length })}</summary>

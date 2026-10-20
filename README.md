@@ -288,6 +288,12 @@ CloudCLI UI - (https://cloudcli.ai).
 NAS 外观继续保留 C137 Logo 和原用户头像，并隐藏侧栏的报告问题、加入社区及 GitHub Star 入口（含手机和折叠侧栏）。
 
 
+### 跨项目文件查看与编辑
+
+聊天中引用的**绝对文件路径**可以在已登录的编辑器中打开、预览并保存现有文件，范围使用本机 `WORKSPACES_ROOT` 和现有系统目录校验；未设置时仍以当前用户主目录为工作区，不把 NAS 路径放入源码默认值。跨项目目标先解析符号链接，再校验真实路径。NAS 部署已设置 `WORKSPACES_ROOT=/`，可打开其他项目中的文档；进程操作系统权限仍然有效。
+
+相对 `../` 不能越出所选项目；创建、上传、重命名、删除保持项目范围。临时日志和 Claude 输出目录的项目外只读例外仍不授予写权限。此改动仅在 File Tree 后端，构建后重启生效，无需重新发布前端。
+
 ### CloudCLI 公共 WebP 图片转换
 
 公共 `optimizeImageBuffer`（`server/shared/utils.ts`，从 shared 入口导出）供上传、Provider 及其他后端功能复用。`/api/assets/images`、`/api/assets/files` 上传图片时预生成缓存，返回的原图路径、MIME、大小不变；Claude 构造图片内容和 Codex app-server 实际 HTTP 请求过滤调用同一转换，不各自实现编码。默认图片读取仍返回原图，认证后的 `/api/assets/images/:filename?format=webp` 可获取更小的 WebP 预览副本；无收益或不支持时返回原格式，应以响应 Content-Type 为准。
@@ -312,9 +318,19 @@ Codex app-server 会把历史 `input_image`（包括压缩后的 `replacement_hi
 
 新会话策略默认值可通过 `CLOUDCLI_CODEX_HISTORY_IMAGES=3`、`CLOUDCLI_CODEX_HISTORY_IMAGE_BYTES=1048576` 配置；会话已保存的值优先。原图按内容哈希归档在数据库目录旁的 `codex-context-images/`，默认总容量 **512 MiB**（`CLOUDCLI_CODEX_IMAGE_CACHE_BYTES`）；满时明确报错，不自动删除旧图或悄悄转发大请求。单个压缩前后 HTTP 请求体均限制为 **64 MiB**（`CLOUDCLI_CODEX_PROXY_BODY_BYTES`），可按需要调整。缓存及数据库属于每台电脑自己的运行数据，不随 Git 同步。
 
-转发地址仅通过线程参数临时覆盖，不写 `config.toml`、`auth.json` 或模型库。自定义 provider 保留原 ID、认证和请求头；内置 OpenAI 使用官方 `openai_base_url` 临时覆盖，并由本地 426 响应触发原生 HTTP 回退，保留 provider ID 和原生 AuthManager。此路径使用 HTTP/SSE，原先支持 WebSocket 的 provider 在线程内切换为 HTTP；浏览器 WebSocket、消息插入和工具权限交互不变。支持 gzip/deflate/br/zstd 请求，保持相同压缩格式转发；zstd 需要 Node 22.15+。使用宿主机 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY 环境，只有 Codex 子进程增加本机回环绕过规则。
+转发地址仅通过线程参数临时覆盖，不写 `config.toml`、`auth.json` 或模型库。自定义 provider 保留原 ID、认证和请求头；内置 OpenAI 使用官方 `openai_base_url` 临时覆盖，并由本地 426 响应触发原生 HTTP 回退，保留 provider ID 和原生 AuthManager。此路径使用 HTTP/SSE，原先支持 WebSocket 的 provider 在线程内切换为 HTTP；浏览器 WebSocket、消息插入和工具权限交互不变。支持 gzip/deflate/br/zstd 输入，默认沿用原编码（小请求或无压缩收益时在发送前改用 identity），也可主动选择 zstd/gzip，见下一节。使用宿主机 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY 环境，只有 Codex 子进程增加本机回环绕过规则。
 
-可观测性记录实际 HTTP 请求体序列化字节（过滤前后、保持原压缩格式）、解压后的 JSON 字节、图数和累计净减少字节。它们是 Codex→CloudCLI→配置上游这一段的请求体测量，不含 TLS/协议头，也不是 CPA→模型的后续网络流量。日志只包含统计元数据，不记录 Base64、完整提示词、Cookie 或密钥。
+可观测性记录实际 HTTP 请求体序列化字节（过滤前后和选定编码）、解压后的 JSON 字节、图数和累计净减少字节。它们是 Codex→CloudCLI→配置上游这一段的请求体测量，不含 TLS/协议头，也不是 CPA→模型的后续网络流量。日志只包含统计元数据，不记录 Base64、完整提示词、Cookie 或密钥。
+
+### Codex HTTP 请求体压缩
+
+历史图片裁剪和公共 WebP 转换之后，可对**完整最终 JSON**进行 zstd/gzip level 1 编码；工具、参数、加密推理和缓存字段保持原值。它减少传输字节，不替代 `/compact`，也不减少模型 token。默认 `CLOUDCLI_CODEX_REQUEST_COMPRESSION=preserve`，不会主动给 identity 输入启用压缩。每台电脑通过本地 `.env` 或服务环境选择 `identity`、`zstd`、`gzip`，修改后重启后端；这些运行配置不随 Git 同步。
+
+推荐在已确认接收方支持后设置 `CLOUDCLI_CODEX_REQUEST_COMPRESSION=zstd`。原生 zstd 需要 Node 22.15+；运行时缺少能力时在发送前报错。仅在**目标 CPA 已部署 gzip 解码修复**后，才将其精确 origin（协议、主机、可选端口，不含路径）加入 `CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS`，允许显式 gzip 或 zstd 不可用时的 gzip 降级。不能用原版 CPA 的日志解码能力推断 handler 支持 gzip，也不通过真实模型请求探测能力。
+
+小于 4 KiB 或压缩后不更小的请求在第一次发送前选用 identity。已编码输入先解码，处理完成后只编码一次。显式模式的压缩体默认上限 16 MiB（`CLOUDCLI_CODEX_PROXY_COMPRESSED_BODY_BYTES`），入站及解码后 JSON 默认上限仍为 64 MiB；容量或编码错误明确失败，不偷偷发送原文。普通 Responses 与 `/responses/compact` 共用此规则，保留上游 `/v1` 前缀；响应 SSE 原样流式转发，compact 保持 JSON 响应，取消中止请求压缩和上游连接。不新增重试层，不因 400/413/415、503、断网或取消改用另一种编码重放。
+
+图片上下文弹窗展示最近编码、编码耗时、JSON → 请求体字节、状态，以及 **CloudCLI → 配置上游累计请求体**、平均值、单次最大值。新计量单独起算，不从旧累计值猜测历史最大值；本地写入完成不等于远端确认接收。**CPA → ChatGPT** 必须由 CPA 独立测量、配置，两段不能相加当作梯子消耗。关闭图片过滤后，显式请求编码仍可独立工作；显式 Codex SDK、子线程/不匹配线程、模型列表不参与此计量和压缩策略。详见 [验证、配置与回退记录](docs/nas/request-compression.md)。
 
 边界：此功能只支持默认 app-server 模式；显式 SDK 模式不进行过滤。子 Agent 或不匹配当前线程的请求透明转发，不混用主会话图片策略。文件 ID 和未知图片表示保持原样；本机原生接口拒绝远程图片 URL，因此没有上传历史截图到 R2。本方案降低模型外发图片量，不改写原始历史，也不解决 Codex 自身 rollout 的磁盘增长。关闭 `CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED=false` 并重启可停用自动过滤，保留历史读取及手动操作。
 

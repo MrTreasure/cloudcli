@@ -408,7 +408,7 @@ alongside the implementation.
 
 `services/codex-image-context.service.ts` archives typed inline images by digest and filters actual Responses/compact request bodies. A per-turn lease freezes policy and protects current/newly-read images. Old images followed by a model response or compaction boundary are eligible for bounded retention; opaque encrypted content, ordinary text, file IDs and unknown representations pass through. Native `view_image` reads archived files using existing permissions. Explicit pins missing from a compacted request are reattached on demand. Child or mismatched-thread requests remain transparent and never inherit the parent archive catalogue.
 
-HTTP transport preserves request encoding, raw SSE responses, upstream headers, cancellation and host proxy settings. Metrics measure serialized HTTP bodies and decoded JSON, not TLS traffic or CPA's downstream uploads. Archive/body capacity failures are explicit; history is never rewritten. `codex_context_state` persists per-session settings, image metadata and metrics. Ordinary sends/compaction keep the native thread; only explicit clear stores a previous-rollout segment and atomically changes the native mapping. History parsing reads those retained segments, making older segments read-only while keeping current anchors.
+HTTP transport defaults to the incoming request encoding, selecting identity before sending for small or non-beneficial bodies. Explicit outbound encoding is described below. Raw SSE responses, upstream headers, cancellation and host proxy settings remain intact. Metrics measure serialized HTTP bodies and decoded JSON, not TLS traffic or CPA's downstream uploads. Archive/body capacity failures are explicit; history is never rewritten. `codex_context_state` persists per-session settings, image metadata and metrics. Ordinary sends/compaction keep the native thread; only explicit clear stores a previous-rollout segment and atomically changes the native mapping. History parsing reads those retained segments, making older segments read-only while keeping current anchors.
 
 The authenticated `/sessions/:sessionId/image-context` GET/PATCH endpoints expose policy and metadata. The usage modal invokes `/compact` or `/clear` through normal chat admission/abort handling without consuming the composer draft. Explicit SDK mode reports unsupported context controls. See root README and `docs/nas/README.md` for defaults, verification, limitations and rollback.
 
@@ -429,3 +429,31 @@ the whole final body. Archive IDs/paths continue to describe originals. Existing
 WebP/file-ID/opaque content is not transcoded. Cursor/OpenCode path readers and
 explicit Codex SDK mode do not automatically convert images yet. See the root
 README for the opt-in WebP assets endpoint, machine-local settings and boundaries.
+
+## Codex outbound request encoding
+
+`services/codex-request-compression.service.ts` owns codec/config validation for
+the existing loopback proxy. The proxy freezes each admitted run's image lease,
+thread and encoding settings; it decodes once, completes image/WebP processing,
+then encodes the complete final JSON once before any upstream write. The mode is
+`CLOUDCLI_CODEX_REQUEST_COMPRESSION=preserve|identity|zstd|gzip` (default preserve).
+Explicit modes work even when image filtering is disabled. Unmatched child
+threads remain transparent, and SDK/model-list traffic is outside this policy.
+
+Native zstd and gzip use level 1. Missing zstd may select gzip only when the exact
+upstream origin is in `CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS`, acknowledging deployment
+of CPA's gzip handler fix. Explicit gzip requires the same acknowledgement.
+Small (<4096 bytes) and non-beneficial bodies select identity before transmission.
+Codec errors fail preflight; no status/network/cancellation error triggers an
+encoding replay. The explicit compressed limit defaults to 16 MiB; the existing
+64 MiB received/decoded/final-JSON limit remains. Content-Length/Content-Encoding
+match the final buffer, hop-by-hop framing is removed, and base-path prefixes,
+auth/thread/session headers, raw response streaming and cancellation survive.
+
+`recordHttp` counts finished local body writes; `recordHttpOutcome` associates
+later HTTP/abort/network outcomes with the request ID. New optional transport
+metrics have their own cohort, cumulative/mean/max wire body bytes, latest JSON
+bytes, encoding and duration. This is the CloudCLI-to-configured-upstream leg,
+not remote ACK, TLS/headers, or CPA-to-ChatGPT traffic. Logs contain only metadata.
+No schema migration, native history rewrite or model/auth change is needed.
+See `docs/nas/request-compression.md` for local verification and deployment limits.

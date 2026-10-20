@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`0eeb3edf00f0b5c2f5d1038e0b1b33b89c8e98de`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`704d12e089c019c74524f54b2731fb7558f28be1`。
 
-记录基线与当前暂存树之间的全部净差异，共 249 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 252 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -31,6 +31,7 @@
 | A | [docs/nas/commit-log.md](../../docs/nas/commit-log.md) | — |
 | A | [docs/nas/file-index.md](../../docs/nas/file-index.md) | — |
 | A | [docs/nas/README.md](../../docs/nas/README.md) | — |
+| A | [docs/nas/request-compression.md](../../docs/nas/request-compression.md) | — |
 | A | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
 | A | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
 | M | [index.html](../../index.html) | — |
@@ -105,6 +106,7 @@
 | A | [server/modules/providers/services/codex-context-limits.service.ts](../../server/modules/providers/services/codex-context-limits.service.ts) | — |
 | A | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
 | A | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
+| A | [server/modules/providers/services/codex-request-compression.service.ts](../../server/modules/providers/services/codex-request-compression.service.ts) | — |
 | M | [server/modules/providers/services/provider-runtime.service.ts](../../server/modules/providers/services/provider-runtime.service.ts) | — |
 | A | [server/modules/providers/services/provider-session-settings.service.ts](../../server/modules/providers/services/provider-session-settings.service.ts) | — |
 | M | [server/modules/providers/services/provider-token-usage.service.ts](../../server/modules/providers/services/provider-token-usage.service.ts) | — |
@@ -116,6 +118,7 @@
 | A | [server/modules/providers/tests/codex-app-server.transport.test.ts](../../server/modules/providers/tests/codex-app-server.transport.test.ts) | — |
 | A | [server/modules/providers/tests/codex-context-limits.service.test.ts](../../server/modules/providers/tests/codex-context-limits.service.test.ts) | — |
 | M | [server/modules/providers/tests/codex-models.test.ts](../../server/modules/providers/tests/codex-models.test.ts) | — |
+| A | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
 | M | [server/modules/providers/tests/codex-runtime.test.ts](../../server/modules/providers/tests/codex-runtime.test.ts) | — |
 | M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
 | M | [server/modules/providers/tests/provider-runtime.service.test.ts](../../server/modules/providers/tests/provider-runtime.service.test.ts) | — |

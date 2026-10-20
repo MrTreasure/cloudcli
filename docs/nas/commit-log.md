@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`0eeb3edf00f0b5c2f5d1038e0b1b33b89c8e98de`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`704d12e089c019c74524f54b2731fb7558f28be1`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,12 +10,25 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
+| M | [.env.example](../../.env.example) | — |
 | M | [README.md](../../README.md) | — |
+| M | [deploy/README.md](../../deploy/README.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
-| M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
-| M | [src/modules/chat/hooks/useChatSessionState.ts](../../src/modules/chat/hooks/useChatSessionState.ts) | — |
-| M | [src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx](../../src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx) | — |
+| A | [docs/nas/request-compression.md](../../docs/nas/request-compression.md) | — |
+| M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
+| M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
+| M | [server/modules/providers/README.md](../../server/modules/providers/README.md) | — |
+| M | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
+| M | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
+| A | [server/modules/providers/services/codex-request-compression.service.ts](../../server/modules/providers/services/codex-request-compression.service.ts) | — |
+| A | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
+| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
+| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
+| M | [src/modules/chat/modals/CodexContextPanel.tsx](../../src/modules/chat/modals/CodexContextPanel.tsx) | — |
+| M | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
+| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
 
 ## NAS 主线提交
 
@@ -404,6 +417,20 @@
   - `server/shared/index.ts`
   - `server/shared/types.ts`
   - `server/shared/utils.ts`
+
+### 704d12e0 · 2026-10-20 · fix(codex): show compaction results and reconcile context actions
+
+- 完整提交：`704d12e089c019c74524f54b2731fb7558f28be1`
+- 相对第一父提交涉及文件：
+
+  - `README.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `server/modules/providers/list/codex/codex-sessions.provider.ts`
+  - `server/modules/providers/tests/codex-sessions.test.ts`
+  - `src/modules/chat/hooks/useChatSessionState.ts`
+  - `src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx`
 
 ## 从 PR / 其他分支合入的提交
 

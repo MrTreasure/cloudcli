@@ -531,7 +531,7 @@ test('the temp directory can be browsed and read, but never written to', async (
     // Read-only means read-only: nothing may be created or changed there.
     await assert.rejects(
       service.saveTextFile('project-1', outputPath, 'overwritten'),
-      (error: unknown) => (error as AppError).code === 'PATH_OUTSIDE_PROJECT',
+      (error: unknown) => (error as AppError).code === 'FILE_READ_ONLY',
     );
     await assert.rejects(
       service.createWorkspaceFolder(path.join(temporaryDirectory, 'new-folder')),
@@ -591,11 +591,62 @@ test('reading through a symlink out of the temp directory is still refused', asy
     const service = createRealFileSystemService(projectRoot);
     await assert.rejects(
       service.readTextFile('project-1', path.join(temporaryDirectory, 'escape', 'secret.txt')),
-      (error: unknown) => (error as AppError).code === 'PATH_OUTSIDE_PROJECT',
+      (error: unknown) => (error as AppError).code === 'PATH_OUTSIDE_WORKSPACE',
     );
   } finally {
     await fsPromises.rm(temporaryDirectory, { recursive: true, force: true });
     await fsPromises.rm(projectRoot, { recursive: true, force: true });
     await fsPromises.rm(outsideDirectory, { recursive: true, force: true });
   }
+});
+
+
+test('absolute references in another allowed workspace project can be read, streamed and saved', async () => {
+  const root = path.resolve('file-tree-workspace');
+  const projectRoot = path.join(root, 'project-a');
+  const sibling = path.join(root, 'project-b', 'handoff.md');
+  let content = 'Original handoff';
+  const streamed: string[] = [];
+  const fileSystem = createFakeFileSystem({
+    realpath: async candidate => candidate,
+    access: async () => undefined,
+    readTextFile: async candidate => { assert.equal(candidate, sibling); return content; },
+    writeTextFile: async (candidate, value) => { assert.equal(candidate, sibling); content = value; },
+    createReadStream: candidate => { streamed.push(candidate); return Readable.from([content]); },
+  });
+  const dependencies = createDependencies(fileSystem, projectRoot);
+  dependencies.workspace.rootPath = root;
+  dependencies.workspace.validatePath = async candidate => ({ valid: candidate.startsWith(root + path.sep), resolvedPath: candidate });
+  const service = createFileTreeService(dependencies);
+  assert.equal((await service.readTextFile('project-1', sibling)).content, 'Original handoff');
+  const opened = await service.openFile('project-1', sibling);
+  opened.stream.destroy();
+  assert.deepEqual(streamed, [sibling]);
+  await service.saveTextFile('project-1', sibling, 'Updated handoff');
+  assert.equal(content, 'Updated handoff');
+  for (const operation of [
+    () => service.readTextFile('project-1', '../project-b/handoff.md'),
+    () => service.saveTextFile('project-1', '../project-b/handoff.md', 'wrong'),
+    () => service.deleteEntry({ projectId: 'project-1', targetPath: sibling }),
+    () => service.renameEntry({ projectId: 'project-1', oldPath: sibling, newName: 'changed.md' }),
+  ]) await assert.rejects(operation, (error: unknown) => (error as AppError).code === 'PATH_OUTSIDE_PROJECT');
+  assert.equal(content, 'Updated handoff');
+});
+
+test('cross-project files validate the canonical target before reading or writing', async () => {
+  const root = path.resolve('file-tree-workspace');
+  const projectRoot = path.join(root, 'project-a');
+  const alias = path.join(root, 'project-b', 'escape.md');
+  const outside = path.resolve('outside-workspace', 'secret.md');
+  const checked: string[] = [];
+  const fileSystem = createFakeFileSystem({ realpath: async candidate => candidate === alias ? outside : candidate });
+  const dependencies = createDependencies(fileSystem, projectRoot);
+  dependencies.workspace.validatePath = async candidate => { checked.push(candidate); return { valid: false, error: 'Outside allowed workspace' }; };
+  const service = createFileTreeService(dependencies);
+  for (const operation of [
+    () => service.readTextFile('project-1', alias),
+    () => service.openFile('project-1', alias),
+    () => service.saveTextFile('project-1', alias, 'wrong'),
+  ]) await assert.rejects(operation, (error: unknown) => (error as AppError).code === 'PATH_OUTSIDE_WORKSPACE');
+  assert.deepEqual(checked, [outside, outside, outside]);
 });

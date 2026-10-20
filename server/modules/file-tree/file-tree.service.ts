@@ -355,22 +355,39 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
   }
 
   /**
-   * Resolves a path the viewer is allowed to read.
-   *
-   * A file reference in a transcript is normally inside the project, but a
-   * background command's log lives in the system temp directory and a
-   * background agent's output file is a link from there into the Claude
-   * projects directory, and the transcript quotes those paths verbatim. Those
-   * resolve through the read-only root policy instead of the project root; the
-   * writing endpoints keep using `resolvePathInsideProject` alone, so nothing
-   * outside the project can be changed.
+   * The editor may follow absolute references into another allowed workspace
+   * project. Resolve external files before validating, so a symlink cannot
+   * escape WORKSPACES_ROOT or hide a forbidden system destination. Relative
+   * paths retain the project boundary. Structural operations still use that
+   * boundary directly; read-only output roots never grant write permission.
    */
-  async function resolveReadablePath(projectRoot: string, targetPath: string): Promise<string> {
+  async function resolveEditorPath(projectRoot: string, targetPath: string, writing = false): Promise<string> {
     if (path.isAbsolute(targetPath)) {
-      const readOnlyPath = await dependencies.workspace.resolveReadOnlyRootPath(targetPath);
-      if (readOnlyPath) {
-        return readOnlyPath;
+      if (!writing) {
+        const readOnlyPath = await dependencies.workspace.resolveReadOnlyRootPath(targetPath);
+        if (readOnlyPath) return readOnlyPath;
       }
+      try { return resolvePathInsideProject(projectRoot, targetPath); }
+      catch (error) { if (!(error instanceof AppError) || error.code !== 'PATH_OUTSIDE_PROJECT') throw error; }
+      if (writing && await dependencies.workspace.resolveReadOnlyRootPath(targetPath)) {
+        throw createFileTreeError('Files in read-only output directories cannot be edited outside their project', 403, 'FILE_READ_ONLY');
+      }
+
+      // Cross-project editing operates on existing files. File creation,
+      // uploads, rename and deletion keep their project-scoped endpoints.
+      let canonicalPath: string;
+      try { canonicalPath = await fileSystem.realpath(path.resolve(targetPath)); }
+      catch (error) {
+        mapFileSystemError(error, {
+          ENOENT: { message: 'File not found', statusCode: 404 },
+          EACCES: { message: 'Permission denied', statusCode: 403 },
+        });
+      }
+      const validation = await dependencies.workspace.validatePath(canonicalPath);
+      if (!validation.valid) {
+        throw createFileTreeError(validation.error ?? 'Path is outside the allowed workspace root', 403, 'PATH_OUTSIDE_WORKSPACE');
+      }
+      return validation.resolvedPath || canonicalPath;
     }
 
     return resolvePathInsideProject(projectRoot, targetPath);
@@ -469,7 +486,7 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
 
     async readTextFile(projectId, filePath) {
       const projectRoot = await resolveProjectRoot(projectId);
-      const resolvedPath = await resolveReadablePath(projectRoot, filePath);
+      const resolvedPath = await resolveEditorPath(projectRoot, filePath);
       try {
         const content = await fileSystem.readTextFile(resolvedPath);
         return { content, path: resolvedPath };
@@ -484,7 +501,7 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
 
     async openFile(projectId, filePath) {
       const projectRoot = await resolveProjectRoot(projectId);
-      const resolvedPath = await resolveReadablePath(projectRoot, filePath);
+      const resolvedPath = await resolveEditorPath(projectRoot, filePath);
       try {
         await fileSystem.access(resolvedPath);
       } catch {
@@ -499,7 +516,7 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
 
     async saveTextFile(projectId, filePath, content) {
       const projectRoot = await resolveProjectRoot(projectId);
-      const resolvedPath = resolvePathInsideProject(projectRoot, filePath);
+      const resolvedPath = await resolveEditorPath(projectRoot, filePath, true);
       try {
         await fileSystem.writeTextFile(resolvedPath, content);
       } catch (error) {

@@ -1370,7 +1370,8 @@ export type FileTreeProjectGateway = {
 };
 
 /**
- * Workspace validation boundary used by filesystem browsing and folder creation.
+ * Workspace validation boundary used by filesystem browsing, folder creation
+ * and absolute cross-project file references in the editor.
  *
  * The injected validator enforces the configured workspace root and resolves
  * symlinks before the File Tree service exposes or mutates paths.
@@ -1381,8 +1382,8 @@ export type FileTreeWorkspaceGateway = {
   /**
    * Resolves a path readable outside the workspace root — the system temp
    * directory and the Claude projects directory — or `null` when it is not
-   * one. Read-only: the write policy is `validatePath` and it does not consult
-   * this.
+   * one. This exception grants reads only; cross-project editor saves reject
+   * these output roots and independently require `validatePath` approval.
    */
   resolveReadOnlyRootPath(candidatePath: string): Promise<string | null>;
 };
@@ -1894,6 +1895,44 @@ export type CodexContextMetrics = {
   savedBytes: number;
   uploadedBytes: number;
   prunedImageCount: number;
+  /** New-version measurements only; old cumulative maxima are unknown, not backfilled. */
+  transport?: CodexTransportMetrics;
+};
+/** Encoding and compatibility policy frozen when a Codex proxy run is admitted. */
+export type CodexRequestCompressionSettings = {
+  mode: 'preserve' | 'identity' | 'zstd' | 'gzip';
+  /** Exact origins whose operators confirmed deployment of the CPA gzip decoder fix. */
+  gzipOrigins: string[];
+  maxCompressedBytes: number;
+};
+/** One final model HTTP body, after image filtering and before/after wire encoding. */
+export type CodexHttpMeasurement = {
+  requestId: string;
+  encoding: string;
+  compressionMs: number;
+  requestBytesBefore: number;
+  requestBytesAfter: number;
+  jsonBytesBefore: number;
+  jsonBytesAfter: number;
+  /** An early upstream response/error may arrive before Node finishes its local write. */
+  status?: number | 'aborted' | 'network_error';
+};
+/**
+ * Cumulative request-body statistics for CloudCLI -> configured upstream only.
+ * Counts start when this feature first measures a request, exclude TLS/headers,
+ * and do not measure CPA -> ChatGPT. A finished local write is not remote ACK.
+ */
+export type CodexTransportMetrics = {
+  requests: number;
+  totalJsonBytes: number;
+  totalWireBytes: number;
+  maxWireBytes: number;
+  lastRequestId: string;
+  lastEncoding: string;
+  lastCompressionMs: number;
+  lastJsonBytes: number;
+  lastWireBytes: number;
+  lastStatus: number | 'sent' | 'aborted' | 'network_error';
 };
 /** Private durable state used by provider context management and the database repository. */
 export type CodexContextState = {

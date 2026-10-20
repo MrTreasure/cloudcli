@@ -6,7 +6,7 @@ import readline from 'node:readline';
 
 import { codexContextDb, sessionsDb, getConnection, getDatabasePath } from '@/modules/database/index.js';
 import { optimizeImageBuffer } from '@/shared/index.js';
-import type { AnyRecord, CodexContextState, CodexImageContextPolicy, CodexImageFilterLease, ProviderRuntimeContext } from '@/shared/types.js';
+import type { AnyRecord, CodexContextState, CodexHttpMeasurement, CodexImageContextPolicy, CodexImageFilterLease, ProviderRuntimeContext } from '@/shared/types.js';
 import { AppError } from '@/shared/utils.js';
 
 const limit = (value: unknown, fallback: number, maximum: number) => {
@@ -155,7 +155,8 @@ export const codexImageContextService = {
     codexContextDb.save(sessionId, state);
     return state;
   },
-  async filter(sessionId: string, body: AnyRecord, lease: CodexImageFilterLease) {
+  async filter(sessionId: string, body: AnyRecord, lease: CodexImageFilterLease, signal?: AbortSignal) {
+    signal?.throwIfAborted();
     if (!Array.isArray(body.input)) return { prunedImageCount: 0 };
     const { state } = sessionState(sessionId);
     const input = body.input as AnyRecord[];
@@ -165,6 +166,7 @@ export const codexImageContextService = {
     let lastResponse = -1;
     input.forEach((item, index) => { if (item.role === 'assistant' || ['function_call', 'custom_tool_call', 'reasoning', 'compaction', 'context_compaction'].includes(item.type)) lastResponse = index; });
     for (let index = 0; index < input.length; index += 1) {
+      signal?.throwIfAborted();
       const images: Array<{ item: AnyRecord; replace: (value: AnyRecord) => void }> = [];
       visitImages({ item: input[index] }, (item, replace) => images.push({ item, replace }));
       for (const { item, replace } of images) {
@@ -201,6 +203,7 @@ export const codexImageContextService = {
     const seen = new Set<string>();
     const wireBytes = new Map<string, number>();
     for (const entry of [...entries].reverse()) {
+      signal?.throwIfAborted();
       const id = entry.image.id;
       const retain = entry.currentUser || (entry.required ? !seen.has(id) : !requiredIds.has(id) && keep.has(id) && !seen.has(id));
       if (retain) {
@@ -224,6 +227,7 @@ export const codexImageContextService = {
       user.content.push({ type: 'input_text', text: `[CloudCLI image archive: ${file}. Contains this conversation's image numbers, hashes and local paths. Read the catalogue and use view_image only when an earlier image is needed.]` });
       const present = new Set(entries.map(entry => entry.image.id));
       for (const image of state.images.filter(image => pins.has(image.id) && !present.has(image.id))) {
+        signal?.throwIfAborted();
         const original = await readFile(image.path);
         const optimized = await optimizeImageBuffer(original);
         const item = { type: 'input_image', image_url: `data:${optimized?.mimeType ?? image.mime};base64,${(optimized?.bytes ?? original).toString('base64')}` };
@@ -245,13 +249,36 @@ export const codexImageContextService = {
     codexContextDb.save(sessionId, latest);
     return { prunedImageCount };
   },
-  recordHttp(sessionId: string, measurement: { requestBytesBefore: number; requestBytesAfter: number; jsonBytesBefore: number; jsonBytesAfter: number }) {
+  recordHttp(sessionId: string, measurement: CodexHttpMeasurement) {
     const { state } = sessionState(sessionId);
-    Object.assign(state.metrics, measurement, { requests: state.metrics.requests + 1,
+    const previous = state.metrics.transport;
+    state.metrics.transport = {
+      requests: (previous?.requests ?? 0) + 1,
+      totalJsonBytes: (previous?.totalJsonBytes ?? 0) + measurement.jsonBytesAfter,
+      totalWireBytes: (previous?.totalWireBytes ?? 0) + measurement.requestBytesAfter,
+      maxWireBytes: Math.max(previous?.maxWireBytes ?? 0, measurement.requestBytesAfter),
+      lastRequestId: measurement.requestId, lastEncoding: measurement.encoding,
+      lastCompressionMs: measurement.compressionMs, lastStatus: measurement.status ?? 'sent',
+      lastJsonBytes: measurement.jsonBytesAfter, lastWireBytes: measurement.requestBytesAfter,
+    };
+    Object.assign(state.metrics, { requestBytesBefore: measurement.requestBytesBefore, requestBytesAfter: measurement.requestBytesAfter,
+      jsonBytesBefore: measurement.jsonBytesBefore, jsonBytesAfter: measurement.jsonBytesAfter, requests: state.metrics.requests + 1,
       savedBytes: state.metrics.savedBytes + measurement.requestBytesBefore - measurement.requestBytesAfter,
       uploadedBytes: state.metrics.uploadedBytes + measurement.requestBytesAfter });
     codexContextDb.save(sessionId, state);
-    console.info('[Codex image proxy]', { sessionId, ...state.metrics, measurement: 'measured-http-body-to-configured-upstream; downstream-CPA-traffic-unknown' });
+    console.info('[Codex request body]', { requestId: measurement.requestId, encoding: measurement.encoding,
+      jsonBytes: measurement.jsonBytesAfter, wireBytes: measurement.requestBytesAfter,
+      compressionMs: measurement.compressionMs, status: measurement.status ?? 'sent', segment: 'CloudCLI-to-configured-upstream-body' });
+  },
+  recordHttpOutcome(sessionId: string, requestId: string, status: number | 'aborted' | 'network_error') {
+    try {
+      const { state } = sessionState(sessionId);
+      if (state.metrics.transport?.lastRequestId === requestId) {
+        state.metrics.transport.lastStatus = status;
+        codexContextDb.save(sessionId, state);
+      }
+    } catch { console.warn('[Codex request body]', { requestId, code: 'CODEX_PROXY_METRICS_WRITE' }); }
+    console.info('[Codex request body]', { requestId, status, segment: 'CloudCLI-to-configured-upstream-body' });
   },
   async clear(input: Parameters<NonNullable<ProviderRuntimeContext['clearImageContext']>>[0]) {
     const { sessionId, threadId, threadParams, request, checkAbort } = input;

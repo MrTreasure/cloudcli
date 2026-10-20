@@ -282,9 +282,10 @@ export const FORBIDDEN_WORKSPACE_PATHS = [
  * transcripts, which the sessions API already serves; the directory is located
  * the same way the session watcher and synchronizer locate it.
  *
- * Being a read-only root grants reads only: the file-tree write paths resolve
- * against the project root alone, so nothing under these can be changed
- * through the file API. Whether one may become a workspace is decided
+ * Being a read-only root grants reads only: the file editor refuses writes
+ * through this exception outside the selected project. Other cross-project
+ * files must independently pass the configured workspace policy. Whether one
+ * of these directories may become a workspace is decided
  * separately by `validateWorkspacePath` — the temp directories are on
  * `FORBIDDEN_WORKSPACE_PATHS`; the Claude projects directory is not, it is
  * simply wherever `WORKSPACES_ROOT` puts it.

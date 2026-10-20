@@ -1,13 +1,15 @@
 import { render, screen, cleanup } from '@testing-library/react';
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 
 import '@/modules/i18n';
 import TokenUsageSummary from '@/modules/chat/composer/TokenUsageSummary';
 import CommandResultModal from '@/modules/chat/modals/CommandResultModal';
+import { CodexContextPanel } from '@/modules/chat/modals/CodexContextPanel';
+import { api } from '@/shared/api';
 import type { ProviderModelActions } from '@/shared/types';
 import { formatContextTokenCount, readContextWindowUsage } from '@/shared/utils';
 
-afterEach(cleanup);
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 test('summary shows current context percentage and preserves click access to details', () => {
   render(<TokenUsageSummary usage={{ used: 75000, total: 200000 }} />);
@@ -58,3 +60,24 @@ test('Codex details mark the real automatic compaction threshold on the usage ba
   expect(screen.queryByText(/摘要|summary/i)).toBeNull();
 });
 
+
+
+test('request body details separate measured totals, average and maximum from legacy counters', async () => {
+  vi.spyOn(api.providers, 'sessionImageContext').mockResolvedValue(new Response(JSON.stringify({ success: true, data: {
+    policy: { recentImages: 3, imageBytes: 1048576, pinnedImageIds: [] }, images: [], activeImageIds: [],
+    metrics: {
+      requests: 100, requestBytesBefore: 16384, requestBytesAfter: 1536, savedBytes: 10000,
+      historicalImageCount: 0, historicalImageBytes: 0, prunedImageCount: 0, compactions: 0,
+      transport: { requests: 2, totalJsonBytes: 32768, totalWireBytes: 2048, maxWireBytes: 1536,
+        lastEncoding: 'zstd', lastJsonBytes: 16384, lastWireBytes: 1536, lastCompressionMs: 1.5, lastStatus: 200 },
+    },
+  } }), { headers: { 'content-type': 'application/json' } }));
+  render(<CodexContextPanel sessionId="session" busy={false} />);
+  const latest = await screen.findByText(/Latest body encoding zstd/);
+  expect(latest.textContent).toContain('16.0 KiB → 1.5 KiB');
+  const totals = screen.getByText(/CloudCLI → upstream cumulative request bodies/);
+  expect(totals.textContent).toContain('2.0 KiB (2 requests)');
+  expect(totals.textContent).toContain('Average 1.0 KiB');
+  expect(totals.textContent).toContain('Maximum 1.5 KiB');
+  expect(totals.textContent).toContain('Excludes CPA → ChatGPT');
+});

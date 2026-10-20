@@ -293,3 +293,20 @@
 - 状态恢复：`src/modules/chat/hooks/useChatSessionState.ts` 仅在手动压缩/清理的活动状态下，每 5 秒及窗口重新聚焦时重发现有 `chat.subscribe`，携带已知 seq，补播遗漏结果并接受后端空闲确认。沿用既有迟到 idle ack 保护；不追加模型调用，不因超时强制 idle，不改变普通响应和自动压缩的生命周期；离开该操作或组件卸载时停止检查。网络不可用仍需恢复连接。
 - 验证：在现有后端 `codex-sessions.test.ts` 覆盖实时完成通知、原生边界刷新恢复和不泄漏内部历史；在现有前端 `leaveSessionWithBackgroundWork.test.tsx` 验证按 seq 核对及空闲后停止检查，没有新增测试文件或浏览器自动化。全量前端 118 个文件、844 项通过；全量后端 845 项中 844 通过、1 项既有集成测试跳过，0 失败。初次直接运行 Vitest 继承生产环境触发 React act 错误，改用仓库 `pnpm run test:client` 的既定测试环境后通过，没有修改 React 或注入 preload。类型检查、前后端构建、lint 和 `git diff --check` 通过，保留既有 lint 警告及 Vite 大包提示。
 - 发布与回退：用户授权重启后提交并同步。前端已发布（56 个变更资源上传、117 个资源本地跳过），后端构建产物已重启加载，PID 由 654187 变为 1293126。本机健康、登录、项目、草稿、最近会话、图片策略、WebP 接口及原生压缩完成历史通知验证通过，自定义模型目录前后相同；未重复向真实会话发起压缩或模型请求。记录与数据库/入口备份位于 NAS 运行数据目录 `operations/compact-webp-release-20261020-125519/`，不随 Git 同步。初次验证只查最近 100 条未覆盖早先的压缩边界，改为读取该会话完整历史后确认完成通知存在；未将采样范围问题归为服务故障。源码及发布记录本次一并提交，SHA 与推送状态以 Git 历史为准。界面由用户刷新后手动验收；不检测公网首页或逐个检查 CDN 文件。回退成组撤回 reader/normalizer、手动操作订阅 effect、相应测试和文档并重新发布/重启；无 DB/schema、权限、模型、原生线程和图片缓存迁移。
+
+
+## 2026-10-20 按工作区放行跨项目文件查看与编辑（已重启生效）
+
+- 用户确认与目的：用户要求放开聊天引用项目外文件时的 `Path must be under project root` 错误，示例为另一个项目中的 Markdown 文档。将现有工作区权限用于绝对文件引用，不修改系统目录权限、模型权限或认证，不在源码硬编码 NAS 路径或把所有电脑默认工作区改为 `/`。这是本地功能修复，未合并上游 PR。
+- 所属路径：`server/modules/file-tree/file-tree.service.ts` 用 `resolveEditorPath` 统一文本读取、内容流和保存；项目外现有文件先 `realpath`，再通过注入的工作区 validator，工作区外或系统目录返回 403。`server/shared/{types.ts,utils.ts}` 更新工作区/只读例外契约注释；现有 `server/modules/file-tree/tests/file-tree.service.test.ts` 覆盖授权边界；根 README 记录跨机配置和生效要求。
+- 范围：NAS 已有部署 `WORKSPACES_ROOT=/`，允许服务用户有权限的其他项目文件；普通电脑仍使用自身工作区根，默认用户主目录。只有绝对路径的现有文件可跨项目读取、预览和保存；相对路径不能通过 `../` 逃出项目。创建、上传、重命名和删除不扩大范围；项目外只读临时/Claude 输出路径继续拒绝保存。跨项目符号链接按目标真实路径校验，不能将 `/etc` 等被禁止的目的地藏在允许目录中。已有项目内路径行为保持。
+- 验证：现有文件服务/路由定向 19 项通过，覆盖跨项目读取、流式预览与保存、外部只读输出、相对路径越界、结构操作边界及符号链接真实目标拒绝。隔离服务使用 NAS 相同 `WORKSPACES_ROOT=/` 策略成功读取截图所示 6,092 字节文档并校验流式内容哈希，原文件未改；另用运行数据目录下的自建文件验证项目外保存，并验证 `/etc/passwd` 及指向该路径的链接在读取/写入前被拒绝。类型检查、后端构建、lint、`git diff --check` 通过；保留既有 lint 警告。未改前端、未新增测试文件或浏览器自动化。
+- 发布与回退：随请求体压缩一起重启后端，PID 1555414 已加载；实际认证 API 可跨项目读取交接文档，内容与原文件一致，`/etc/passwd` 仍返回 403。此功能本身只需后端重启。用户要求 commit/push，提交及同步以 Git 历史为准。回退 `resolveEditorPath` 及三处调用、相应测试和文档即可恢复原项目范围；无 DB、工作区配置、系统权限或原文件迁移，不能通过回退去删除其他项目文件。
+
+## 2026-10-20 Codex 完整 HTTP 请求体压缩（已发布并开启 zstd）
+
+- 目的与来源：按外部 `c137_cpa/docs/cloudcli-compression-handoff.md` 对接双段压缩。本地改造，未合并上游 PR。原代理只沿用入站编码，identity 请求不会主动压缩；在既有图片裁剪/WebP 后编码完整 JSON，保留工具、加密推理和缓存字段。交接当时 CPA 未部署，随后用户确认 CPA 已支持压缩并要求配套开启，本次据此开启 CloudCLI zstd，不修改 CPA。
+- 所属路径：`server/modules/providers/services/codex-request-compression.service.ts` 提供原生 level 1 codec 和配置校验；`codex-image-proxy.service.ts` 接入冻结的每轮策略、准确头、SSE/取消和无重放转发；`codex-image-context.service.ts` 与 `server/shared/types.ts` 保存独立起点的传输计量。`src/modules/chat/modals/CodexContextPanel.tsx` 及三种语言包展示累计请求体、平均、最大和最近编码/耗时/状态；`.env.example`、根 README、providers README 和 [详细记录](request-compression.md) 说明配置与边界。
+- 策略：默认 `CLOUDCLI_CODEX_REQUEST_COMPRESSION=preserve`，显式支持 identity/zstd/gzip。小于 4 KiB 或无收益时发送前选择 identity；缺少 zstd 只向已确认部署 gzip 修复的精确 origin 降级，否则发送前失败。显式压缩体默认 16 MiB，既有入站/JSON 默认 64 MiB；不新增重试、不在错误后换编码重放。普通及 compact 共用规则，保留 `/v1`，子线程不继承主会话策略；显式 SDK 和模型列表不覆盖。
+- 验证：新后端定向 10 项通过，全量后端 857 项中 856 通过、1 项既有跳过；全量前端 118 文件、845 项通过，类型检查、前后端构建和 lint 通过。模拟混合图片/不透明状态样本 420,871 字节，经 zstd 为 316,665 字节（减少 24.76%，5 次平均编码 2.019 ms）；仅本地编码实测，不能当作生产流量或 Mac 性能。未调用真实收费模型、未测 CPA→ChatGPT 流量。日志只记统计元数据，两段不相加作为梯子用量。
+- 发布与回退：用户授权开启后，前端发布 56 个变更资源、117 个资源本地跳过，后端 PID 1293126 → 1555414；本地用户服务 drop-in `30-request-compression.conf` 设置 zstd，新进程环境、编译产物 codec、健康/登录/项目/草稿/最近会话及模型目录不变验证通过。不主动调用收费模型；CPA 下游真实流量未测。记录和备份在 appdata `operations/request-compression-release-20261020-165226/`。NAS 已生效，Mac 仍需自行配置部署；公共默认 preserve 不变，gzip origin 确认列表未开启。用户要求本批变更一起提交推送，SHA/同步状态以 Git 为准。设置 preserve 并重启可撤回主动压缩，identity 可明确关闭本段编码；回退 CPA 前先停用 gzip/fallback 并检查原生入站。源码回退须成组撤回 codec/proxy/metrics/弹窗/语言包及测试，无 schema/历史迁移，不删除原图或覆盖其他保留项。

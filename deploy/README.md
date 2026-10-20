@@ -54,6 +54,16 @@ CDN 配置在 `deploy/static-cdn.json`，R2 凭据从密码本 `cloudflare.r2_ad
 
 验证源码使用 `pnpm run test:client`、`pnpm test`、`pnpm run typecheck`、`pnpm run build`、`pnpm run lint`；不访问公网首页、不逐个检测 CDN 文件。部署只在明确要求发布时执行，界面交互由用户验收。
 
+## NAS 请求体压缩
+
+2026-10-20 用户确认 CPA 支持后，NAS 用户服务本地
+`~/.config/systemd/user/cloudcli-backend.service.d/30-request-compression.conf`
+配置 `[Service]` 下的 `Environment=CLOUDCLI_CODEX_REQUEST_COMPRESSION=zstd`，
+经 daemon-reload、重启后生效。Node 26 原生支持 zstd level 1，未开启 gzip fallback。
+该 drop-in 不随 Git 同步；其他电脑需各自配置，公共默认仍为 preserve。
+回退时将本地模式设为 preserve（停止主动压缩）或 identity（明确禁用本段编码），
+daemon-reload 并重启后端。细节及测量边界见 [请求体压缩记录](../docs/nas/request-compression.md)。
+
 ## NAS Codex 单一安装
 
 - Codex CLI 只通过 NAS 的 pnpm 全局安装维护，入口为 `/vol1/pnpm/bin/codex`。

@@ -11,6 +11,8 @@
     "saved": "已儲存，下輪生效",
     "stats": "歷史圖片 {{count}} 張 / {{bytes}} · 本次移除 {{pruned}} 張 · 壓縮 {{compactions}} 次",
     "measurement": "最近 HTTP 請求本文 {{before}} → {{after}} · 累計減少 {{saved}}（{{requests}} 次）；不含 CPA 到模型的後續流量。",
+    "transportLatest": "本次請求本文編碼 {{encoding}}：JSON {{before}} → {{after}} · {{ms}} ms · 狀態 {{status}}",
+    "transportTotals": "CloudCLI → 上游累計請求本文 {{total}}（{{requests}} 次）· 平均 {{average}} · 單次最大 {{maximum}}；不含 CPA → ChatGPT 流量，僅統計本功能啟用後的樣本。",
     "exceeded": "超出歷史預算 {{budget}}：保留歷史圖片 {{retained}}；目前輸入 {{count}} 張 / 約 {{bytes}}。最新圖片及對比圖仍可處理。",
     "images": "歷史圖片引用（{{count}}）",
     "reload": "勾選需重新查看或持續對比的圖片並儲存，下次傳送時重新載入。取消後依近期數量與預算管理。",
