@@ -686,6 +686,30 @@ export function useChatSessionState({
     });
   }, [lastSeqRef, selectedProject, selectedSession, sendMessage, statusCheckSentAtRef, ws]);
 
+  // Manual context controls may emit no assistant text. If their terminal
+  // frame is missed, reconcile through the existing authoritative idle ack
+  // and replay buffer instead of leaving the optimistic spinner indefinitely.
+  const checkingContextAction = isProcessing && (
+    sessionActivity.statusText === 'Compacting context…'
+    || sessionActivity.statusText === 'Clearing context…'
+  );
+  useEffect(() => {
+    if (!checkingContextAction || !activeSessionId || !ws) return;
+    const reconcile = () => {
+      statusCheckSentAtRef.current.set(activeSessionId, Date.now());
+      sendMessage({ type: 'chat.subscribe', sessions: [{
+        sessionId: activeSessionId,
+        lastSeq: lastSeqRef.current.get(activeSessionId) ?? 0,
+      }] });
+    };
+    const timer = window.setInterval(reconcile, 5000);
+    window.addEventListener('focus', reconcile);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', reconcile);
+    };
+  }, [activeSessionId, checkingContextAction, lastSeqRef, sendMessage, statusCheckSentAtRef, ws]);
+
   // Main session loading effect — store-based.
   //
   // The dependency list is deliberately narrower than the values the body

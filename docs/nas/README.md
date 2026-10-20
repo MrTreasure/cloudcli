@@ -274,7 +274,7 @@
 
 即时停用：设置 `CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED=false` 并重启后端，恢复直接原生上游；共享 config/auth 文件无需恢复。普通图片过滤没有切换原生线程，无须迁移模型历史。若用户执行过显式清理，完整历史读取依赖 `codex_context_state` 的分段和原始 rollout；保留表、superseded 映射及图片目录。完全回退源码前备份数据库及这些文件，迁移或导出完整历史，不能仅指回最早 rollout 后隐藏后续对话。回退应整体考虑两个图片服务、runtime 接线、DB/共享类型、API、弹窗、语言包、依赖锁文件和历史 reader；不要编辑运行中的源会话文件。删除缓存会使已经提供的本地引用失效，不应当作常规回退步骤。
 
-## 2026-10-20 CloudCLI 公共 WebP 图片转换（源码完成，未发布）
+## 2026-10-20 CloudCLI 公共 WebP 图片转换（已发布并重启）
 
 - 目的与用户确认：用户要求在 CloudCLI 公共层转换，供多处复用。编码不放入 Codex 专属服务：上传预处理、Claude 图片内容和 Codex 实际 HTTP 过滤复用同一函数；原始附件及既有会话记录不覆盖。未合并上游 PR，使用仓库已有 `sharp` 0.34.5，将其从开发依赖移至生产依赖以支持 NAS、Mac 等目标机安装。
 - 所属路径：`server/shared/{utils.ts,index.ts,types.ts}` 提供 `optimizeImageBuffer` 及结果契约；`server/shared/image-attachments.ts` 接入 Claude 内容构造；`server/modules/assets/{assets.routes.ts,services/image-assets.service.ts}` 上传时预生成缓存，普通读取保持原图，认证图片接口可选 `?format=webp`；`server/modules/providers/services/codex-image-context.service.ts` 只转换实际保留及补回的指定图，先归档原图；`package.json`、`pnpm-lock.yaml` 维护生产依赖；`.env.example`、根 README、Providers README 说明公共入口、配置及边界。没有新增前端组件或改动模型、Fast、认证和权限配置。
@@ -282,5 +282,14 @@
 - 缓存：默认 `~/.cloudcli/image-variants`，可用 `CLOUDCLI_IMAGE_WEBP_CACHE_DIR` 选择本机目录；内容、编码器版本和质量构成键，重复图片共用结果，重启后可重用。`CLOUDCLI_IMAGE_WEBP_CACHE_BYTES` 默认 256 MiB，写入时淘汰较旧副本；目录 0700、文件 0600、原子重命名发布；缓存错误不阻断发送。该目录只存可再生成的编码副本/无收益标记，不记录 Base64 提示词或凭据。可以清理该副本目录，不可混同此前不可随意删除的 `codex-context-images` 原图档案。
 - 兼容边界：上传返回值的原始路径、MIME、大小和默认原图读取均保持；Claude 新生成的原生历史记录实际发送的 WebP，原始上传文件仍在，已有历史不批量修改。Codex 原图 ID 和档案路径不变，历史保留准入仍用原图 JSON 预算，保留/当前字节统计反映转换后大小。Cursor/OpenCode 的路径读取及显式 Codex SDK 模式尚未自动转换，但可复用公共函数/预览接口。服务端转换不减少浏览器首次上传原图的流量，不宣称 token 或 CPA 下游流量同比下降。
 - 验证：现有附件/资源定向 26 项通过，全量后端 843 项中 842 通过、1 项既有集成测试跳过、0 失败。隔离服务实际验证 PNG 43,388 → 16,138 字节且像素逐字节一致，JPEG 90,077 → 37,034 字节且分辨率保留；上传两个入口保留原文件，默认预览仍为原图，可选预览为 WebP；Claude 内容 MIME 和数据一致；重复/并发同图复用缓存；不支持/损坏/关闭时回退；Codex → 本地模拟上游的实际 HTTP 请求体 58,001 → 22,003 字节且归档原图哈希不变。这是隔离本机请求体测量，不是生产 CPA 抓包。没有新增仓库单测或浏览器自动化。类型检查、前后端构建、lint 和 `git diff --check` 通过，保留既有 lint 警告和 Vite 大包提示；未改前端源码，不重复运行全量前端测试。
-- 发布状态：本节源码、配置和验证记录按用户要求一并提交，提交及远端同步结果以 Git 历史为准；本轮未发布或重启，运行实例仍使用上一版。应用变更需要各台电脑通过 pnpm 安装生产依赖、构建后端并重启；本次无前端源码变化，不要求发布前端。
+- 发布状态：源码已提交为 `0eeb3edf`；本次随压缩完成通知修复重启 NAS 后端，运行实例已加载公共 WebP 转换。实际认证预览接口将原图 32,616 字节转换为 9,448 字节 WebP，原文件字节保持不变。其他电脑仍需 pnpm 安装生产依赖、构建后端并重启；Mac 真机及真实模型图片识别效果由用户验收。
 - 回退：设置 `CLOUDCLI_IMAGE_WEBP_ENABLED=false` 并重启即可整体停用转换，不影响此前的 Codex 历史裁剪；也可整体撤回本节公共函数/类型/导出、上传与预览接入、Claude 构造和 Codex 转换调用及依赖变动。没有新增 DB 表或原生线程映射迁移。公共函数被三个入口共用，不能单独删除实现却保留消费者；副本缓存可删除并自动重建，原始附件、Codex 原图档案和 rollout 必须保留。
+
+
+## 2026-10-20 Codex 压缩完成通知与状态恢复（已发布并重启）
+
+- 现场：用户报告压缩超过 5 分钟无结果。本机最近一次手动压缩的原生记录从 `2026-10-20T03:11:07.807Z` 开始，于 `03:13:02.844Z` 写入 `compacted`，`03:13:02.859Z` 写入 `task_complete`，约 115 秒；检查时后端运行会话列表已无该任务。能够确认原生已完成，不能仅据截图确认浏览器遗漏完成帧的具体网络原因。检查期间没有取消真实任务、改写 rollout 或重启服务。
+- 确定缺陷及修复：`server/modules/providers/list/codex/codex-sessions.provider.ts` 原来丢弃实时 `context_compaction`，历史 reader 也只识别旧 `event_msg/context_compacted`，漏读本机 0.162.0 的原生 `compacted` 边界。现复用已有 `task_notification` 展示 `Context compacted`，历史边界使用稳定 ID；不把 Base64、内部摘要和 `replacement_history` 放入聊天通知，不假造压缩比例或进度。
+- 状态恢复：`src/modules/chat/hooks/useChatSessionState.ts` 仅在手动压缩/清理的活动状态下，每 5 秒及窗口重新聚焦时重发现有 `chat.subscribe`，携带已知 seq，补播遗漏结果并接受后端空闲确认。沿用既有迟到 idle ack 保护；不追加模型调用，不因超时强制 idle，不改变普通响应和自动压缩的生命周期；离开该操作或组件卸载时停止检查。网络不可用仍需恢复连接。
+- 验证：在现有后端 `codex-sessions.test.ts` 覆盖实时完成通知、原生边界刷新恢复和不泄漏内部历史；在现有前端 `leaveSessionWithBackgroundWork.test.tsx` 验证按 seq 核对及空闲后停止检查，没有新增测试文件或浏览器自动化。全量前端 118 个文件、844 项通过；全量后端 845 项中 844 通过、1 项既有集成测试跳过，0 失败。初次直接运行 Vitest 继承生产环境触发 React act 错误，改用仓库 `pnpm run test:client` 的既定测试环境后通过，没有修改 React 或注入 preload。类型检查、前后端构建、lint 和 `git diff --check` 通过，保留既有 lint 警告及 Vite 大包提示。
+- 发布与回退：用户授权重启后提交并同步。前端已发布（56 个变更资源上传、117 个资源本地跳过），后端构建产物已重启加载，PID 由 654187 变为 1293126。本机健康、登录、项目、草稿、最近会话、图片策略、WebP 接口及原生压缩完成历史通知验证通过，自定义模型目录前后相同；未重复向真实会话发起压缩或模型请求。记录与数据库/入口备份位于 NAS 运行数据目录 `operations/compact-webp-release-20261020-125519/`，不随 Git 同步。初次验证只查最近 100 条未覆盖早先的压缩边界，改为读取该会话完整历史后确认完成通知存在；未将采样范围问题归为服务故障。源码及发布记录本次一并提交，SHA 与推送状态以 Git 历史为准。界面由用户刷新后手动验收；不检测公网首页或逐个检查 CDN 文件。回退成组撤回 reader/normalizer、手动操作订阅 effect、相应测试和文档并重新发布/重启；无 DB/schema、权限、模型、原生线程和图片缓存迁移。

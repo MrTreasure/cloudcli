@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`574ac952effcb88655befdf7278bdf11989ba80a`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`0eeb3edf00f0b5c2f5d1038e0b1b33b89c8e98de`。
 
-记录基线与当前暂存树之间的全部净差异，共 247 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 249 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -154,6 +154,7 @@
 | M | [src/modules/chat/composer/TokenUsageSummary.tsx](../../src/modules/chat/composer/TokenUsageSummary.tsx) | — |
 | M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
 | M | [src/modules/chat/hooks/useChatRealtimeHandlers.ts](../../src/modules/chat/hooks/useChatRealtimeHandlers.ts) | — |
+| M | [src/modules/chat/hooks/useChatSessionState.ts](../../src/modules/chat/hooks/useChatSessionState.ts) | — |
 | A | [src/modules/chat/hooks/useCodexFastState.ts](../../src/modules/chat/hooks/useCodexFastState.ts) | — |
 | M | [src/modules/chat/hooks/useSessionStore.ts](../../src/modules/chat/hooks/useSessionStore.ts) | — |
 | A | [src/modules/chat/modals/CodexContextPanel.tsx](../../src/modules/chat/modals/CodexContextPanel.tsx) | — |
@@ -163,6 +164,7 @@
 | A | [src/modules/chat/tests/composerTextEditing.test.tsx](../../src/modules/chat/tests/composerTextEditing.test.tsx) | — |
 | M | [src/modules/chat/tests/composerToolsSettingsResolution.test.ts](../../src/modules/chat/tests/composerToolsSettingsResolution.test.ts) | — |
 | A | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
+| M | [src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx](../../src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx) | — |
 | A | [src/modules/chat/tests/permissionRequestsBanner.test.tsx](../../src/modules/chat/tests/permissionRequestsBanner.test.tsx) | — |
 | M | [src/modules/chat/tests/sessionMessageReconciliation.test.ts](../../src/modules/chat/tests/sessionMessageReconciliation.test.ts) | — |
 | M | [src/modules/chat/tests/sessionStoreTruncate.test.tsx](../../src/modules/chat/tests/sessionStoreTruncate.test.tsx) | — |

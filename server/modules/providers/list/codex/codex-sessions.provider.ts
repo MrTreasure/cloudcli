@@ -1356,6 +1356,13 @@ async function getCodexSessionMessages(sessionId: string, transcriptPath?: strin
     turns.observe(entry.type, payload);
 
     // ── event_msg ──────────────────────────────────────────────────────────
+    if (entry.type === 'compacted') {
+      // 0.162 persists this boundary instead of an event_msg/context_compacted.
+      // Never expose replacement_history or the private summary as chat text.
+      messages.push({ type: 'status_note', uuid: `codex-compaction:${timestamp}`, timestamp, content: 'Context compacted' });
+      continue;
+    }
+
     if (entry.type === 'event_msg') {
       if (payload.type === 'token_count' && payload.info) {
         const info = payload.info as AnyRecord;
@@ -2432,12 +2439,21 @@ export class CodexSessionsProvider implements IProviderSessions {
             toolId: itemId,
             status: raw.item?.status,
           })];
+        case 'context_compaction':
+          return [createNormalizedMessage({
+            id: itemId,
+            sessionId,
+            timestamp: ts,
+            provider: PROVIDER,
+            kind: 'task_notification',
+            summary: 'Context compacted',
+            status: 'info',
+          })];
         case 'hook_prompt':
         case 'sub_agent_activity':
         case 'sleep':
         case 'entered_review_mode':
         case 'exited_review_mode':
-        case 'context_compaction':
           return [];
         case 'error':
           return [createNormalizedMessage({

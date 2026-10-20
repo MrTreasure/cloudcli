@@ -308,6 +308,8 @@ Codex app-server 会把历史 `input_image`（包括压缩后的 `replacement_hi
 
 普通发送和 **压缩上下文**沿用同一个原生线程，保留加密摘要、推理内容和原生临时授权；压缩调用原生 `thread/compact/start`，其 HTTP 图片输入也经过过滤。**清理上下文**是显式开启空线程，保留完整聊天历史，取消对比图选择；旧分段可阅读，当前分段正常编辑。清理可能重新请求原生临时授权，原有模型、Fast 和 UI 权限模式不变。任务进行中禁用这两个按钮，未发送草稿保留。
 
+压缩完成时展示 `Context compacted` 通知，刷新后也从 Codex 的原生 `compacted` 边界恢复该通知，不展示内部摘要或 `replacement_history`。手动上下文操作期间每 5 秒通过既有会话订阅核对任务状态并补播遗漏事件；仅以后端空闲确认结束 loading，不按经过时间强行完成任务。网络不可用时仍可能等待连接恢复。
+
 新会话策略默认值可通过 `CLOUDCLI_CODEX_HISTORY_IMAGES=3`、`CLOUDCLI_CODEX_HISTORY_IMAGE_BYTES=1048576` 配置；会话已保存的值优先。原图按内容哈希归档在数据库目录旁的 `codex-context-images/`，默认总容量 **512 MiB**（`CLOUDCLI_CODEX_IMAGE_CACHE_BYTES`）；满时明确报错，不自动删除旧图或悄悄转发大请求。单个压缩前后 HTTP 请求体均限制为 **64 MiB**（`CLOUDCLI_CODEX_PROXY_BODY_BYTES`），可按需要调整。缓存及数据库属于每台电脑自己的运行数据，不随 Git 同步。
 
 转发地址仅通过线程参数临时覆盖，不写 `config.toml`、`auth.json` 或模型库。自定义 provider 保留原 ID、认证和请求头；内置 OpenAI 使用官方 `openai_base_url` 临时覆盖，并由本地 426 响应触发原生 HTTP 回退，保留 provider ID 和原生 AuthManager。此路径使用 HTTP/SSE，原先支持 WebSocket 的 provider 在线程内切换为 HTTP；浏览器 WebSocket、消息插入和工具权限交互不变。支持 gzip/deflate/br/zstd 请求，保持相同压缩格式转发；zstd 需要 Node 22.15+。使用宿主机 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY 环境，只有 Codex 子进程增加本机回环绕过规则。

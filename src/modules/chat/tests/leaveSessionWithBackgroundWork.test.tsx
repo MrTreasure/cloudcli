@@ -97,3 +97,36 @@ test('a session mid-response keeps its view while the selection catches up', asy
   assert.equal(hook.result.current.currentSessionId, 'session-a');
   assert.equal(resetStreamingState.mock.calls.length, 0);
 });
+
+
+test('manual context actions resubscribe for completion and stop checking when idle', async () => {
+  vi.useFakeTimers();
+  try {
+    const { useChatSessionState } = await import('@/modules/chat/hooks/useChatSessionState');
+    const sendMessage = vi.fn();
+    const statusChecks = { current: new Map<string, number>() };
+    const socket = {} as never;
+    const hook = renderHook(({ activity }: { activity: SessionActivityMap }) => useChatSessionState({
+      isActive: true,
+      selectedProject: project,
+      selectedSession: session,
+      ws: socket,
+      sendMessage,
+      resetStreamingState: vi.fn(),
+      statusCheckSentAtRef: statusChecks,
+      lastSeqRef: { current: new Map([['session-a', 17]]) },
+      sessionStore: store as never,
+      processingSessions: activity,
+    }), { initialProps: { activity: new Map([['session-a', { statusText: 'Compacting context…', canInterrupt: true, startedAt: Date.now() }]]) } });
+    sendMessage.mockClear();
+    act(() => vi.advanceTimersByTime(5000));
+    assert.ok(sendMessage.mock.calls.some(([frame]) => frame.type === 'chat.subscribe'
+      && frame.sessions[0].sessionId === 'session-a' && frame.sessions[0].lastSeq === 17));
+    assert.ok(statusChecks.current.has('session-a'));
+    hook.rerender({ activity: new Map() });
+    sendMessage.mockClear();
+    act(() => vi.advanceTimersByTime(10000));
+    assert.equal(sendMessage.mock.calls.length, 0);
+    hook.unmount();
+  } finally { vi.useRealTimers(); }
+});

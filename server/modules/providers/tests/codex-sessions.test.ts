@@ -661,3 +661,40 @@ test('Codex history restores user prompts from typed item_completed rows', { con
     await rm(tempRoot, { recursive: true, force: true });
   }
 });
+
+
+test('live Codex compaction completion produces a visible result', () => {
+  const [message] = createSdkSessionsProvider().normalizeMessage({
+    type: 'item', itemType: 'context_compaction', uuid: 'compact-result',
+  }, 'session-compact');
+  assert.equal(message.kind, 'task_notification');
+  assert.equal(message.summary, 'Context compacted');
+  assert.equal(message.sessionId, 'session-compact');
+});
+
+test('native compacted history restores a result without exposing replacement history', { concurrency: false }, async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'codex-compaction-history-'));
+  const workspacePath = path.join(tempRoot, 'workspace');
+  await mkdir(workspacePath, { recursive: true });
+  const restoreHomeDir = patchHomeDir(tempRoot);
+  try {
+    const transcriptPath = await writeCodexTranscript(tempRoot, 'native-compact', workspacePath);
+    const timestamp = '2026-10-20T03:13:02.844Z';
+    await writeFile(transcriptPath, JSON.stringify({ type: 'session_meta', payload: { id: 'native-compact', cwd: workspacePath } }) + '\n'
+      + JSON.stringify({ type: 'compacted', timestamp, payload: { message: 'PRIVATE SUMMARY', replacement_history: [{ type: 'message', content: 'PRIVATE CONTEXT' }] } }) + '\n');
+    await withIsolatedDatabase(async () => {
+      sessionsDb.createAppSession('app-compact', 'codex', workspacePath);
+      sessionsDb.assignProviderSessionId('app-compact', 'native-compact');
+      await new CodexSessionSynchronizer().synchronize();
+      const history = await createSdkSessionsProvider().fetchHistory('app-compact');
+      const notices = history.messages.filter(message => message.kind === 'task_notification');
+      assert.equal(notices.length, 1);
+      assert.equal(notices[0].summary, 'Context compacted');
+      assert.equal(notices[0].id, `codex-compaction:${timestamp}`);
+      assert.equal(JSON.stringify(history.messages).includes('PRIVATE'), false);
+    });
+  } finally {
+    restoreHomeDir();
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});

@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`574ac952effcb88655befdf7278bdf11989ba80a`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`0eeb3edf00f0b5c2f5d1038e0b1b33b89c8e98de`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,19 +10,12 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [.env.example](../../.env.example) | — |
 | M | [README.md](../../README.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [package.json](../../package.json) | — |
-| M | [pnpm-lock.yaml](../../pnpm-lock.yaml) | — |
-| M | [server/modules/assets/assets.routes.ts](../../server/modules/assets/assets.routes.ts) | — |
-| M | [server/modules/assets/services/image-assets.service.ts](../../server/modules/assets/services/image-assets.service.ts) | — |
-| M | [server/modules/providers/README.md](../../server/modules/providers/README.md) | — |
-| M | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
-| M | [server/shared/image-attachments.ts](../../server/shared/image-attachments.ts) | — |
-| M | [server/shared/index.ts](../../server/shared/index.ts) | — |
-| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
-| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
+| M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
+| M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
+| M | [src/modules/chat/hooks/useChatSessionState.ts](../../src/modules/chat/hooks/useChatSessionState.ts) | — |
+| M | [src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx](../../src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx) | — |
 
 ## NAS 主线提交
 
@@ -390,6 +383,27 @@
   - `src/modules/i18n/locales/zh-CN/chat.json`
   - `src/modules/i18n/locales/zh-TW/chat.json`
   - `src/shared/api.ts`
+
+### 0eeb3edf · 2026-10-20 · feat(images): share cached WebP conversion across CloudCLI
+
+- 完整提交：`0eeb3edf00f0b5c2f5d1038e0b1b33b89c8e98de`
+- 相对第一父提交涉及文件：
+
+  - `.env.example`
+  - `README.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `package.json`
+  - `pnpm-lock.yaml`
+  - `server/modules/assets/assets.routes.ts`
+  - `server/modules/assets/services/image-assets.service.ts`
+  - `server/modules/providers/README.md`
+  - `server/modules/providers/services/codex-image-context.service.ts`
+  - `server/shared/image-attachments.ts`
+  - `server/shared/index.ts`
+  - `server/shared/types.ts`
+  - `server/shared/utils.ts`
 
 ## 从 PR / 其他分支合入的提交
 
