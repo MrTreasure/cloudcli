@@ -324,7 +324,7 @@ Codex app-server 会把历史 `input_image`（包括压缩后的 `replacement_hi
 
 ### Codex HTTP 请求体压缩
 
-历史图片裁剪和公共 WebP 转换之后，可对**完整最终 JSON**进行 zstd/gzip level 1 编码；工具、参数、加密推理和缓存字段保持原值。它减少传输字节，不替代 `/compact`，也不减少模型 token。默认 `CLOUDCLI_CODEX_REQUEST_COMPRESSION=preserve`，不会主动给 identity 输入启用压缩。每台电脑通过本地 `.env` 或服务环境选择 `identity`、`zstd`、`gzip`，修改后重启后端；这些运行配置不随 Git 同步。
+历史图片裁剪和公共 WebP 转换之后，可对**完整最终 JSON**进行 zstd level 3（gzip level 1）编码；工具、参数、加密推理和缓存字段保持原值。它减少传输字节，不替代 `/compact`，也不减少模型 token。默认 `CLOUDCLI_CODEX_REQUEST_COMPRESSION=preserve`，不会主动给 identity 输入启用压缩。每台电脑通过本地 `.env` 或服务环境选择 `identity`、`zstd`、`gzip`，修改后重启后端；这些运行配置不随 Git 同步。
 
 推荐在已确认接收方支持后设置 `CLOUDCLI_CODEX_REQUEST_COMPRESSION=zstd`。原生 zstd 需要 Node 22.15+；运行时缺少能力时在发送前报错。仅在**目标 CPA 已部署 gzip 解码修复**后，才将其精确 origin（协议、主机、可选端口，不含路径）加入 `CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS`，允许显式 gzip 或 zstd 不可用时的 gzip 降级。不能用原版 CPA 的日志解码能力推断 handler 支持 gzip，也不通过真实模型请求探测能力。
 

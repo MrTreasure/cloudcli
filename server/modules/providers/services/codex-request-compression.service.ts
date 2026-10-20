@@ -78,7 +78,7 @@ export const codexRequestCompressionService = {
         case 'identity': break;
         case 'gzip': outgoing = await promisify(zlib.gzip)(bytes, { ...options, level: 1 }); break;
         case 'zstd': outgoing = await promisify((zlib as AnyRecord).zstdCompress)(bytes, {
-          ...options, params: { [zlib.constants.ZSTD_c_compressionLevel]: 1 },
+          ...options, params: { [zlib.constants.ZSTD_c_compressionLevel]: 3 },
         }) as Buffer; break;
         case 'deflate': outgoing = await promisify(zlib.deflate)(bytes, { ...options, level: 1 }); break;
         case 'br': outgoing = await promisify(zlib.brotliCompress)(bytes, options); break;

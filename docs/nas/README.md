@@ -306,7 +306,14 @@
 ## 2026-10-20 Codex 完整 HTTP 请求体压缩（已发布并开启 zstd）
 
 - 目的与来源：按外部 `c137_cpa/docs/cloudcli-compression-handoff.md` 对接双段压缩。本地改造，未合并上游 PR。原代理只沿用入站编码，identity 请求不会主动压缩；在既有图片裁剪/WebP 后编码完整 JSON，保留工具、加密推理和缓存字段。交接当时 CPA 未部署，随后用户确认 CPA 已支持压缩并要求配套开启，本次据此开启 CloudCLI zstd，不修改 CPA。
-- 所属路径：`server/modules/providers/services/codex-request-compression.service.ts` 提供原生 level 1 codec 和配置校验；`codex-image-proxy.service.ts` 接入冻结的每轮策略、准确头、SSE/取消和无重放转发；`codex-image-context.service.ts` 与 `server/shared/types.ts` 保存独立起点的传输计量。`src/modules/chat/modals/CodexContextPanel.tsx` 及三种语言包展示累计请求体、平均、最大和最近编码/耗时/状态；`.env.example`、根 README、providers README 和 [详细记录](request-compression.md) 说明配置与边界。
+- 所属路径：`server/modules/providers/services/codex-request-compression.service.ts` 提供原生 codec 和配置校验（初版 level 1，后按用户要求将 zstd 调至 level 3）；`codex-image-proxy.service.ts` 接入冻结的每轮策略、准确头、SSE/取消和无重放转发；`codex-image-context.service.ts` 与 `server/shared/types.ts` 保存独立起点的传输计量。`src/modules/chat/modals/CodexContextPanel.tsx` 及三种语言包展示累计请求体、平均、最大和最近编码/耗时/状态；`.env.example`、根 README、providers README 和 [详细记录](request-compression.md) 说明配置与边界。
 - 策略：默认 `CLOUDCLI_CODEX_REQUEST_COMPRESSION=preserve`，显式支持 identity/zstd/gzip。小于 4 KiB 或无收益时发送前选择 identity；缺少 zstd 只向已确认部署 gzip 修复的精确 origin 降级，否则发送前失败。显式压缩体默认 16 MiB，既有入站/JSON 默认 64 MiB；不新增重试、不在错误后换编码重放。普通及 compact 共用规则，保留 `/v1`，子线程不继承主会话策略；显式 SDK 和模型列表不覆盖。
 - 验证：新后端定向 10 项通过，全量后端 857 项中 856 通过、1 项既有跳过；全量前端 118 文件、845 项通过，类型检查、前后端构建和 lint 通过。模拟混合图片/不透明状态样本 420,871 字节，经 zstd 为 316,665 字节（减少 24.76%，5 次平均编码 2.019 ms）；仅本地编码实测，不能当作生产流量或 Mac 性能。未调用真实收费模型、未测 CPA→ChatGPT 流量。日志只记统计元数据，两段不相加作为梯子用量。
 - 发布与回退：用户授权开启后，前端发布 56 个变更资源、117 个资源本地跳过，后端 PID 1293126 → 1555414；本地用户服务 drop-in `30-request-compression.conf` 设置 zstd，新进程环境、编译产物 codec、健康/登录/项目/草稿/最近会话及模型目录不变验证通过。不主动调用收费模型；CPA 下游真实流量未测。记录和备份在 appdata `operations/request-compression-release-20261020-165226/`。NAS 已生效，Mac 仍需自行配置部署；公共默认 preserve 不变，gzip origin 确认列表未开启。用户要求本批变更一起提交推送，SHA/同步状态以 Git 为准。设置 preserve 并重启可撤回主动压缩，identity 可明确关闭本段编码；回退 CPA 前先停用 gzip/fallback 并检查原生入站。源码回退须成组撤回 codec/proxy/metrics/弹窗/语言包及测试，无 schema/历史迁移，不删除原图或覆盖其他保留项。
+
+## 2026-10-20 zstd 等级调整为 3（已重启生效）
+
+- 用户要求将当前压缩等级设为 3。`server/modules/providers/services/codex-request-compression.service.ts` 的原生 zstd 参数从 1 改为 3；gzip/deflate 保持 1，编码选择、预算、取消及无重放规则不变。此为本地参数调整，无上游 PR。
+- 根 README、providers README、部署指南和 `docs/nas/request-compression.md` 同步当前等级；原 level 1 基准保留并明确标记为历史数据，不冒充 level 3 性能。
+- 验证：10 项请求压缩定向测试、类型检查、后端构建及 lint 通过。额外核对编译产物与同参数异步 zstd level 3 输出一致、与 level 1 输出不同，且解压逐字节恢复输入；初次同步/异步编码字节比较因帧格式不同而失败，改为同一异步 API 验证后通过，并非请求体损坏。未调用真实模型。
+- NAS 已重启，PID 1555414 → 1562460，健康正常、运行模式 zstd，记录在 appdata `operations/zstd-level3-20261020-170015/`。无需前端发布；源码变更需 Git 提交供其他电脑同步，其后仍需各自构建和重启。回退仅将 zstd 参数改回 1 并构建重启，无数据或配置迁移。

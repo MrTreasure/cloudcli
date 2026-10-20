@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`704d12e089c019c74524f54b2731fb7558f28be1`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`bc55622b4f2611fc7312c919caf41f2f6412643b`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,25 +10,12 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [.env.example](../../.env.example) | — |
 | M | [README.md](../../README.md) | — |
 | M | [deploy/README.md](../../deploy/README.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| A | [docs/nas/request-compression.md](../../docs/nas/request-compression.md) | — |
-| M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
-| M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
+| M | [docs/nas/request-compression.md](../../docs/nas/request-compression.md) | — |
 | M | [server/modules/providers/README.md](../../server/modules/providers/README.md) | — |
-| M | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
-| M | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
-| A | [server/modules/providers/services/codex-request-compression.service.ts](../../server/modules/providers/services/codex-request-compression.service.ts) | — |
-| A | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
-| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
-| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
-| M | [src/modules/chat/modals/CodexContextPanel.tsx](../../src/modules/chat/modals/CodexContextPanel.tsx) | — |
-| M | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
-| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
+| M | [server/modules/providers/services/codex-request-compression.service.ts](../../server/modules/providers/services/codex-request-compression.service.ts) | — |
 
 ## NAS 主线提交
 
@@ -431,6 +418,33 @@
   - `server/modules/providers/tests/codex-sessions.test.ts`
   - `src/modules/chat/hooks/useChatSessionState.ts`
   - `src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx`
+
+### bc55622b · 2026-10-20 · feat(codex): add request compression and workspace file access
+
+- 完整提交：`bc55622b4f2611fc7312c919caf41f2f6412643b`
+- 相对第一父提交涉及文件：
+
+  - `.env.example`
+  - `README.md`
+  - `deploy/README.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/request-compression.md`
+  - `server/modules/file-tree/file-tree.service.ts`
+  - `server/modules/file-tree/tests/file-tree.service.test.ts`
+  - `server/modules/providers/README.md`
+  - `server/modules/providers/services/codex-image-context.service.ts`
+  - `server/modules/providers/services/codex-image-proxy.service.ts`
+  - `server/modules/providers/services/codex-request-compression.service.ts`
+  - `server/modules/providers/tests/codex-request-compression.test.ts`
+  - `server/shared/types.ts`
+  - `server/shared/utils.ts`
+  - `src/modules/chat/modals/CodexContextPanel.tsx`
+  - `src/modules/chat/tests/contextUsageDisplay.test.tsx`
+  - `src/modules/i18n/locales/en/chat.json`
+  - `src/modules/i18n/locales/zh-CN/chat.json`
+  - `src/modules/i18n/locales/zh-TW/chat.json`
 
 ## 从 PR / 其他分支合入的提交
 

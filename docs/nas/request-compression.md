@@ -18,7 +18,7 @@ WebP 和 token 缓存都不能替代剩余完整 JSON 的 HTTP 编码。新增�
 | `CLOUDCLI_CODEX_PROXY_COMPRESSED_BODY_BYTES` | 16777216（16 MiB）；显式模式压缩体上限，可设 4096–67108864 字节，不收紧 preserve 既有行为 |
 | `CLOUDCLI_CODEX_PROXY_BODY_BYTES` | 67108864（64 MiB）；既有入站、解码和最终 JSON 上限 |
 
-zstd/gzip 均为 level 1；原生 zstd 需要 Node 22.15+，以运行时函数检测为准。
+zstd 使用 level 3，gzip 保持 level 1；原生 zstd 需要 Node 22.15+，以运行时函数检测为准。
 缺少 zstd 仅可在发送前对已确认 origin 选择 gzip，否则明确失败。
 小于 4 KiB 或无压缩收益时选择 identity。输入先解码，再对最终 JSON 编码一次，
 不叠加编码。压缩/容量错误不偷偷发送原文。
@@ -49,6 +49,7 @@ Session-Id、Originator、X-Codex-* 头；已有 X-Request-Id 不覆盖。
 
 NAS Node v26.0.0，同一最终 JSON 分别 identity、gzip level 1、zstd level 1，
 每种压缩 5 次取平均编码时间，解压后逐字节一致；全程模拟数据，无真实模型请求。
+这是调整前 level 1 的历史对比数据，不代表当前 zstd level 3 的压缩率或耗时。
 混合样本包含 4 张不同的已处理图片及随机不透明状态。文本和工具样本重复度高，
 不能将其压缩率外推为真实会话收益或公网延迟提升。
 

@@ -440,7 +440,7 @@ then encodes the complete final JSON once before any upstream write. The mode is
 Explicit modes work even when image filtering is disabled. Unmatched child
 threads remain transparent, and SDK/model-list traffic is outside this policy.
 
-Native zstd and gzip use level 1. Missing zstd may select gzip only when the exact
+Native zstd uses level 3; gzip uses level 1. Missing zstd may select gzip only when the exact
 upstream origin is in `CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS`, acknowledging deployment
 of CPA's gzip handler fix. Explicit gzip requires the same acknowledgement.
 Small (<4096 bytes) and non-beneficial bodies select identity before transmission.
