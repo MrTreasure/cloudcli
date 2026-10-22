@@ -30,7 +30,7 @@ const example = (): AnyRecord => ({
 
 test('Codex final HTTP body encoding, streaming, cancellation and accounting', { concurrency: false, timeout: 30000 }, async t => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'cloudcli-wire-'));
-  const keys = ['DATABASE_PATH', 'CLOUDCLI_IMAGE_WEBP_CACHE_DIR', 'CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED', 'CLOUDCLI_CODEX_REQUEST_COMPRESSION', 'CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS', 'CLOUDCLI_CODEX_PROXY_COMPRESSED_BODY_BYTES', 'NO_PROXY'];
+  const keys = ['DATABASE_PATH', 'CLOUDCLI_IMAGE_WEBP_CACHE_DIR', 'CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED', 'CLOUDCLI_CODEX_REQUEST_COMPRESSION', 'CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS', 'CLOUDCLI_CODEX_PROXY_COMPRESSED_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES', 'NO_PROXY', 'no_proxy', 'HTTP_PROXY', 'http_proxy'];
   const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
   process.env.DATABASE_PATH = path.join(directory, 'auth.db');
   process.env.CLOUDCLI_IMAGE_WEBP_CACHE_DIR = path.join(directory, 'webp');
@@ -62,13 +62,13 @@ test('Codex final HTTP body encoding, streaming, cancellation and accounting', {
   await new Promise<void>(resolve => upstream.listen(0, '127.0.0.1', resolve));
   const origin = `http://127.0.0.1:${(upstream.address() as { port: number }).port}`;
   await initializeDatabase();
-  const open = async (mode: string, filterImages = false, confirmed = true) => {
+  const open = async (mode: string, filterImages = false, confirmed = true, upstreamOrigin = origin) => {
     process.env.CLOUDCLI_CODEX_REQUEST_COMPRESSION = mode;
     process.env.CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED = String(filterImages);
     process.env.CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS = confirmed ? origin : '';
     const sessionId = randomUUID(); sessionsDb.createSession(sessionId, 'codex', directory);
     const route = await proxy.open({ sessionId, cwd: directory, request: async () => ({ config: {
-      model_provider: 'mock', model_providers: { mock: { base_url: origin + '/v1', wire_api: 'responses' } },
+      model_provider: 'mock', model_providers: { mock: { base_url: upstreamOrigin + '/v1', wire_api: 'responses' } },
     } }) });
     assert.ok(route); route.bindThread('native-test');
     return { sessionId, route, url: String(route.config['model_providers.mock.base_url']) };
@@ -137,6 +137,83 @@ test('Codex final HTTP body encoding, streaming, cancellation and accounting', {
       assert.deepEqual(calls.at(-1)!.decoded, canonical(expected)); assert.equal(calls.at(-1)!.body.input[1].encrypted_content, 'OPAQUE-DO-NOT-LOG');
       assert.deepEqual(await readFile(images.snapshot(sessionId).images[0].path), original); route.close();
     });
+    await t.test('oversized native history is filtered before the final JSON limit, including encoded intake', async () => {
+      process.env.CLOUDCLI_CODEX_PROXY_BODY_BYTES = String(1048576);
+      process.env.CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES = String(4 * 1048576);
+      const { route, url, sessionId } = await open('zstd', true);
+      try {
+        images.update(sessionId, { recentImages: 0 });
+        // Reopen to capture the updated per-run policy, as the runtime does.
+        route.close();
+        const reopened = await proxy.open({ sessionId, cwd: directory, request: async () => ({ config: {
+          model_provider: 'mock', model_providers: { mock: { base_url: origin + '/v1', wire_api: 'responses' } },
+        } }) });
+        assert.ok(reopened); reopened.bindThread('native-test');
+        try {
+          const original = await sharp({ create: { width: 1024, height: 512, channels: 3, background: '#619aca' } }).png({ compressionLevel: 0 }).toBuffer();
+          const body = example();
+          body.input.unshift({ type: 'message', role: 'user', content: [{ type: 'input_image', image_url: 'data:image/png;base64,' + original.toString('base64') }] });
+          const input = canonical(body); assert.ok(input.length > 1048576);
+          for (const encoding of [undefined, 'zstd']) {
+            const bytes = encoding ? zlib.zstdCompressSync(input) : input;
+            const response = await send(url, bytes, encoding);
+            assert.equal(response.status, 200);
+            const call = calls.at(-1)!;
+            assert.match(call.body.input[0].content[0].text, /Archived image/);
+            assert.ok(call.decoded.length < 1048576);
+            assert.equal(call.headers['content-encoding'], 'zstd');
+            assert.ok(call.raw.length < call.decoded.length);
+            assert.equal(images.snapshot(sessionId).metrics.jsonBytesBefore, input.length);
+          }
+          assert.deepEqual(await readFile(images.snapshot(sessionId).images[0].path), original);
+          const before = calls.length;
+          // Filtering cannot excuse excessive non-image content.
+          const excessive = canonical({ ...example(), padding: 'x'.repeat(2 * 1048576) });
+          assert.equal((await send(url, excessive)).status, 413);
+          assert.equal(calls.length, before);
+          process.env.CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES = String(1048576);
+          assert.equal((await send(url, excessive)).status, 413);
+          assert.equal((await send(url, zlib.zstdCompressSync(excessive), 'zstd')).status, 413);
+          assert.equal(calls.length, before);
+        } finally { reopened.close(); }
+      } finally {
+        route.close(); delete process.env.CLOUDCLI_CODEX_PROXY_BODY_BYTES; delete process.env.CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES;
+      }
+    });
+    await t.test('the network proxy receives compressed bytes for parent, child and inactive leases', async () => {
+      const captured: Array<{ bytes: Buffer; encoding: string | string[] | undefined; url?: string }> = [];
+      const gateway = http.createServer(async (req, res) => {
+        const chunks: Buffer[] = []; for await (const chunk of req) chunks.push(chunk);
+        captured.push({ bytes: Buffer.concat(chunks), encoding: req.headers['content-encoding'], url: req.url });
+        res.end('{"ok":true}');
+      });
+      await new Promise<void>(resolve => gateway.listen(0, '127.0.0.1', resolve));
+      const proxyKeys = ['HTTP_PROXY', 'http_proxy', 'NO_PROXY', 'no_proxy'];
+      const saved = Object.fromEntries(proxyKeys.map(key => [key, process.env[key]]));
+      process.env.HTTP_PROXY = process.env.http_proxy = `http://127.0.0.1:${(gateway.address() as { port: number }).port}`;
+      process.env.NO_PROXY = process.env.no_proxy = '';
+      const { route, url, sessionId } = await open('zstd', false, true, 'http://wire-target.invalid');
+      try {
+        for (const thread of ['native-test', 'child', 'inactive']) {
+          if (thread === 'inactive') route.close();
+          const body = canonical({ ...example(), prompt_cache_key: thread });
+          const before = images.snapshot(sessionId).metrics.transport?.requests ?? 0;
+          if (thread === 'native-test') assert.equal((await send(url, body)).status, 200);
+          else {
+            const response = await fetch(url + '/responses', { method: 'POST', headers: { 'thread-id': thread }, body });
+            assert.equal(response.status, 200); await response.text();
+          }
+          const call = captured.at(-1)!;
+          assert.equal(call.url, 'http://wire-target.invalid/v1/responses');
+          assert.equal(call.encoding, 'zstd'); assert.deepEqual(zlib.zstdDecompressSync(call.bytes), body);
+          assert.ok(call.bytes.length < body.length / 10);
+          assert.equal(images.snapshot(sessionId).metrics.transport?.requests, before + (thread === 'native-test' ? 1 : 0));
+        }
+      } finally {
+        route.close(); gateway.closeAllConnections(); await new Promise<void>(resolve => gateway.close(() => resolve()));
+        for (const key of proxyKeys) { if (saved[key] === undefined) delete process.env[key]; else process.env[key] = saved[key]; }
+      }
+    });
     await t.test('errors, invalid encodings and limits never trigger an encoding replay', async () => {
       const { route, url } = await open('zstd');
       for (const status of [400, 413, 415, 503]) {
@@ -183,14 +260,15 @@ test('Codex final HTTP body encoding, streaming, cancellation and accounting', {
       const codecAbort = new AbortController(); const encoded = codec.encode(Buffer.alloc(16 * 1048576, 65), '', codec.settings(), origin, codecAbort.signal); codecAbort.abort();
       await assert.rejects(encoded, error => (error as Error).name === 'AbortError');
     });
-    await t.test('concurrent sessions isolate counters and child threads remain transparent', async () => {
+    await t.test('concurrent sessions isolate counters and child threads retain their exact content', async () => {
       const opened = await Promise.all([open('zstd'), open('gzip'), open('identity')]);
       await Promise.all(opened.map((entry, index) => send(entry.url, canonical({ ...example(), index }))));
       for (const entry of opened) assert.equal(images.snapshot(entry.sessionId).metrics.transport?.requests, 1);
       const entry = opened[0]; const child = canonical({ ...example(), prompt_cache_key: 'child' });
       const before = images.snapshot(entry.sessionId).metrics.transport!.requests;
       await new Promise<void>((resolve, reject) => { const req = http.request(entry.url + '/responses', { method: 'POST', headers: { 'content-type': 'application/json', 'thread-id': 'child' } }, res => { res.resume(); res.on('end', resolve); }); req.on('error', reject); req.end(child); });
-      assert.deepEqual(calls.at(-1)!.raw, child); assert.equal(images.snapshot(entry.sessionId).metrics.transport!.requests, before);
+      assert.deepEqual(calls.at(-1)!.decoded, child); assert.equal(calls.at(-1)!.headers['content-encoding'], 'zstd');
+      assert.equal(images.snapshot(entry.sessionId).metrics.transport!.requests, before);
       // The new cohort must not invent historic maxima from old counters.
       const state = images.snapshot(entry.sessionId); state.metrics.requests = 100; state.metrics.uploadedBytes = 100000000; delete state.metrics.transport; codexContextDb.save(entry.sessionId, state);
       await send(entry.url, canonical(example())); assert.equal(images.snapshot(entry.sessionId).metrics.transport!.requests, 1);

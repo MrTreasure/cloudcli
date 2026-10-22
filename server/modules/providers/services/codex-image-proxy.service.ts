@@ -20,6 +20,12 @@ function bodyLimit() {
   const parsed = Number(process.env.CLOUDCLI_CODEX_PROXY_BODY_BYTES);
   return Number.isSafeInteger(parsed) && parsed >= 1048576 && parsed <= 256 * 1048576 ? parsed : 64 * 1048576;
 }
+function incomingBodyLimit() {
+  const parsed = Number(process.env.CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES);
+  // Native history includes archived image copies. Admit them locally so the
+  // filter can remove them before enforcing the smaller outbound JSON budget.
+  return Number.isSafeInteger(parsed) && parsed >= 1048576 && parsed <= 256 * 1048576 ? parsed : 256 * 1048576;
+}
 function filteredHeaders(headers: http.IncomingHttpHeaders) {
   const result = { ...headers };
   const hop = String(headers.connection ?? '').split(',').map(name => name.trim().toLowerCase());
@@ -47,39 +53,49 @@ async function forward(req: http.IncomingMessage, res: http.ServerResponse, requ
   res.once('close', () => { if (!res.writableFinished) controller.abort(); });
   const chunks: Buffer[] = [];
   let received = 0;
-  for await (const chunk of req) {
+  // Keep the socket writable when rejecting intake. Readable's default async
+  // iterator destroys it on early exit, hiding the 413 behind ECONNRESET.
+  for await (const chunk of req.iterator({ destroyOnReturn: false })) {
     received += chunk.length;
-    if (received > bodyLimit()) throw new AppError('Codex request exceeds the local proxy body limit.', { code: 'CODEX_PROXY_BODY_LIMIT', statusCode: 413 });
+    if (received > incomingBodyLimit()) {
+      throw new AppError('Codex history exceeds the local intake limit before image filtering (CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES). Original history is intact.', { code: 'CODEX_PROXY_BODY_LIMIT', statusCode: 413 });
+    }
     chunks.push(chunk);
   }
   const original = Buffer.concat(chunks);
   let outgoing: Buffer = original;
   let outgoingEncoding: string | null = null;
-  if (req.method === 'POST' && lease) {
+  if (req.method === 'POST' && (lease || settings.mode !== 'preserve')) {
     const encoding = String(req.headers['content-encoding'] ?? '').trim().toLowerCase();
     const encodingHeaders = req.rawHeaders.filter((_, index) => index % 2 === 0 && req.rawHeaders[index].toLowerCase() === 'content-encoding');
     if (encodingHeaders.length > 1) throw new AppError('Repeated request encoding headers are unsupported.', { code: 'CODEX_PROXY_ENCODING', statusCode: 415 });
-    const decoded = await compression.decode(original, encoding, bodyLimit(), controller.signal);
+    const decoded = await compression.decode(original, encoding, incomingBodyLimit(), controller.signal);
     let body: AnyRecord;
     try {
       body = JSON.parse(decoded.toString('utf8'));
       if (!body || typeof body !== 'object' || Array.isArray(body)) throw new Error('Expected object');
     } catch { throw new AppError('Invalid model request JSON.', { code: 'CODEX_PROXY_JSON', statusCode: 400 }); }
     const thread = req.headers['thread-id'] ?? req.headers['session-id'] ?? body.prompt_cache_key;
-    // Child/mismatched threads remain transparent and do not inherit the
-    // parent session's filtering, transport policy or statistics.
-    if (thread === threadId) {
-      if (filterImages) await codexImageContextService.filter(route.sessionId, body, lease, controller.signal);
+    // Child/mismatched threads never inherit parent image retention or metrics.
+    // Explicit lossless transport encoding still applies before any proxy I/O.
+    const matched = lease && thread === threadId;
+    if (matched || settings.mode !== 'preserve') {
+      if (matched && filterImages) await codexImageContextService.filter(route.sessionId, body, lease, controller.signal);
       controller.signal.throwIfAborted();
-      const transformed = Buffer.from(JSON.stringify(body));
+      const transformed = matched ? Buffer.from(JSON.stringify(body)) : decoded;
       if (transformed.length > bodyLimit()) throw new AppError('Final JSON exceeds the local request-body limit.', { code: 'CODEX_PROXY_BODY_LIMIT', statusCode: 413 });
       const encoded = await compression.encode(transformed, encoding, settings, route.upstream.origin, controller.signal);
       outgoing = encoded.bytes;
       outgoingEncoding = encoded.encoding;
-      measurement = { requestId, encoding: encoded.encoding, compressionMs: encoded.compressionMs,
+      if (matched) measurement = { requestId, encoding: encoded.encoding, compressionMs: encoded.compressionMs,
         requestBytesBefore: original.length, requestBytesAfter: outgoing.length,
         jsonBytesBefore: decoded.length, jsonBytesAfter: transformed.length };
     }
+  }
+  // Transparent preserve routes must not use the larger intake allowance to
+  // bypass their existing forwarding limit.
+  if (!measurement && settings.mode === 'preserve' && outgoing.length > bodyLimit()) {
+    throw new AppError('Unfiltered request exceeds the local request-body limit.', { code: 'CODEX_PROXY_BODY_LIMIT', statusCode: 413 });
   }
   if (controller.signal.aborted) return;
   const target = new URL(route.upstream);
@@ -121,6 +137,9 @@ function listen() {
     const server = http.createServer((req,res) => {
       const requestId = randomUUID();
       void forward(req,res,requestId).catch(error => {
+        // Resume after the iterator has closed; resuming inside its loop is
+        // undone by iterator cleanup and can stall the error response.
+        req.resume();
         if (res.headersSent) { res.destroy(); return; }
         if (res.destroyed) return;
         // Do not expose upstream URLs, headers or prompt contents in diagnostics.

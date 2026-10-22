@@ -16,7 +16,8 @@ WebP 和 token 缓存都不能替代剩余完整 JSON 的 HTTP 编码。新增�
 | `CLOUDCLI_CODEX_REQUEST_COMPRESSION` | `preserve`；也可选 `identity`、`zstd`、`gzip`。preserve 沿用入站编码，不主动压缩 identity |
 | `CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS` | 空；逗号分隔精确 HTTP(S) origin，无路径或凭据。添加表示操作者已确认该 CPA 的 gzip handler 修复上线 |
 | `CLOUDCLI_CODEX_PROXY_COMPRESSED_BODY_BYTES` | 16777216（16 MiB）；显式模式压缩体上限，可设 4096–67108864 字节，不收紧 preserve 既有行为 |
-| `CLOUDCLI_CODEX_PROXY_BODY_BYTES` | 67108864（64 MiB）；既有入站、解码和最终 JSON 上限 |
+| `CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES` | 268435456（256 MiB）；仅本地原生历史接收与解码上限，可设 1–256 MiB，允许先清理旧图片 |
+| `CLOUDCLI_CODEX_PROXY_BODY_BYTES` | 67108864（64 MiB）；图片清理后的最终 JSON 上限，透明 preserve 请求仍遵守该转发上限 |
 
 zstd 使用 level 3，gzip 保持 level 1；原生 zstd 需要 Node 22.15+，以运行时函数检测为准。
 缺少 zstd 仅可在发送前对已确认 origin 选择 gzip，否则明确失败。
@@ -26,7 +27,8 @@ zstd 使用 level 3，gzip 保持 level 1；原生 zstd 需要 Node 22.15+，以
 同一策略用于 Responses 和 compact，保留 `/v1` 前缀；compact 响应仍为 JSON。
 SSE 原样流式传递，取消中止 HTTP 与 zlib codec；共享 WebP 的在途缓存任务可以
 完成，但取消后不再遍历后续图片或发出请求。编码、线程及图片 lease 在请求入口固定。
-未绑定/子线程透明转发，不套用主会话策略；SDK、模型列表不在此次覆盖范围。
+未绑定/子线程不套用主会话图片策略或计量；显式编码模式仍在网络代理之前完成
+无损编码，preserve 保持透明转发。SDK、模型列表不在此次覆盖范围。
 关闭图片过滤后显式编码模式仍可独立运行。
 
 压缩前选定编码和准确长度，移除旧 Transfer-Encoding，保留认证、Thread-Id、
@@ -91,6 +93,23 @@ CDN 逐项探测。运行记录及入口/数据库备份位于 NAS appdata 的
 若需明确禁用本段所有请求编码，设 `identity`。退回不支持 gzip 的 CPA 之前，
 必须先停用显式 gzip 和 zstd 的 gzip fallback，核对原生入站也未带 gzip。
 CPA 自身的上游 zstd 开关独立处理，不因 CloudCLI 改回 preserve 自动关闭。
+
+## 2026-10-22 大历史接收与代理前压缩修复
+
+原来 64 MiB 检查发生在图片清理之前，历史原图与工具裁图累积会让本可清理的请求
+提前 413。现将本机接收/解码预算与最终 JSON 预算分开；本地 256 MiB 只用于接收
+原生历史，不扩大公网 JSON/压缩体预算。流程为：本机接收 → 解码 → 按已有策略
+归档/清理图片与 WebP 转换 → 最终 JSON 容量检查 → zstd → 压缩体容量检查 →
+`http(s).request`/`ProxyAgent`。上游请求只在编码成功后创建，不因压缩失败发送原文。
+
+同时补齐显式模式下子线程及关闭图片 lease 后的编码路径。保留其完整 JSON 内容，
+不套用父线程图片过滤或统计。图片档案及原生 rollout 不变。合成 HTTP 网络代理
+验收覆盖主线程、子线程、关闭 lease、解压逐字节一致和代理收到的压缩后字节。
+大历史回归覆盖未编码/zstd 入站、清理后成功、无法清理的最终 JSON 超限与解码超限。
+
+NAS 只读核对：现有 CPA 容器健康，`CPA_CODEX_UPSTREAM_REQUEST_COMPRESSION=zstd`。
+该开关的适用上游与限制仍以 CPA 契约为准；本次没有更改 CPA 或梯子配置。
+源码生效需要构建并重启 CloudCLI 后端，不能把测试进程结果当作运行实例已更新。
 
 撤回源码时成组回退 codec、proxy、metrics 共享类型/服务、弹窗、语言包与相关测试。
 无数据库 schema 或原生线程映射迁移，已有可选 transport 字段可保留；不要删除

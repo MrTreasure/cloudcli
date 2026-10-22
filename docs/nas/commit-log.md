@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`bc55622b4f2611fc7312c919caf41f2f6412643b`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`f9d27de2a166930aae631b477ab1599f980dd234`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,12 +10,12 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [README.md](../../README.md) | — |
-| M | [deploy/README.md](../../deploy/README.md) | — |
+| M | [.env.example](../../.env.example) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
 | M | [docs/nas/request-compression.md](../../docs/nas/request-compression.md) | — |
 | M | [server/modules/providers/README.md](../../server/modules/providers/README.md) | — |
-| M | [server/modules/providers/services/codex-request-compression.service.ts](../../server/modules/providers/services/codex-request-compression.service.ts) | — |
+| M | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
+| M | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
 
 ## NAS 主线提交
 
@@ -445,6 +445,20 @@
   - `src/modules/i18n/locales/en/chat.json`
   - `src/modules/i18n/locales/zh-CN/chat.json`
   - `src/modules/i18n/locales/zh-TW/chat.json`
+
+### f9d27de2 · 2026-10-20 · perf(codex): use zstd compression level 3
+
+- 完整提交：`f9d27de2a166930aae631b477ab1599f980dd234`
+- 相对第一父提交涉及文件：
+
+  - `README.md`
+  - `deploy/README.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/request-compression.md`
+  - `server/modules/providers/README.md`
+  - `server/modules/providers/services/codex-request-compression.service.ts`
 
 ## 从 PR / 其他分支合入的提交
 

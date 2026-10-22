@@ -437,8 +437,10 @@ the existing loopback proxy. The proxy freezes each admitted run's image lease,
 thread and encoding settings; it decodes once, completes image/WebP processing,
 then encodes the complete final JSON once before any upstream write. The mode is
 `CLOUDCLI_CODEX_REQUEST_COMPRESSION=preserve|identity|zstd|gzip` (default preserve).
-Explicit modes work even when image filtering is disabled. Unmatched child
-threads remain transparent, and SDK/model-list traffic is outside this policy.
+Explicit modes work even when image filtering is disabled, for unmatched child
+threads and after the image lease closes. Those requests retain their exact JSON
+content and do not inherit parent image filtering or metrics. In preserve mode
+they remain byte-transparent. SDK/model-list traffic is outside this policy.
 
 Native zstd uses level 3; gzip uses level 1. Missing zstd may select gzip only when the exact
 upstream origin is in `CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS`, acknowledging deployment
@@ -446,7 +448,11 @@ of CPA's gzip handler fix. Explicit gzip requires the same acknowledgement.
 Small (<4096 bytes) and non-beneficial bodies select identity before transmission.
 Codec errors fail preflight; no status/network/cancellation error triggers an
 encoding replay. The explicit compressed limit defaults to 16 MiB; the existing
-64 MiB received/decoded/final-JSON limit remains. Content-Length/Content-Encoding
+64 MiB final-JSON limit remains. Local native-history intake/decode has a separate
+256 MiB budget (`CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES`, configurable 1–256 MiB),
+allowing archived images to be removed before the final JSON limit is checked.
+Transparent preserve requests retain the existing forwarding limit.
+Content-Length/Content-Encoding
 match the final buffer, hop-by-hop framing is removed, and base-path prefixes,
 auth/thread/session headers, raw response streaming and cancellation survive.
 

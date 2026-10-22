@@ -317,3 +317,11 @@
 - 根 README、providers README、部署指南和 `docs/nas/request-compression.md` 同步当前等级；原 level 1 基准保留并明确标记为历史数据，不冒充 level 3 性能。
 - 验证：10 项请求压缩定向测试、类型检查、后端构建及 lint 通过。额外核对编译产物与同参数异步 zstd level 3 输出一致、与 level 1 输出不同，且解压逐字节恢复输入；初次同步/异步编码字节比较因帧格式不同而失败，改为同一异步 API 验证后通过，并非请求体损坏。未调用真实模型。
 - NAS 已重启，PID 1555414 → 1562460，健康正常、运行模式 zstd，记录在 appdata `operations/zstd-level3-20261020-170015/`。无需前端发布；源码变更需 Git 提交供其他电脑同步，其后仍需各自构建和重启。回退仅将 zstd 参数改回 1 并构建重启，无数据或配置迁移。
+
+## 2026-10-22 大历史请求接收与网络代理前压缩（待部署）
+
+- 目的与来源：用户报告“科技树研发”多次无回复，定位为旧图片与工具裁图在过滤前超过 64 MiB；用户要求优化并在梯子代理转发前完成压缩。本分支本地修复，未合并上游 PR。
+- 所属路径：`server/modules/providers/services/codex-image-proxy.service.ts` 将本机原生历史接收/解码预算独立为 `CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES`（默认 256 MiB，可设 1–256 MiB）；原 `CLOUDCLI_CODEX_PROXY_BODY_BYTES` 仍限制过滤后最终 JSON（默认 64 MiB）。图片归档/过滤、WebP、最终 JSON 校验、zstd 和压缩体校验全部在 `ProxyAgent`/上游请求创建前完成。显式压缩模式补齐子线程及关闭图片 lease 后的出站编码，保持其 JSON 内容和父线程图片/计量隔离。接收超限时先关闭迭代器再丢弃剩余本地输入，保证返回明确 413，避免 socket reset 隐藏错误。
+- 配置与兼容：其他电脑仍默认 preserve，不假定其上游支持 zstd；NAS 现有用户服务已设 zstd，CPA 容器健康且其出站 zstd 开关已启用。本次未改 CPA、梯子、模型、认证或历史图片保留策略；最终 JSON/压缩体限制和压缩失败不发送原文保持。`.env.example`、providers README、[压缩说明](request-compression.md) 同步新预算和覆盖范围。
+- 验证：`codex-request-compression.test.ts` 定向 12 项通过，覆盖原始/zstd 大历史先过滤、最终/解码/原始接收超限、网络代理收到压缩体、父/子线程/关闭 lease、错误不重放、SSE、取消和计量隔离。只向本地模拟上游回放真实上下文：70,109,695 字节 → 过滤后 3,878,728 字节 → zstd 2,551,798 字节（约减少 96.4%），归档替换 91 个图片项，保留当前 8 个和历史 3 个；原生 rollout 未改。该测量不是生产公网/CPA 出站流量，也未调用真实模型。
+- 部署与回退：源码、定向测试、类型检查和构建可审查，运行实例尚未更新。按 `deploy/README.md` 仅在用户明确授权发布后更新后端，无需发布前端。只回退代理接收/编码逻辑与相关测试/配置说明即可；无 DB schema 或线程迁移，不删除图片档案/rollout。不覆盖同工作区已有的目录迁移及部署改动；完全回退图片/压缩体系仍须遵循前文成组依赖。
