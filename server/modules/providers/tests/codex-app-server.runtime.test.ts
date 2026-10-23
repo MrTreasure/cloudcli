@@ -1,9 +1,8 @@
-import type { CodexAppServerProcess } from '@/shared/index.js';
-import { CodexSessionsProvider } from '@/modules/providers/list/codex/codex-sessions.provider.js';
 import assert from 'node:assert/strict';
 import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import test from 'node:test';
+
 import type { WebSocket } from 'ws';
 
 import {
@@ -16,9 +15,11 @@ import {
   unregisterDesktopNotificationClient,
 } from '@/modules/notifications/index.js';
 import { createCodexAppServerRuntime } from '@/modules/providers/list/codex/codex-app-server.runtime.js';
+import { CodexSessionsProvider } from '@/modules/providers/list/codex/codex-sessions.provider.js';
 import { createNormalizedMessage } from '@/shared/index.js';
 import type {
   AnyRecord,
+  CodexAppServerProcess,
   NormalizedMessage,
   ProviderRuntimeContext,
   ProviderRuntimeWriter,
@@ -243,6 +244,66 @@ async function startPlanRun(harness: RuntimeHarness, runtime: ReturnType<typeof 
   return { output, runPromise, request };
 }
 
+test('native questions use the GUI, preserve labels with commas, and retract resolved prompts', async (t) => {
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise } = await startPlanRun(harness, runtime);
+  const questions = [
+    { id: 'scope', header: '范围', question: '如何处理？', options: [{ label: '保留, 并修复', description: '继续处理' }] },
+    { id: 'note', header: '补充', question: '补充说明？', options: null },
+  ];
+  harness.process.stdout.write(JSON.stringify({ id: 901, method: 'item/tool/requestUserInput',
+    params: { threadId: 'thread-new', turnId: 'turn-1', itemId: 'question-item', questions, isBlocking: true },
+  }) + '\n');
+  const prompt = output.messages.find((message) => message.kind === 'permission_request');
+  assert.ok(prompt);
+  assert.equal(prompt?.toolName, 'AskUserQuestion');
+  assert.equal(prompt?.provider, 'codex');
+  assert.deepEqual((prompt.input as AnyRecord).questions[1].options, []);
+  assert.equal(runtime.permissions.listPending('plan-app').length, 1);
+  assert.equal(runtime.permissions.listPending('another-app').length, 0);
+  runtime.permissions.resolve(prompt!.requestId!, { allow: true,
+    updatedInput: { answers: { '如何处理？': '保留, 并修复', '补充说明？': '自定义说明', unknown: '忽略' } },
+  });
+  assert.deepEqual(await harness.nextRequest(), { id: 901, result: { answers: {
+    scope: { answers: ['保留, 并修复'] }, note: { answers: ['自定义说明'] },
+  } } });
+  assert.equal(runtime.permissions.listPending('plan-app').length, 0);
+  assert.ok(output.messages.some((message) => message.kind === 'permission_resolved' && message.requestId === prompt?.requestId));
+  runtime.permissions.resolve(prompt!.requestId!, { allow: true });
+  harness.notify('turn/completed', { threadId: 'thread-new', turnId: 'turn-1', turn: { status: 'completed' } });
+  await runPromise;
+});
+
+for (const action of ['skip', 'abort', 'stale'] as const) {
+  test(`native questions settle safely on ${action}`, async (t) => {
+    const harness = createHarness();
+    const runtime = createRuntime(harness.process);
+    t.after(() => harness.process.kill());
+    const { output, runPromise } = await startPlanRun(harness, runtime);
+    harness.process.stdout.write(JSON.stringify({ id: 902, method: 'item/tool/requestUserInput', params: {
+      threadId: 'thread-new', turnId: action === 'stale' ? 'old-turn' : 'turn-1', itemId: 'q',
+      questions: [{ id: 'scope', question: '选哪个？', options: [] }],
+    } }) + '\n');
+    if (action === 'skip') {
+      const prompt = output.messages.find((message) => message.kind === 'permission_request');
+      runtime.permissions.resolve(prompt!.requestId!, { allow: true, updatedInput: { answers: {} } });
+    } else if (action === 'abort') {
+      await runtime.abort('plan-app');
+      assert.ok(output.messages.some((message) => message.kind === 'permission_cancelled'));
+    } else {
+      assert.ok(!output.messages.some((message) => message.kind === 'permission_request'));
+    }
+    let response = await harness.nextRequest();
+    while (response.method) response = await harness.nextRequest();
+    assert.deepEqual(response, { id: 902, result: { answers: {} } });
+    assert.equal(runtime.permissions.listPending('plan-app').length, 0);
+    harness.notify('turn/completed', { threadId: 'thread-new', turnId: 'turn-1', turn: { status: 'completed' } });
+    await runPromise;
+  });
+}
+
 test('plan notifications normalize three states and update one stable item per turn', async (t) => {
   const harness = createHarness();
   const runtime = createRuntime(harness.process);
@@ -387,6 +448,7 @@ test('starts/resumes a thread, submits a turn, and normalizes completed items', 
   assert.equal((threadStart.params as AnyRecord).cwd, 'C:\\workspace');
   assert.equal((threadStart.params as AnyRecord).sandbox, 'workspace-write');
   assert.equal((threadStart.params as AnyRecord).approvalPolicy, 'on-request');
+  assert.equal((threadStart.params as AnyRecord).config['features.default_mode_request_user_input'], true);
   const turnStart = await harness.nextRequest();
   assert.equal(turnStart.method, 'turn/start');
   assert.deepEqual((turnStart.params as AnyRecord).input, [{

@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`f9d27de2a166930aae631b477ab1599f980dd234`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`3ea21f17afde7cc3ac194eb4212edbc7d565423c`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,12 +10,11 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [.env.example](../../.env.example) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [docs/nas/request-compression.md](../../docs/nas/request-compression.md) | — |
-| M | [server/modules/providers/README.md](../../server/modules/providers/README.md) | — |
-| M | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
-| M | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
+| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
+| M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
+| A | [src/modules/chat/tests/AskUserQuestionPanel.test.tsx](../../src/modules/chat/tests/AskUserQuestionPanel.test.tsx) | — |
+| M | [src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx](../../src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx) | — |
 
 ## NAS 主线提交
 
@@ -459,6 +458,20 @@
   - `docs/nas/request-compression.md`
   - `server/modules/providers/README.md`
   - `server/modules/providers/services/codex-request-compression.service.ts`
+
+### 3ea21f17 · 2026-10-22 · fix(codex): filter large histories before limits and compress proxy requests
+
+- 完整提交：`3ea21f17afde7cc3ac194eb4212edbc7d565423c`
+- 相对第一父提交涉及文件：
+
+  - `.env.example`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/request-compression.md`
+  - `server/modules/providers/README.md`
+  - `server/modules/providers/services/codex-image-proxy.service.ts`
+  - `server/modules/providers/tests/codex-request-compression.test.ts`
 
 ## 从 PR / 其他分支合入的提交
 

@@ -64,6 +64,16 @@ type PendingCodexApproval = {
   resolveResponse: (response: { decision: CodexApprovalDecision }) => void;
 };
 
+type PendingCodexQuestion = {
+  requestId: string;
+  run: AppServerRun;
+  input: { questions: AnyRecord[] };
+  context: AnyRecord;
+  sessionId: string;
+  receivedAt: Date;
+  resolveResponse: (response: { answers: Record<string, { answers: string[] }> }) => void;
+};
+
 class CodexAppServerPreTurnError extends Error {
   readonly causeValue: unknown;
 
@@ -465,6 +475,7 @@ class CodexAppServerRuntime {
   private readonly runsBySession = new Map<string, AppServerRun>();
   private readonly pendingRunSetups = new Map<string, { abortRequested: boolean }>();
   private readonly pendingApprovals = new Map<string, PendingCodexApproval>();
+  private readonly pendingQuestions = new Map<string, PendingCodexQuestion>();
   private inFlightRuns = 0;
 
   constructor(options: CodexAppServerRuntimeOptions = {}) {
@@ -539,7 +550,11 @@ class CodexAppServerRuntime {
         checkSetupAbort();
       }
       const threadParams = {
-        ...(imageContext ? { config: imageContext.config } : {}),
+        config: {
+          ...imageContext?.config,
+          // Expose the native question tool in ordinary chat as well as plan mode.
+          'features.default_mode_request_user_input': true,
+        },
         serviceTier,
         cwd: workingDirectory,
         ...(resolvedModel ? { model: resolvedModel } : {}),
@@ -719,6 +734,11 @@ class CodexAppServerRuntime {
   }
 
   resolveApproval(requestId: string, decision: ProviderPermissionDecision): void {
+    const question = this.pendingQuestions.get(requestId);
+    if (question) {
+      this.settleQuestion(question, decision);
+      return;
+    }
     const approval = this.pendingApprovals.get(requestId);
     if (!approval) {
       return;
@@ -733,7 +753,9 @@ class CodexAppServerRuntime {
   }
 
   listPendingApprovals(sessionId: string): unknown[] {
-    return Array.from(this.pendingApprovals.values())
+    return [...Array.from(this.pendingApprovals.values()), ...Array.from(this.pendingQuestions.values()).map((question) => ({
+      ...question, provider: 'codex', toolName: 'AskUserQuestion',
+    }))]
       .filter((approval) => approval.sessionId === sessionId)
       .map((approval) => ({
         requestId: approval.requestId,
@@ -942,9 +964,64 @@ class CodexAppServerRuntime {
       case 'item/commandExecution/requestApproval':
       case 'item/fileChange/requestApproval':
         return this.requestApproval(request);
+      case 'item/tool/requestUserInput':
+        return this.requestUserInput(request);
       default:
         throw new Error(`Unsupported Codex app-server request: ${request.method}`);
     }
+  }
+
+  private requestUserInput(request: JsonRpcRequest): unknown {
+    const params = readRecord(request.params) ?? {};
+    const run = this.findApprovalRun(params);
+    if (!run || run.abortRequested) return { answers: {} };
+    const questions = Array.isArray(params.questions) ? params.questions.flatMap((value: unknown) => {
+      const question = readRecord(value);
+      if (!question || !readString(question.id) || !readString(question.question)) return [];
+      return [{ ...question, options: Array.isArray(question.options) ? question.options : [] }];
+    }) : [];
+    if (questions.length === 0) return { answers: {} };
+
+    const requestId = `codex:${randomUUID()}`;
+    return new Promise<{ answers: Record<string, { answers: string[] }> }>((resolve) => {
+      const pending: PendingCodexQuestion = {
+        requestId, run, input: { questions },
+        context: { itemId: params.itemId, isBlocking: params.isBlocking },
+        sessionId: run.appSessionId ?? run.threadId,
+        receivedAt: new Date(), resolveResponse: resolve,
+      };
+      this.pendingQuestions.set(requestId, pending);
+      try {
+        run.writer.send(createNormalizedMessage({
+          kind: 'permission_request', provider: 'codex', sessionId: run.threadId,
+          requestId, toolName: 'AskUserQuestion', input: pending.input, context: pending.context,
+        }));
+      } catch {
+        this.settleQuestion(pending, { allow: false }, 'delivery_failed');
+      }
+    });
+  }
+
+  private settleQuestion(pending: PendingCodexQuestion, decision: ProviderPermissionDecision, reason?: string): void {
+    if (this.pendingQuestions.get(pending.requestId) !== pending) return;
+    this.pendingQuestions.delete(pending.requestId);
+    const submitted = decision.allow ? readRecord(readRecord(decision.updatedInput)?.answers) ?? {} : {};
+    const answers: Record<string, { answers: string[] }> = Object.create(null);
+    for (const question of pending.input.questions) {
+      // The existing panel keys answers by question text; the native protocol uses ids.
+      const value = submitted[question.id] ?? submitted[question.question];
+      if (typeof value === 'string' && value.trim()) answers[question.id] = { answers: [value] };
+    }
+    try {
+      pending.run.writer.send(createNormalizedMessage({
+        kind: reason ? 'permission_cancelled' : 'permission_resolved',
+        provider: 'codex', sessionId: pending.run.threadId,
+        requestId: pending.requestId, ...(reason ? { reason } : {}),
+      }));
+    } catch {
+      // Always release the native request, including after a client disconnect.
+    }
+    pending.resolveResponse({ answers });
   }
 
   private requestApproval(request: JsonRpcRequest): unknown {
@@ -1074,6 +1151,9 @@ class CodexAppServerRuntime {
   }
 
   private cancelApprovalsForRun(run: AppServerRun, reason: string): void {
+    for (const question of Array.from(this.pendingQuestions.values())) {
+      if (question.run === run) this.settleQuestion(question, { allow: false }, reason);
+    }
     for (const approval of Array.from(this.pendingApprovals.values())) {
       if (approval.run === run) {
         this.settleApproval(approval, 'cancel', reason);

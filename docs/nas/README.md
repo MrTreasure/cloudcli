@@ -1,5 +1,12 @@
 # NAS 精简分支维护指南
 
+## 2026-10-23 Codex GUI 提问恢复
+
+- 目的：修复“陆战地图”“科技树研发”等 Codex 普通对话缺少可点击选项的问题。此前未开启本机 CLI 0.162.0 的 `default_mode_request_user_input`，且 app-server runtime 未处理 `item/tool/requestUserInput`。
+- 所属路径：`server/modules/providers/list/codex/codex-app-server.runtime.ts` 为新建/恢复线程合并提问开关，保留图片上下文配置；请求复用 `AskUserQuestion` 面板，将按问题正文提交的答案映射回原生问题 ID。待答问题按会话隔离，刷新可恢复；回答、跳过、终止时撤销面板并释放原生请求。`src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx` 根据 provider 显示名称。回归位于 providers 的 `codex-app-server.runtime.test.ts` 与 chat 的 `AskUserQuestionPanel.test.tsx`。
+- 来源：本地缺陷修复，协议通过本机 `codex app-server generate-ts --experimental` 与 `codex features list` 核对；未合并上游 PR。模型仍自行决定何时调用提问工具，既有纯文本回复不会自动转换为待答按钮。
+- 回退依赖：整体回退 runtime 请求处理和开关即可；面板、测试可同时回退。未修改 CLI 全局配置、模型目录、权限模式、数据库或历史 rollout；SDK 显式回退模式不提供这条 app-server 交互链路。构建不等于线上生效，后端需在没有活动任务时重启；前端名称修正需随下次正常发布生效。
+
 保留项与后续官方升级策略的待确认方案见 [同步策略](upstream-sync-policy.md)。确认前不改变现有分支和升级流程。
 
 ## 官方基线与历史
