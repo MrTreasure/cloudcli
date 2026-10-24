@@ -1,5 +1,10 @@
 # NAS 精简分支维护指南
 
+## 2026-10-25 浏览器到后端请求与传输优化
+
+本地修复（无上游 PR），范围为 CORS 预检缓存、自适应状态/排队草稿同步、在途查询合并、隐藏页面历史刷新合并，以及 NAS JSON gzip 和去 query 的字节日志。未改 CloudCLI → CPA 压缩、模型、上下文、权限或历史；所属路径、实测与推算、发布/安全重启状态及成组回退依赖见 [浏览器到后端流量报告](browser-backend-traffic.md)。用户本次授权验证、NAS 部署及推送；真实浏览器交互仍由用户验收。其他 Agent 的未提交源码保留，发布从隔离构建输入执行。
+
+
 ## 2026-10-23 Codex GUI 提问恢复
 
 - 目的：修复“陆战地图”“科技树研发”等 Codex 普通对话缺少可点击选项的问题。此前未开启本机 CLI 0.162.0 的 `default_mode_request_user_input`，且 app-server runtime 未处理 `item/tool/requestUserInput`。

@@ -237,6 +237,8 @@ export type GetSessionActivity = (sessionId: string) => SessionActivity | undefi
 /** Replaces the whole processing map with the server's view, used by the periodic running-sessions poll. */
 export type SyncProcessingSessions = (
   sessions: readonly SessionActivitySnapshot[],
+  /** Time before the HTTP read began; newer live activity wins over a delayed snapshot. */
+  requestedAt?: number,
 ) => void;
 
 /** Reports whether one session is currently producing a response; false for one that only has background tasks running. */

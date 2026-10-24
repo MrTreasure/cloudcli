@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 
 import { act, renderHook } from '@testing-library/react';
-import { test } from 'vitest';
+import { test, vi } from 'vitest';
 
 import { useSessionProtection } from '@/shared/hooks/useSessionProtection';
 import type { BackgroundTaskSummary } from '@/shared/types';
@@ -22,6 +22,27 @@ const task = (overrides: Partial<BackgroundTaskSummary> = {}): BackgroundTaskSum
   workflowName: 'audit',
   startedAt: Date.now() - 60_000,
   ...overrides,
+});
+
+test('a delayed HTTP snapshot cannot resurrect a turn completed after the read began', () => {
+  const { result } = renderHook(() => useSessionProtection());
+  const requestedAt = Date.now() - 1_000;
+  act(() => result.current.markSessionProcessing('finished'));
+  act(() => result.current.markSessionIdle('finished'));
+  act(() => result.current.syncProcessingSessions([{ sessionId: 'finished', startedAt: requestedAt - 60_000 }], requestedAt));
+  assert.equal(result.current.getSessionActivity('finished'), undefined);
+});
+
+test('a delayed idle snapshot cannot clear a newer turn beyond its original grace period', () => {
+  const { result } = renderHook(() => useSessionProtection());
+  const now = Date.now();
+  const clock = vi.spyOn(Date, 'now').mockReturnValue(now);
+  try {
+    act(() => result.current.markSessionProcessing('new-turn'));
+    clock.mockReturnValue(now + 20_000);
+    act(() => result.current.syncProcessingSessions([], now - 1_000));
+    assert.equal(result.current.isSessionProcessing('new-turn'), true);
+  } finally { clock.mockRestore(); }
 });
 
 test('a background-only entry is busy but not processing', () => {

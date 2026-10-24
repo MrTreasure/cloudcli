@@ -4,14 +4,16 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
 } from 'react';
 import type { ReactNode } from 'react';
 
 import {
   useSessionProtection,
 } from '@/shared/hooks/useSessionProtection';
-import type { BackgroundTaskSummary, GetSessionActivity, IsSessionProcessing, MarkSessionBackground, MarkSessionIdle, MarkSessionProcessing, SessionActivity, SessionActivityMap, SyncProcessingSessions } from '@/shared/types';
+import type { BackgroundTaskSummary, GetSessionActivity, IsSessionProcessing, MarkSessionBackground, MarkSessionIdle, MarkSessionProcessing, ServerEvent, SessionActivity, SessionActivityMap, SyncProcessingSessions } from '@/shared/types';
 import { api } from '@/shared/api';
+import { useAdaptivePolling } from '@/shared/hooks/useAdaptivePolling';
 
 type RunningSessionApiItem = {
   sessionId?: unknown;
@@ -121,7 +123,10 @@ const parseBackgroundTasks = (value: unknown): BackgroundTaskSummary[] | undefin
 };
 
 /** Mounted by the project-workspace route; tracks which sessions are busy — producing a response or running background tasks — so chat, sidebar and project-workspace agree on session activity. */
-export function SessionProtectionProvider({ children }: { children: ReactNode }) {
+export function SessionProtectionProvider({ children, subscribe }: {
+  children: ReactNode;
+  subscribe?: (listener: (event: ServerEvent) => void) => () => void;
+}) {
   const {
     processingSessions,
     markSessionProcessing,
@@ -132,50 +137,54 @@ export function SessionProtectionProvider({ children }: { children: ReactNode })
     getSessionActivity,
   } = useSessionProtection();
 
-  const refreshRunningSessions = useCallback(async () => {
-    try {
-      const response = await api.runningSessions();
-      if (!response.ok) {
-        return;
-      }
-
-      const payload = (await response.json()) as RunningSessionsApiPayload;
-      const sessions = Array.isArray(payload.data?.sessions) ? payload.data.sessions : [];
-
-      syncProcessingSessions(
-        sessions
-          .map((session) => {
-            if (typeof session.sessionId !== 'string' || !session.sessionId) {
-              return null;
-            }
-
-            return {
-              sessionId: session.sessionId,
-              startedAt: parseStartedAt(session.startedAt),
-              statusText: typeof session.statusText === 'string' ? session.statusText : undefined,
-              canInterrupt: typeof session.canInterrupt === 'boolean' ? session.canInterrupt : undefined,
-              background: session.background === true,
-              tasks: parseBackgroundTasks(session.tasks),
-            };
-          })
-          .filter((session): session is NonNullable<typeof session> => Boolean(session)),
-      );
-    } catch (error) {
-      console.error('[SessionProtection] Failed to sync running sessions:', error);
+  const refreshRunningSessions = useCallback(async (signal: AbortSignal) => {
+    const requestedAt = Date.now();
+    const response = await api.runningSessions();
+    if (signal.aborted) return;
+    if (!response.ok) {
+      throw Object.assign(new Error('Running session synchronization failed'), { status: response.status });
     }
+
+    const payload = (await response.json()) as RunningSessionsApiPayload;
+    if (!Array.isArray(payload.data?.sessions)) throw new Error('Invalid running session snapshot');
+    const sessions = payload.data.sessions;
+
+    syncProcessingSessions(
+      sessions
+        .map((session) => {
+          if (typeof session.sessionId !== 'string' || !session.sessionId) {
+            return null;
+          }
+
+          return {
+            sessionId: session.sessionId,
+            startedAt: parseStartedAt(session.startedAt),
+            statusText: typeof session.statusText === 'string' ? session.statusText : undefined,
+            canInterrupt: typeof session.canInterrupt === 'boolean' ? session.canInterrupt : undefined,
+            background: session.background === true,
+            tasks: parseBackgroundTasks(session.tasks),
+          };
+        })
+        .filter((session): session is NonNullable<typeof session> => Boolean(session)),
+      requestedAt,
+    );
+    return sessions.length > 0;
   }, [syncProcessingSessions]);
 
-  useEffect(() => {
-    void refreshRunningSessions();
-  }, [refreshRunningSessions]);
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      void refreshRunningSessions();
-    }, 5000);
-
-    return () => window.clearInterval(interval);
-  }, [refreshRunningSessions]);
+  const reconcile = useAdaptivePolling({ refresh: refreshRunningSessions, active: processingSessions.size > 0 });
+  const lastDiscoveryCheck = useRef(0);
+  useEffect(() => subscribe?.((event) => {
+    // Chat already applies live status/complete/background frames. Reconnect
+    // and unknown-session discovery need a snapshot, not every streaming token.
+    if (event.kind === 'websocket_reconnected') reconcile();
+    if (event.kind === 'session_upserted') {
+      const sessionId = event.sessionId;
+      if (typeof sessionId === 'string' && !getSessionActivity(sessionId) && Date.now() - lastDiscoveryCheck.current >= 5_000) {
+        lastDiscoveryCheck.current = Date.now();
+        reconcile();
+      }
+    }
+  }), [subscribe, reconcile, getSessionActivity]);
 
   const actions = useMemo<SessionProtectionActions>(
     () => ({

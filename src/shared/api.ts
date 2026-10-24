@@ -21,8 +21,8 @@ export const authenticatedFetch = (
 
   const defaultHeaders: Record<string, string> = {};
 
-  // Only set Content-Type for non-FormData requests
-  if (!(options.body instanceof FormData)) {
+  // Bodyless GETs need no JSON content type. Bearer auth still requires CORS preflight.
+  if (options.body != null && !(options.body instanceof FormData)) {
     defaultHeaders['Content-Type'] = 'application/json';
   }
 
@@ -43,6 +43,8 @@ export const authenticatedFetch = (
       ...options.headers,
     },
   }).then((response) => {
+    // An old account's in-flight response must not refresh or expire a new login.
+    if (getStoredAuthToken() !== token) return response;
     const refreshedToken = response.headers.get('X-Refreshed-Token');
     if (refreshedToken) {
       storeAuthToken(refreshedToken);
@@ -152,6 +154,29 @@ export function readApiErrorMessage(body: unknown): string | null {
 }
 
 const get = (url: string, options: ApiRequestOptions = {}) => authenticatedFetch(url, options);
+
+// Only share pending readonly snapshots, never settled responses or auth results.
+// Key by backend and token so separate API deployments/accounts cannot share data.
+const pendingSnapshots = new Map<string, Promise<Response>>();
+function getSnapshot(url: string): Promise<Response> {
+  const key = `${backendUrl(url)}\u0000${getStoredAuthToken() ?? ''}`;
+  let pending = pendingSnapshots.get(key);
+  if (!pending) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+    const request = get(url, { signal: controller.signal }).then(async (response) => {
+      // Drain while sharing: resolving at headers alone lets slow bodies overlap.
+      const body = await response.arrayBuffer();
+      return new Response(body, { status: response.status, statusText: response.statusText, headers: response.headers });
+    }).finally(() => {
+      clearTimeout(timeout);
+      if (pendingSnapshots.get(key) === request) pendingSnapshots.delete(key);
+    });
+    pendingSnapshots.set(key, request);
+    pending = request;
+  }
+  return pending.then((response) => response.clone());
+}
 
 const withBody =
   (method: string) =>
@@ -281,7 +306,7 @@ export const api = {
   // owning project — used when a /session/<id> URL isn't in loaded payloads.
   sessionDetails: (sessionId: string) =>
     get(`/api/providers/sessions/${encodeURIComponent(sessionId)}`),
-  runningSessions: () => get('/api/providers/sessions/running'),
+  runningSessions: () => getSnapshot('/api/providers/sessions/running'),
   recentConversations: ({ limit = 40, offset = 0 }: { limit?: number; offset?: number } = {}) =>
     get(`/api/providers/sessions/recent${query({ limit, offset })}`),
   providerSessionId: (sessionId: string) =>
@@ -547,7 +572,7 @@ export const api = {
     preferences: () => get('/api/user/preferences'),
     savePreferences: (updates: Record<string, unknown>) =>
       patch('/api/user/preferences', updates),
-    drafts: () => get('/api/user/drafts'),
+    drafts: () => getSnapshot('/api/user/drafts'),
     saveDraft: (scope: string, draft: { text: string; queuedMessage?: unknown }) =>
       put('/api/user/drafts', { scope, ...draft }),
     deleteDraft: (scope: string) => del('/api/user/drafts', { scope }),

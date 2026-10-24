@@ -119,6 +119,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     void hydrateUserPreferences();
     void hydrateChatDrafts();
+    let lastRequested = Date.now();
+    const reconcileDrafts = () => {
+      if (document.visibilityState === 'hidden' || navigator.onLine === false || Date.now() - lastRequested < 1_000) return;
+      lastRequested = Date.now();
+      void hydrateChatDrafts();
+    };
+    document.addEventListener('visibilitychange', reconcileDrafts);
+    window.addEventListener('online', reconcileDrafts);
+    window.addEventListener('focus', reconcileDrafts);
+    return () => {
+      document.removeEventListener('visibilitychange', reconcileDrafts);
+      window.removeEventListener('online', reconcileDrafts);
+      window.removeEventListener('focus', reconcileDrafts);
+    };
   }, [userKey]);
 
   const checkOnboardingStatus = useCallback(async () => {

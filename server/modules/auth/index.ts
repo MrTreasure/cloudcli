@@ -1,5 +1,6 @@
 // authRoutes: used by the server entrypoint to mount public authentication endpoints.
 export { authRoutes } from './auth.module.js';
+export { createCorsPolicy } from './cors-policy.service.js';
 
 // authenticateToken: used by the server entrypoint to protect authenticated API modules.
 export { authenticateToken } from './auth.middleware.js';

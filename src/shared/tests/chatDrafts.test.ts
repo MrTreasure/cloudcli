@@ -20,11 +20,13 @@ let draftsRequestFailed = false;
 let saveBarrier: Promise<void> | null = null;
 let readBarrier: Promise<void> | null = null;
 let saveStatus = 200;
+let draftReadCount = 0;
 
 vi.mock('@/shared/api', () => ({
   api: {
     user: {
       drafts: async () => {
+        draftReadCount += 1;
         if (draftsRequestFailed) {
           throw new Error('offline');
         }
@@ -61,6 +63,7 @@ beforeEach(() => {
   saveBarrier = null;
   readBarrier = null;
   saveStatus = 200;
+  draftReadCount = 0;
   vi.useFakeTimers();
 });
 
@@ -80,6 +83,25 @@ test('a draft is readable synchronously and reaches the server after the debounc
   assert.deepEqual(savedDrafts, [
     { scope: 'session-a', text: 'half a thought' },
   ]);
+});
+
+test('concurrent hydrations coalesce and an old account response cannot replace a new account', async () => {
+  let release!: () => void;
+  readBarrier = new Promise<void>((resolve) => { release = resolve; });
+  const store = await loadStore();
+  const old = store.hydrateChatDrafts();
+  const duplicate = store.hydrateChatDrafts();
+  assert.equal(draftReadCount, 1);
+  store.resetChatDrafts();
+  readBarrier = null;
+  serverDrafts = [{ scope: 'new-account', text: 'new draft' }];
+  await store.hydrateChatDrafts();
+  assert.equal(draftReadCount, 2);
+  serverDrafts = [{ scope: 'old-account', text: 'old draft' }];
+  release();
+  await Promise.all([old, duplicate]);
+  assert.equal(store.readDraftText('new-account'), 'new draft');
+  assert.equal(store.readDraftText('old-account'), '');
 });
 
 test('each session keeps its own draft', async () => {

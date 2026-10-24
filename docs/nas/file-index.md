@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`3ea21f17afde7cc3ac194eb4212edbc7d565423c`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`c225cfbe9d808528c11444f7b9c7e631025af463`。
 
-记录基线与当前暂存树之间的全部净差异，共 254 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 267 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -26,8 +26,10 @@
 | A | [deploy/README.md](../../deploy/README.md) | — |
 | A | [deploy/run-backend.py](../../deploy/run-backend.py) | — |
 | A | [deploy/static-cdn.json](../../deploy/static-cdn.json) | — |
+| A | [deploy/summarize-cloudcli-traffic.py](../../deploy/summarize-cloudcli-traffic.py) | — |
 | A | [deploy/verify-services.py](../../deploy/verify-services.py) | — |
 | A | [docs/codex-app-server-rollout.md](../../docs/codex-app-server-rollout.md) | — |
+| A | [docs/nas/browser-backend-traffic.md](../../docs/nas/browser-backend-traffic.md) | — |
 | A | [docs/nas/commit-log.md](../../docs/nas/commit-log.md) | — |
 | A | [docs/nas/file-index.md](../../docs/nas/file-index.md) | — |
 | A | [docs/nas/README.md](../../docs/nas/README.md) | — |
@@ -85,6 +87,9 @@
 | M | [server/index.ts](../../server/index.ts) | — |
 | M | [server/modules/assets/assets.routes.ts](../../server/modules/assets/assets.routes.ts) | — |
 | M | [server/modules/assets/services/image-assets.service.ts](../../server/modules/assets/services/image-assets.service.ts) | — |
+| A | [server/modules/auth/cors-policy.service.ts](../../server/modules/auth/cors-policy.service.ts) | — |
+| M | [server/modules/auth/index.ts](../../server/modules/auth/index.ts) | — |
+| A | [server/modules/auth/tests/cors-policy.test.ts](../../server/modules/auth/tests/cors-policy.test.ts) | — |
 | M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
 | M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
 | A | [server/modules/database/repositories/codex-context.db.ts](../../server/modules/database/repositories/codex-context.db.ts) | — |
@@ -147,6 +152,7 @@
 | A | [src/assets/user-avatar.jpg](../../src/assets/user-avatar.jpg) | — |
 | M | [src/modules/auth/AuthLoadingScreen.tsx](../../src/modules/auth/AuthLoadingScreen.tsx) | — |
 | M | [src/modules/auth/AuthScreenLayout.tsx](../../src/modules/auth/AuthScreenLayout.tsx) | — |
+| M | [src/modules/auth/context/AuthContext.tsx](../../src/modules/auth/context/AuthContext.tsx) | — |
 | M | [src/modules/auth/tests/authTokenRefreshRemount.test.tsx](../../src/modules/auth/tests/authTokenRefreshRemount.test.tsx) | — |
 | M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
 | M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
@@ -234,6 +240,7 @@
 | M | [src/modules/i18n/locales/zh-TW/sidebar.json](../../src/modules/i18n/locales/zh-TW/sidebar.json) | — |
 | M | [src/modules/plugins/PluginTabContent.tsx](../../src/modules/plugins/PluginTabContent.tsx) | — |
 | A | [src/modules/plugins/tests/hostDashboardPolling.test.ts](../../src/modules/plugins/tests/hostDashboardPolling.test.ts) | — |
+| M | [src/modules/project-workspace/ProjectWorkspaceRoute.tsx](../../src/modules/project-workspace/ProjectWorkspaceRoute.tsx) | — |
 | M | [src/modules/settings/hooks/useSettingsController.ts](../../src/modules/settings/hooks/useSettingsController.ts) | — |
 | M | [src/modules/settings/Settings.tsx](../../src/modules/settings/Settings.tsx) | — |
 | M | [src/modules/settings/tabs/agents-settings/AgentsSettingsTab.tsx](../../src/modules/settings/tabs/agents-settings/AgentsSettingsTab.tsx) | — |
@@ -250,13 +257,19 @@
 | M | [src/shared/api.ts](../../src/shared/api.ts) | — |
 | M | [src/shared/chatDrafts.ts](../../src/shared/chatDrafts.ts) | — |
 | M | [src/shared/constants.ts](../../src/shared/constants.ts) | — |
+| M | [src/shared/context/SessionProtectionContext.tsx](../../src/shared/context/SessionProtectionContext.tsx) | — |
 | M | [src/shared/context/UiPreferencesContext.tsx](../../src/shared/context/UiPreferencesContext.tsx) | — |
 | M | [src/shared/context/WebSocketContext.tsx](../../src/shared/context/WebSocketContext.tsx) | — |
+| A | [src/shared/hooks/useAdaptivePolling.ts](../../src/shared/hooks/useAdaptivePolling.ts) | — |
 | A | [src/shared/hooks/useFontSizes.ts](../../src/shared/hooks/useFontSizes.ts) | — |
+| M | [src/shared/hooks/useSessionProtection.ts](../../src/shared/hooks/useSessionProtection.ts) | — |
+| A | [src/shared/tests/adaptivePolling.test.tsx](../../src/shared/tests/adaptivePolling.test.tsx) | — |
+| M | [src/shared/tests/backgroundSessionActivity.test.tsx](../../src/shared/tests/backgroundSessionActivity.test.tsx) | — |
 | M | [src/shared/tests/chatDrafts.test.ts](../../src/shared/tests/chatDrafts.test.ts) | — |
 | A | [src/shared/tests/fontSizes.test.tsx](../../src/shared/tests/fontSizes.test.tsx) | — |
 | M | [src/shared/tests/pageTitle.test.ts](../../src/shared/tests/pageTitle.test.ts) | — |
 | M | [src/shared/tests/readApiJson.test.ts](../../src/shared/tests/readApiJson.test.ts) | — |
+| A | [src/shared/tests/snapshotRequests.test.ts](../../src/shared/tests/snapshotRequests.test.ts) | — |
 | M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 | M | [src/shared/utils.ts](../../src/shared/utils.ts) | — |
 | M | [tsconfig.json](../../tsconfig.json) | — |

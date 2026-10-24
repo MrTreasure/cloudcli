@@ -24,6 +24,7 @@ import {
     authenticateToken,
     authenticateWebSocket,
     authRoutes,
+    createCorsPolicy,
     validateApiKey,
 } from './modules/auth/index.js';
 import { taskmasterRoutes } from './modules/taskmaster/index.js';
@@ -124,7 +125,7 @@ createWebSocketServer(server, {
     getPluginPort,
 });
 
-app.use(cors({ origin: process.env.FRONTEND_ORIGIN || false, exposedHeaders: ['X-Refreshed-Token', 'X-Auth-Error'] }));
+app.use(cors(createCorsPolicy(process.env.FRONTEND_ORIGIN)));
 app.use(express.json({
     limit: '50mb',
     type: (req) => {

@@ -13,6 +13,7 @@ import { useDropzone } from 'react-dropzone';
 import { useTranslation } from 'react-i18next';
 
 import { api, readApiJson } from '@/shared/api';
+import { useAdaptivePolling } from '@/shared/hooks/useAdaptivePolling';
 import { PROVIDER_PERMISSION_PREFERENCE_KEYS } from '@/shared/constants';
 import { readUserPreference } from '@/shared/userSettings';
 import type { BackgroundSendChoice, BackgroundSendPrompt, CommandModalPayload, CostCommandData, CodexRuntimeMode, HelpCommandData, MarkSessionProcessing, ModelCommandData, QueuedDraft, SessionActivityMap, StatusCommandData,QueuedSendOptions,ChatAttachment,ChatMessage,PendingPermissionRequest,PermissionMode,SessionEstablishedContext,Project,ProjectSession,LLMProvider,SlashCommand } from '@/shared/types';
@@ -1110,24 +1111,18 @@ export function useChatComposerState({
 
   // The VPS dispatcher owns sending. While the card is visible, periodically
   // reconcile only its removal so the UI notices when the server claims it.
-  useEffect(() => {
-    if (!sessionKey || !queuedDraft) {
-      return;
-    }
-    let cancelled = false;
-    const reconcile = async () => {
-      await hydrateChatDrafts();
-      if (!cancelled && !readQueuedMessage(sessionKey)) {
+  useAdaptivePolling({
+    enabled: Boolean(queuedDraft && sessionKey),
+    identity: sessionKey,
+    active: true,
+    refresh: async (signal) => {
+      await hydrateChatDrafts({ throwOnError: true });
+      if (!signal.aborted && sessionKey && !readQueuedMessage(sessionKey)) {
         queuedDraftSessionRef.current = sessionKey;
         setQueuedDraft(null);
       }
-    };
-    const timer = setInterval(() => void reconcile(), 5_000);
-    return () => {
-      cancelled = true;
-      clearInterval(timer);
-    };
-  }, [queuedDraft, sessionKey]);
+    },
+  });
 
   const manageCodexContext = useCallback((action: 'compact' | 'clear') => {
     if (provider !== 'codex' || isLoading || !sessionKey) return;

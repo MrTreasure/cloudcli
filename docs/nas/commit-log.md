@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`3ea21f17afde7cc3ac194eb4212edbc7d565423c`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`c225cfbe9d808528c11444f7b9c7e631025af463`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,11 +10,28 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
+| M | [deploy/agent-api.conf](../../deploy/agent-api.conf) | — |
+| A | [deploy/summarize-cloudcli-traffic.py](../../deploy/summarize-cloudcli-traffic.py) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
-| M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
-| A | [src/modules/chat/tests/AskUserQuestionPanel.test.tsx](../../src/modules/chat/tests/AskUserQuestionPanel.test.tsx) | — |
-| M | [src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx](../../src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx) | — |
+| A | [docs/nas/browser-backend-traffic.md](../../docs/nas/browser-backend-traffic.md) | — |
+| M | [server/index.ts](../../server/index.ts) | — |
+| A | [server/modules/auth/cors-policy.service.ts](../../server/modules/auth/cors-policy.service.ts) | — |
+| M | [server/modules/auth/index.ts](../../server/modules/auth/index.ts) | — |
+| A | [server/modules/auth/tests/cors-policy.test.ts](../../server/modules/auth/tests/cors-policy.test.ts) | — |
+| M | [src/modules/auth/context/AuthContext.tsx](../../src/modules/auth/context/AuthContext.tsx) | — |
+| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
+| M | [src/modules/chat/hooks/useChatSessionState.ts](../../src/modules/chat/hooks/useChatSessionState.ts) | — |
+| M | [src/modules/project-workspace/ProjectWorkspaceRoute.tsx](../../src/modules/project-workspace/ProjectWorkspaceRoute.tsx) | — |
+| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
+| M | [src/shared/chatDrafts.ts](../../src/shared/chatDrafts.ts) | — |
+| M | [src/shared/context/SessionProtectionContext.tsx](../../src/shared/context/SessionProtectionContext.tsx) | — |
+| A | [src/shared/hooks/useAdaptivePolling.ts](../../src/shared/hooks/useAdaptivePolling.ts) | — |
+| M | [src/shared/hooks/useSessionProtection.ts](../../src/shared/hooks/useSessionProtection.ts) | — |
+| A | [src/shared/tests/adaptivePolling.test.tsx](../../src/shared/tests/adaptivePolling.test.tsx) | — |
+| M | [src/shared/tests/backgroundSessionActivity.test.tsx](../../src/shared/tests/backgroundSessionActivity.test.tsx) | — |
+| M | [src/shared/tests/chatDrafts.test.ts](../../src/shared/tests/chatDrafts.test.ts) | — |
+| A | [src/shared/tests/snapshotRequests.test.ts](../../src/shared/tests/snapshotRequests.test.ts) | — |
+| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 
 ## NAS 主线提交
 
@@ -472,6 +489,19 @@
   - `server/modules/providers/README.md`
   - `server/modules/providers/services/codex-image-proxy.service.ts`
   - `server/modules/providers/tests/codex-request-compression.test.ts`
+
+### c225cfbe · 2026-10-23 · fix(codex): restore GUI questions in default chat mode
+
+- 完整提交：`c225cfbe9d808528c11444f7b9c7e631025af463`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `server/modules/providers/list/codex/codex-app-server.runtime.ts`
+  - `server/modules/providers/tests/codex-app-server.runtime.test.ts`
+  - `src/modules/chat/tests/AskUserQuestionPanel.test.tsx`
+  - `src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx`
 
 ## 从 PR / 其他分支合入的提交
 

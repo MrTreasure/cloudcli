@@ -346,6 +346,7 @@ export function useChatSessionState({
       limit: SESSION_MESSAGES_PAGE_SIZE,
       canRequest: () => (
         isActiveRef.current
+        && document.visibilityState !== 'hidden'
         && activeSessionIdRef.current === sessionId
       ),
     });
@@ -365,7 +366,7 @@ export function useChatSessionState({
   if (!refreshCoordinatorRef.current) {
     refreshCoordinatorRef.current = createMessageHistoryRefreshCoordinator(
       (sessionId) => latestRefreshExecutorRef.current(sessionId),
-      (sessionId) => isActiveRef.current && activeSessionIdRef.current === sessionId,
+      (sessionId) => isActiveRef.current && document.visibilityState !== 'hidden' && activeSessionIdRef.current === sessionId,
     );
   }
 
@@ -836,6 +837,21 @@ export function useChatSessionState({
 
     void refreshCoordinatorRef.current?.flushPending(activeSessionId);
   }, [activeSessionId, isActive, sessionStore]);
+
+  useEffect(() => {
+    const flushVisibleHistory = () => {
+      const id = activeSessionIdRef.current;
+      if (id && isActiveRef.current && document.visibilityState !== 'hidden' && navigator.onLine !== false) {
+        void refreshCoordinatorRef.current?.flushPending(id);
+      }
+    };
+    document.addEventListener('visibilitychange', flushVisibleHistory);
+    window.addEventListener('online', flushVisibleHistory);
+    return () => {
+      document.removeEventListener('visibilitychange', flushVisibleHistory);
+      window.removeEventListener('online', flushVisibleHistory);
+    };
+  }, []);
 
   // External message update (e.g. WebSocket reconnect, background refresh)
   useEffect(() => {

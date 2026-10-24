@@ -62,6 +62,7 @@ const scopeWrites = new Map<string, { version: number; promise: Promise<void> }>
 // Discard pending responses after logout or another account resets the store.
 let storeEpoch = 0;
 let serverWriteTimer: ReturnType<typeof setTimeout> | null = null;
+let hydration: { epoch: number; promise: Promise<void> } | null = null;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => (
   Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -257,7 +258,18 @@ export function subscribeToChatDrafts(listener: () => void): () => void {
  * user is looking at that composer right now, and replacing its contents with a
  * staler server copy would delete what they are in the middle of writing.
  */
-export async function hydrateChatDrafts(): Promise<void> {
+export function hydrateChatDrafts(options: { throwOnError?: boolean } = {}): Promise<void> {
+  if (!hydration || hydration.epoch !== storeEpoch) {
+    const epoch = storeEpoch;
+    const promise = loadChatDrafts().finally(() => {
+      if (hydration?.promise === promise) hydration = null;
+    });
+    hydration = { epoch, promise };
+  }
+  return options.throwOnError ? hydration.promise : hydration.promise.catch(() => {});
+}
+
+async function loadChatDrafts(): Promise<void> {
   // Retry failed queued writes; an in-flight write is deduplicated by version.
   for (const scope of pendingScopes) {
     if (drafts.get(scope)?.queuedMessage && !scopeWrites.has(scope)) {
@@ -271,7 +283,7 @@ export async function hydrateChatDrafts(): Promise<void> {
   try {
     const response = await api.user.drafts();
     if (!response.ok) {
-      return;
+      throw Object.assign(new Error('Draft synchronization failed'), { status: response.status });
     }
 
     const payload = (await response.json()) as { drafts?: unknown };
@@ -282,7 +294,7 @@ export async function hydrateChatDrafts(): Promise<void> {
   } catch (error) {
     // Keep the mirror: an offline load must still show what was typed here.
     console.error('Failed to load chat drafts:', error);
-    return;
+    throw error;
   }
 
   if (epoch !== storeEpoch) return;

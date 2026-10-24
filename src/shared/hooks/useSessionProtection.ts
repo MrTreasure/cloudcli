@@ -61,6 +61,7 @@ export function useSessionProtection() {
     new Map(),
   );
   const processingSessionsRef = useRef<SessionActivityMap>(processingSessions);
+  const localActivityChanges = useRef(new Map<string, number>());
   processingSessionsRef.current = processingSessions;
 
   const markSessionProcessing = useCallback<MarkSessionProcessing>((sessionId, activity) => {
@@ -68,6 +69,7 @@ export function useSessionProtection() {
       return;
     }
 
+    localActivityChanges.current.set(sessionId, Date.now());
     setProcessingSessions((prev) => {
       const existing = prev.get(sessionId);
       // A new turn on a session that was only doing background work starts
@@ -103,6 +105,7 @@ export function useSessionProtection() {
       return;
     }
 
+    localActivityChanges.current.set(sessionId, Date.now());
     setProcessingSessions((prev) => {
       const existing = prev.get(sessionId);
       // A background-only entry is not a response, so nothing that reports
@@ -126,6 +129,7 @@ export function useSessionProtection() {
   }, []);
 
   const markSessionBackground = useCallback<MarkSessionBackground>((sessionId, tasks) => {
+    localActivityChanges.current.set(sessionId, Date.now());
     setProcessingSessions((prev) => {
       const existing = prev.get(sessionId);
       if (tasks.length === 0) {
@@ -154,7 +158,7 @@ export function useSessionProtection() {
     });
   }, []);
 
-  const syncProcessingSessions = useCallback<SyncProcessingSessions>((sessions) => {
+  const syncProcessingSessions = useCallback<SyncProcessingSessions>((sessions, requestedAt) => {
     const now = Date.now();
 
     setProcessingSessions((prev) => {
@@ -170,6 +174,12 @@ export function useSessionProtection() {
 
       for (const [sessionId, snapshot] of incoming) {
         const existing = prev.get(sessionId);
+        // A delayed GET must not resurrect a completed turn or demote a newly
+        // started turn, including latency beyond the optimistic grace period.
+        if (requestedAt !== undefined && (localActivityChanges.current.get(sessionId) ?? -Infinity) >= requestedAt) {
+          if (existing) updated.set(sessionId, existing);
+          continue;
+        }
         const snapshotStartedAt =
           typeof snapshot.startedAt === 'number' && Number.isFinite(snapshot.startedAt) && snapshot.startedAt > 0
             ? snapshot.startedAt
@@ -199,7 +209,8 @@ export function useSessionProtection() {
       }
 
       for (const [sessionId, activity] of prev) {
-        if (!incoming.has(sessionId) && now - activity.startedAt < LOCAL_ACTIVITY_GRACE_MS) {
+        if (!incoming.has(sessionId) && (now - activity.startedAt < LOCAL_ACTIVITY_GRACE_MS
+          || (requestedAt !== undefined && (localActivityChanges.current.get(sessionId) ?? -Infinity) >= requestedAt))) {
           updated.set(sessionId, activity);
         }
       }
