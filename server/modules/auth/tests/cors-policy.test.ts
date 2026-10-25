@@ -6,12 +6,14 @@ import test from 'node:test';
 import cors from 'cors';
 import express from 'express';
 
-import { createCorsPolicy } from '@/modules/auth/index.js';
+import { createCorsPolicy, preventApiResponseCaching } from '@/modules/auth/index.js';
 
 test('only the configured origin receives preflight cache and exposed auth headers', async () => {
   const app = express();
+  app.use('/api', preventApiResponseCaching);
   app.use(cors(createCorsPolicy('https://frontend.example')));
-  app.use((_req, res) => { res.setHeader('Cache-Control', 'no-store'); res.status(401).json({ error: 'authentication required' }); });
+  app.get('/api/success', (_req, res) => res.set('X-Refreshed-Token', 'mock-only').json({ ok: true }));
+  app.use((_req, res) => { res.status(401).json({ error: 'authentication required' }); });
   const server = app.listen(0, '127.0.0.1');
   await once(server, 'listening');
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
@@ -36,6 +38,10 @@ test('only the configured origin receives preflight cache and exposed auth heade
     assert.equal(business.headers.get('cache-control'), 'no-store');
     assert.match(business.headers.get('access-control-expose-headers')!, /X-Refreshed-Token/);
     assert.equal(business.headers.get('access-control-max-age'), null);
+    const success = await fetch(base + '/api/success?__cloudcli_transport=2');
+    assert.equal(success.status, 200);
+    assert.equal(success.headers.get('cache-control'), 'no-store');
+    assert.equal(success.headers.get('x-refreshed-token'), 'mock-only');
     assert.equal(createCorsPolicy(undefined).origin, false);
     const sameOrigin = await fetch(base + '/api/test');
     assert.equal(sameOrigin.status, 401);

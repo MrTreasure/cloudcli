@@ -85,7 +85,7 @@ export function createProjectCloneRouter(dependencies: ProjectCloneRouterDepende
       }
 
       res.setHeader('Content-Type', 'text/event-stream');
-      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Cache-Control', 'no-store');
       res.setHeader('Connection', 'keep-alive');
       res.flushHeaders();
 

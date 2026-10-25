@@ -337,3 +337,7 @@
 - 配置与兼容：其他电脑仍默认 preserve，不假定其上游支持 zstd；NAS 现有用户服务已设 zstd，CPA 容器健康且其出站 zstd 开关已启用。本次未改 CPA、梯子、模型、认证或历史图片保留策略；最终 JSON/压缩体限制和压缩失败不发送原文保持。`.env.example`、providers README、[压缩说明](request-compression.md) 同步新预算和覆盖范围。
 - 验证：`codex-request-compression.test.ts` 定向 12 项通过，覆盖原始/zstd 大历史先过滤、最终/解码/原始接收超限、网络代理收到压缩体、父/子线程/关闭 lease、错误不重放、SSE、取消和计量隔离。只向本地模拟上游回放真实上下文：70,109,695 字节 → 过滤后 3,878,728 字节 → zstd 2,551,798 字节（约减少 96.4%），归档替换 91 个图片项，保留当前 8 个和历史 3 个；原生 rollout 未改。该测量不是生产公网/CPA 出站流量，也未调用真实模型。
 - 部署与回退：源码、定向测试、类型检查和构建可审查，运行实例尚未更新。按 `deploy/README.md` 仅在用户明确授权发布后更新后端，无需发布前端。只回退代理接收/编码逻辑与相关测试/配置说明即可；无 DB schema 或线程迁移，不删除图片档案/rollout。不覆盖同工作区已有的目录迁移及部署改动；完全回退图片/压缩体系仍须遵循前文成组依赖。
+
+### 2026-10-25：预检缓存后续修复
+
+用户确认由服务器禁止业务响应缓存，替代请求侧强制 no-store，以允许 Chromium 复用跨域预检许可。入口 `/api` 的响应缓存中间件覆盖成功与错误，SSE 保持实时；前端固定版本参数避开旧缓存。归属：`server/modules/auth/response-cache.middleware.ts`、`server/index.ts`、三个 SSE 路由、`src/shared/api.ts`。来源：本地排查 Chromium 预检控制器；无上游合并。前后端需配套升级，回滚须恢复前端 no-store，NAS 继续保留 Nginx no-store。详见 [请求流量记录](browser-backend-traffic.md)。

@@ -2,6 +2,26 @@
 
 日期：2026-10-25。范围仅为浏览器 → CloudCLI API，不修改 CloudCLI → CPA 的 zstd 请求、提示词、模型参数或历史内容。用户明确要求修复、验证、NAS 部署及推送；不运行浏览器自动化。
 
+## 追加修复：请求侧 no-store 与 Chromium 预检缓存
+
+2026-10-25 09:05 复核日志：08:00–09:00 共 497 次请求，OPTIONS 246 次（49.5%）；running GET/OPTIONS 各 46 次。不能声称缓存头上线已经带来明显预检下降。
+
+Chromium `services/network/cors/preflight_controller.cc` 的 `PerformPreflightCheck` 在 LOAD_VALIDATE_CACHE / LOAD_BYPASS_CACHE / LOAD_DISABLE_CACHE 存在时不复用预检缓存；LOAD_DISABLE_CACHE 还阻止写入预检缓存。原 authenticatedFetch 强制 `cache: no-store` 与减少预检的目标冲突。
+
+用户最初明确保留请求侧 no-store；在解释业务响应缓存与预检许可缓存的区别后，用户确认按建议改为服务器禁止业务响应缓存、客户端允许预检复用。本次为这一确认后的调整。
+
+- `server/modules/auth/response-cache.middleware.ts` 经 auth barrel 供入口在解析、鉴权及 CORS 之前对 `/api` 设置 `Cache-Control: no-store`，成功、身份失效及错误均覆盖。既有 SSE 路由的 no-cache 改为 no-store，其他流式设置不变。
+- `src/shared/api.ts` 使用 `cache: default`；GET/HEAD 的固定 `__cloudcli_transport=2` 查询参数隔离旧版本缓存，不含凭据、不改变业务参数，且不是每次生成时间戳。已完成响应仍不在应用层缓存，在途身份隔离与续期保护保留。
+- NAS Nginx 已有业务响应 no-store，前端可在后端维护重启前安全发布；普通电脑须前后端一并升级。不存在将 API 改走 Cloudflare 的变更。
+- 旧页面仍保留旧脚本行为，需要刷新页面。浏览器开发者工具禁用缓存也可能绕过预检缓存；不同 URL/方法/请求头/缓存分区仍分别产生预检。未运行浏览器自动化，实际下降比例待新页面真实日志确认。
+- 回滚需同步恢复前端请求侧 no-store；仅回退后端、仍让新前端访问没有 no-store 的同源 API 不安全。NAS 保留 Nginx no-store 作为额外保护。
+
+本次验证：前端全量 121 文件 / 868 项通过；类型检查、lint、隔离后端构建通过。后端首次全量有一个数据库测试文件因 MODULE_NOT_FOUND 退出（better-sqlite3）；该文件与 CORS 定向复测 5 项通过。随后并行全量复核遇到 Node 测试运行器反序列化错误；串行全量复核最终 865 项：864 通过、1 既有跳过、0 失败。直接运行 vitest 缺少项目要求的 NODE_ENV=test 曾导致内置 assert 被 Vite 外部化，改用项目 pnpm run test:client 后通过，不修改测试环境配置。
+
+本次前端已通过既有发布器上传 Cloudflare：`c137-assets-static` 版本 `3efe509b-b24e-451c-aeb7-8d874199b29a`，55 个文件上传、56 项变化，公网资源字节/CORS 验证通过；入口引用新 JS `index-BKIcLT5T.js`，Cloudflare 注入统计脚本导致 HTML 原始哈希不同，仅移除该已知脚本并统一行首尾空白后内容一致。操作目录：`/vol1/1000/appdata/cloudcli/operations/preflight-cache-20261025`。后端维护收据区分 waiting_for_idle 与 complete；NAS 前端生效不依赖这一冗余响应头中间件先重启，因为 Nginx 已发送 no-store。普通 Mac/Windows 必须同步源码并同时重建前后端、重启后端，不能只替换前端。
+
+Primary source: https://github.com/chromium/chromium/blob/main/services/network/cors/preflight_controller.cc
+
 ## 根因与基线
 
 按 **Asia/Shanghai** 汇总现有 Nginx 日志，2026-10-24 共 **24,809** 次请求，其中 OPTIONS **12,375** 次。Nginx 原始时间带 `+0000`，直接按日志日期筛选会误得到 22,892 次。

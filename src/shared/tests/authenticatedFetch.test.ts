@@ -207,14 +207,18 @@ test('an expired refreshed token does not replace the stored one', async () => {
   assert.equal(localStorage.getItem('auth-token'), live);
 });
 
-test('requests bypass the HTTP cache', async () => {
+test('requests permit preflight caching and avoid URLs cached by older releases', async () => {
   localStorage.setItem('auth-token', liveToken());
-  respondWith();
+  const fetcher = respondWith();
 
-  await (await loadFetch(false))('/api/projects');
-
-  // Without this, a cached response replays another session's auth headers.
-  assert.equal(lastInit?.cache, 'no-store');
+  const request = await loadFetch(false);
+  await request('/api/projects?limit=20#fragment');
+  assert.equal(lastInit?.cache, 'default');
+  assert.equal(String(fetcher.mock.calls[0][0]), '/api/projects?limit=20&__cloudcli_transport=2#fragment');
+  await request('/api/projects?limit=20#fragment');
+  assert.equal(fetcher.mock.calls[1][0], fetcher.mock.calls[0][0], 'stable URL permits preflight reuse');
+  await request('/api/projects', { method: 'POST', body: '{}' });
+  assert.equal(String(fetcher.mock.calls[2][0]), '/api/projects');
 });
 
 test('an ordinary response leaves the stored token alone', async () => {

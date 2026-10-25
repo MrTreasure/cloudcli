@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`c225cfbe9d808528c11444f7b9c7e631025af463`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`fcd4fc325d97e34323b8c1daa8028d96df517af3`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,28 +10,20 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [deploy/agent-api.conf](../../deploy/agent-api.conf) | — |
-| A | [deploy/summarize-cloudcli-traffic.py](../../deploy/summarize-cloudcli-traffic.py) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| A | [docs/nas/browser-backend-traffic.md](../../docs/nas/browser-backend-traffic.md) | — |
+| M | [docs/nas/browser-backend-traffic.md](../../docs/nas/browser-backend-traffic.md) | — |
 | M | [server/index.ts](../../server/index.ts) | — |
-| A | [server/modules/auth/cors-policy.service.ts](../../server/modules/auth/cors-policy.service.ts) | — |
+| M | [server/modules/agent/agent.routes.ts](../../server/modules/agent/agent.routes.ts) | — |
 | M | [server/modules/auth/index.ts](../../server/modules/auth/index.ts) | — |
-| A | [server/modules/auth/tests/cors-policy.test.ts](../../server/modules/auth/tests/cors-policy.test.ts) | — |
-| M | [src/modules/auth/context/AuthContext.tsx](../../src/modules/auth/context/AuthContext.tsx) | — |
-| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
-| M | [src/modules/chat/hooks/useChatSessionState.ts](../../src/modules/chat/hooks/useChatSessionState.ts) | — |
-| M | [src/modules/project-workspace/ProjectWorkspaceRoute.tsx](../../src/modules/project-workspace/ProjectWorkspaceRoute.tsx) | — |
+| A | [server/modules/auth/response-cache.middleware.ts](../../server/modules/auth/response-cache.middleware.ts) | — |
+| M | [server/modules/auth/tests/cors-policy.test.ts](../../server/modules/auth/tests/cors-policy.test.ts) | — |
+| M | [server/modules/projects/project-clone.routes.ts](../../server/modules/projects/project-clone.routes.ts) | — |
+| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
+| M | [src/modules/auth/tests/authTokenRefreshRemount.test.tsx](../../src/modules/auth/tests/authTokenRefreshRemount.test.tsx) | — |
+| M | [src/modules/plugins/tests/pluginGitErrors.test.tsx](../../src/modules/plugins/tests/pluginGitErrors.test.tsx) | — |
 | M | [src/shared/api.ts](../../src/shared/api.ts) | — |
-| M | [src/shared/chatDrafts.ts](../../src/shared/chatDrafts.ts) | — |
-| M | [src/shared/context/SessionProtectionContext.tsx](../../src/shared/context/SessionProtectionContext.tsx) | — |
-| A | [src/shared/hooks/useAdaptivePolling.ts](../../src/shared/hooks/useAdaptivePolling.ts) | — |
-| M | [src/shared/hooks/useSessionProtection.ts](../../src/shared/hooks/useSessionProtection.ts) | — |
-| A | [src/shared/tests/adaptivePolling.test.tsx](../../src/shared/tests/adaptivePolling.test.tsx) | — |
-| M | [src/shared/tests/backgroundSessionActivity.test.tsx](../../src/shared/tests/backgroundSessionActivity.test.tsx) | — |
-| M | [src/shared/tests/chatDrafts.test.ts](../../src/shared/tests/chatDrafts.test.ts) | — |
-| A | [src/shared/tests/snapshotRequests.test.ts](../../src/shared/tests/snapshotRequests.test.ts) | — |
-| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
+| M | [src/shared/tests/authenticatedFetch.test.ts](../../src/shared/tests/authenticatedFetch.test.ts) | — |
+| M | [src/shared/tests/snapshotRequests.test.ts](../../src/shared/tests/snapshotRequests.test.ts) | — |
 
 ## NAS 主线提交
 
@@ -502,6 +494,36 @@
   - `server/modules/providers/tests/codex-app-server.runtime.test.ts`
   - `src/modules/chat/tests/AskUserQuestionPanel.test.tsx`
   - `src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx`
+
+### fcd4fc32 · 2026-10-25 · perf(sync): reduce browser polling and preflight traffic
+
+- 完整提交：`fcd4fc325d97e34323b8c1daa8028d96df517af3`
+- 相对第一父提交涉及文件：
+
+  - `deploy/agent-api.conf`
+  - `deploy/summarize-cloudcli-traffic.py`
+  - `docs/nas/README.md`
+  - `docs/nas/browser-backend-traffic.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `server/index.ts`
+  - `server/modules/auth/cors-policy.service.ts`
+  - `server/modules/auth/index.ts`
+  - `server/modules/auth/tests/cors-policy.test.ts`
+  - `src/modules/auth/context/AuthContext.tsx`
+  - `src/modules/chat/hooks/useChatComposerState.ts`
+  - `src/modules/chat/hooks/useChatSessionState.ts`
+  - `src/modules/project-workspace/ProjectWorkspaceRoute.tsx`
+  - `src/shared/api.ts`
+  - `src/shared/chatDrafts.ts`
+  - `src/shared/context/SessionProtectionContext.tsx`
+  - `src/shared/hooks/useAdaptivePolling.ts`
+  - `src/shared/hooks/useSessionProtection.ts`
+  - `src/shared/tests/adaptivePolling.test.tsx`
+  - `src/shared/tests/backgroundSessionActivity.test.tsx`
+  - `src/shared/tests/chatDrafts.test.ts`
+  - `src/shared/tests/snapshotRequests.test.ts`
+  - `src/shared/types.ts`
 
 ## 从 PR / 其他分支合入的提交
 

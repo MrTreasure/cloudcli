@@ -30,14 +30,22 @@ export const authenticatedFetch = (
     defaultHeaders['Authorization'] = `Bearer ${token}`;
   }
 
-  return fetch(backendUrl(url), {
+  // A stable URL revision avoids responses stored by older releases. Do not use
+  // timestamps: changing the URL on every request would defeat preflight reuse.
+  let requestUrl = backendUrl(url);
+  if (['GET', 'HEAD'].includes((options.method ?? 'GET').toUpperCase())) {
+    const hashIndex = requestUrl.indexOf('#');
+    const fragment = hashIndex < 0 ? '' : requestUrl.slice(hashIndex);
+    const base = hashIndex < 0 ? requestUrl : requestUrl.slice(0, hashIndex);
+    requestUrl = `${base}${base.includes('?') ? '&' : '?'}__cloudcli_transport=2${fragment}`;
+  }
+
+  return fetch(requestUrl, {
     ...options,
-    // Every response here can carry X-Refreshed-Token or X-Auth-Error, and a
-    // served-from-cache response replays the headers it was stored with. Those
-    // headers describe one moment in one session, so they must never be reused:
-    // a stale X-Refreshed-Token overwrote the current token with an expired one
-    // on every start, which then got discarded as expired.
-    cache: 'no-store',
+    // The API sends Cache-Control: no-store for bodies AND auth response headers.
+    // Request-side no-store/reload also bypasses Chromium's preflight cache;
+    // default lets the browser reuse permission without caching business data.
+    cache: 'default',
     headers: {
       ...defaultHeaders,
       ...options.headers,

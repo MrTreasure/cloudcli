@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`c225cfbe9d808528c11444f7b9c7e631025af463`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`fcd4fc325d97e34323b8c1daa8028d96df517af3`。
 
-记录基线与当前暂存树之间的全部净差异，共 267 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 272 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -85,10 +85,12 @@
 | A | [scripts/generate-brand-icons.mjs](../../scripts/generate-brand-icons.mjs) | — |
 | A | [scripts/record-nas-changes.mjs](../../scripts/record-nas-changes.mjs) | — |
 | M | [server/index.ts](../../server/index.ts) | — |
+| M | [server/modules/agent/agent.routes.ts](../../server/modules/agent/agent.routes.ts) | — |
 | M | [server/modules/assets/assets.routes.ts](../../server/modules/assets/assets.routes.ts) | — |
 | M | [server/modules/assets/services/image-assets.service.ts](../../server/modules/assets/services/image-assets.service.ts) | — |
 | A | [server/modules/auth/cors-policy.service.ts](../../server/modules/auth/cors-policy.service.ts) | — |
 | M | [server/modules/auth/index.ts](../../server/modules/auth/index.ts) | — |
+| A | [server/modules/auth/response-cache.middleware.ts](../../server/modules/auth/response-cache.middleware.ts) | — |
 | A | [server/modules/auth/tests/cors-policy.test.ts](../../server/modules/auth/tests/cors-policy.test.ts) | — |
 | M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
 | M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
@@ -99,6 +101,7 @@
 | M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
 | M | [server/modules/notifications/index.ts](../../server/modules/notifications/index.ts) | — |
 | M | [server/modules/notifications/services/notification-orchestrator.service.js](../../server/modules/notifications/services/notification-orchestrator.service.js) | — |
+| M | [server/modules/projects/project-clone.routes.ts](../../server/modules/projects/project-clone.routes.ts) | — |
 | M | [server/modules/providers/list/codex/codex-app-server.client.ts](../../server/modules/providers/list/codex/codex-app-server.client.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.config.ts](../../server/modules/providers/list/codex/codex-app-server.config.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.process.ts](../../server/modules/providers/list/codex/codex-app-server.process.ts) | — |
@@ -240,6 +243,7 @@
 | M | [src/modules/i18n/locales/zh-TW/sidebar.json](../../src/modules/i18n/locales/zh-TW/sidebar.json) | — |
 | M | [src/modules/plugins/PluginTabContent.tsx](../../src/modules/plugins/PluginTabContent.tsx) | — |
 | A | [src/modules/plugins/tests/hostDashboardPolling.test.ts](../../src/modules/plugins/tests/hostDashboardPolling.test.ts) | — |
+| M | [src/modules/plugins/tests/pluginGitErrors.test.tsx](../../src/modules/plugins/tests/pluginGitErrors.test.tsx) | — |
 | M | [src/modules/project-workspace/ProjectWorkspaceRoute.tsx](../../src/modules/project-workspace/ProjectWorkspaceRoute.tsx) | — |
 | M | [src/modules/settings/hooks/useSettingsController.ts](../../src/modules/settings/hooks/useSettingsController.ts) | — |
 | M | [src/modules/settings/Settings.tsx](../../src/modules/settings/Settings.tsx) | — |
@@ -264,6 +268,7 @@
 | A | [src/shared/hooks/useFontSizes.ts](../../src/shared/hooks/useFontSizes.ts) | — |
 | M | [src/shared/hooks/useSessionProtection.ts](../../src/shared/hooks/useSessionProtection.ts) | — |
 | A | [src/shared/tests/adaptivePolling.test.tsx](../../src/shared/tests/adaptivePolling.test.tsx) | — |
+| M | [src/shared/tests/authenticatedFetch.test.ts](../../src/shared/tests/authenticatedFetch.test.ts) | — |
 | M | [src/shared/tests/backgroundSessionActivity.test.tsx](../../src/shared/tests/backgroundSessionActivity.test.tsx) | — |
 | M | [src/shared/tests/chatDrafts.test.ts](../../src/shared/tests/chatDrafts.test.ts) | — |
 | A | [src/shared/tests/fontSizes.test.tsx](../../src/shared/tests/fontSizes.test.tsx) | — |

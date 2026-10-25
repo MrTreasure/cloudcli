@@ -32,7 +32,8 @@ let hasCompletedOnboarding = true;
 let onboardingStatusDelayMs = 0;
 
 const stubServer = () => {
-  vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+  vi.stubGlobal('fetch', vi.fn(async (requestUrl: string) => {
+    const url = new URL(requestUrl, 'http://localhost').pathname;
     requestedPaths.push(url);
     const headers: Record<string, string> = { 'Content-Type': 'application/json' };
     if (url === '/api/auth/user' && nextRefreshedToken) {

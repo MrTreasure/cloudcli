@@ -43,7 +43,7 @@ function stubPluginsApi(replies: Record<string, StubbedReply>) {
   vi.stubGlobal(
     'fetch',
     vi.fn(async (url: string) => {
-      const reply = replies[url] ?? { status: 404, body: { error: 'Not found' } };
+      const reply = replies[new URL(url, 'http://localhost').pathname] ?? { status: 404, body: { error: 'Not found' } };
       return new Response(JSON.stringify(reply.body), {
         status: reply.status,
         headers: { 'Content-Type': 'application/json' },

@@ -6,7 +6,7 @@ beforeEach(() => { localStorage.clear(); vi.resetModules(); });
 afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); vi.restoreAllMocks(); vi.useRealTimers(); });
 
 for (const origin of ['', 'https://api.example']) {
-  test(`pending snapshots share one body-complete GET and preserve no-store (${origin || 'same-origin'})`, async () => {
+  test(`pending snapshots share one body-complete GET and permit preflight reuse (${origin || 'same-origin'})`, async () => {
     vi.stubEnv('VITE_API_ORIGIN', origin);
     localStorage.setItem('auth-token', 'account-a');
     let finishBody!: (value: ArrayBuffer) => void;
@@ -22,8 +22,8 @@ for (const origin of ['', 'https://api.example']) {
     const three = api.runningSessions();
     assert.equal(fetcher.mock.calls.length, 1);
     const request = fetcher.mock.calls[0] as unknown as [string, RequestInit];
-    assert.equal(request[0], origin + '/api/providers/sessions/running');
-    assert.equal(request[1].cache, 'no-store');
+    assert.equal(request[0], origin + '/api/providers/sessions/running?__cloudcli_transport=2');
+    assert.equal(request[1].cache, 'default');
     assert.equal(new Headers(request[1].headers).has('Content-Type'), false);
     assert.equal(new Headers(request[1].headers).get('Authorization'), 'Bearer account-a');
     finishBody(new TextEncoder().encode('{"data":{"sessions":[]}}').buffer);

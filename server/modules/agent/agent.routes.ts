@@ -1007,7 +1007,7 @@ export function createAgentRouter(dependencies: AgentRouterDependencies): expres
       if (stream) {
         // Set up SSE headers for streaming
         res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Cache-Control', 'no-store');
         res.setHeader('Connection', 'keep-alive');
         res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
       }
@@ -1328,7 +1328,7 @@ export function createAgentRouter(dependencies: AgentRouterDependencies): expres
         if (!writer) {
           // Set up SSE headers if not already done
           res.setHeader('Content-Type', 'text/event-stream');
-          res.setHeader('Cache-Control', 'no-cache');
+          res.setHeader('Cache-Control', 'no-store');
           res.setHeader('Connection', 'keep-alive');
           res.setHeader('X-Accel-Buffering', 'no');
           writer = new SSEStreamWriter(res);
