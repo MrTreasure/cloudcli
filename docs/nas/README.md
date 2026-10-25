@@ -341,3 +341,13 @@
 ### 2026-10-25：预检缓存后续修复
 
 用户确认由服务器禁止业务响应缓存，替代请求侧强制 no-store，以允许 Chromium 复用跨域预检许可。入口 `/api` 的响应缓存中间件覆盖成功与错误，SSE 保持实时；前端固定版本参数避开旧缓存。归属：`server/modules/auth/response-cache.middleware.ts`、`server/index.ts`、三个 SSE 路由、`src/shared/api.ts`。来源：本地排查 Chromium 预检控制器；无上游合并。前后端需配套升级，回滚须恢复前端 no-store，NAS 继续保留 Nginx no-store。详见 [请求流量记录](browser-backend-traffic.md)。
+
+## 2026-10-25 对话文件下载入口发布修复
+
+- 目的：修复下载入口只在工作区、未包含在发布前端的问题。项目内文件链接右侧常驻“下载”按钮；ZIP 等浏览器无法预览的已识别二进制文件点击名称也直接下载，文本、图片、PDF 和支持的音视频继续打开既有编辑器/预览，目录仍打开文件树，外部网站链接保持浏览器跳转。
+- 所属路径：`src/modules/chat/transcript/{Markdown,WorkspaceFileLink}.tsx` 复用 `MarkdownWorkspaceContext` 和 `api.readFileBlob`；`src/shared/utils.ts` 集中既有文件格式/预览能力判断，编辑器消费者同步引用，避免聊天和编辑器判断漂移；`src/modules/i18n/locales/{en,zh-CN,zh-TW}/chat.json` 提供下载、等待和错误文案；回归在 `src/modules/chat/tests/fileReferenceLinks.test.tsx`。
+- 安全与行为：下载读取原始字节，移除编辑器行列号，解码中文/空格文件名；携带既有 Authorization，请求 URL 不放 token，不把私人文件上传 Cloudflare。保留工作区访问规则、等待状态、重复点击保护、错误重试及延后释放的对象 URL；按钮只在项目上下文内显示，不自动将目录打包，也不把浏览器触发保存当作磁盘写入已完成。
+- 来源：本地功能修复，用户以 40 MB 素材包缺失下载按钮说明问题；未合并上游 PR，未新增后端端点或权限规则。
+- 验证与发布：前端 121 文件 / 869 项测试、类型检查、lint 通过；使用已有 NAS 发布器发布前端，不重启后端。现有本机文件 API 用含中文/空格名称的模拟 ZIP 验证原始字节一致、Cache-Control no-store、未鉴权 401；临时文件已删除，不调用模型，不运行浏览器自动化。
+- 回退：成组恢复 Markdown 链接组件、共享格式判断及其编辑器消费者、语言文案和测试，并重新构建/发布前端；旧哈希资源保留。无数据库、模型配置或历史文件迁移。
+

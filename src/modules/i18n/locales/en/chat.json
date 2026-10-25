@@ -1,4 +1,10 @@
 {
+  "fileLinks": {
+    "downloadAction": "Download",
+    "download": "Download {{name}}",
+    "notFound": "File not found. It may have been moved or deleted.",
+    "downloadFailed": "Download failed. Please try again."
+  },
   "contextPolicy": {
     "title": "Image context",
     "compact": "Compact context",

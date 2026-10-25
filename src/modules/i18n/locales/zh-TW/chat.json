@@ -1,4 +1,10 @@
 {
+  "fileLinks": {
+    "downloadAction": "下載",
+    "download": "下載 {{name}}",
+    "notFound": "檔案不存在，可能已移動或刪除。",
+    "downloadFailed": "下載失敗，請重試。"
+  },
   "contextPolicy": {
     "title": "圖片上下文",
     "compact": "壓縮上下文",

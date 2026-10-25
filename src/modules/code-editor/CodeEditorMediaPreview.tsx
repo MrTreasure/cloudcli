@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { api } from '@/shared/api';
 import type { CodeEditorFile,PreviewKind } from '@/shared/types';
-import { getPreviewMimeType } from '@/modules/code-editor/utils/previewableFile';
+import { getPreviewMimeType } from '@/shared/utils';
 
 type CodeEditorMediaPreviewProps = {
   file: CodeEditorFile;

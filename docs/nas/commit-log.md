@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`fcd4fc325d97e34323b8c1daa8028d96df517af3`。
+官方基线：`v1.37.5` (`0ce5630f46c283653359820870df1afd67cb1cf5`)。历史覆盖至生成时的 HEAD：`d0664678288d131b0656af6d64313aea1081ade9`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,19 +11,17 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [docs/nas/browser-backend-traffic.md](../../docs/nas/browser-backend-traffic.md) | — |
-| M | [server/index.ts](../../server/index.ts) | — |
-| M | [server/modules/agent/agent.routes.ts](../../server/modules/agent/agent.routes.ts) | — |
-| M | [server/modules/auth/index.ts](../../server/modules/auth/index.ts) | — |
-| A | [server/modules/auth/response-cache.middleware.ts](../../server/modules/auth/response-cache.middleware.ts) | — |
-| M | [server/modules/auth/tests/cors-policy.test.ts](../../server/modules/auth/tests/cors-policy.test.ts) | — |
-| M | [server/modules/projects/project-clone.routes.ts](../../server/modules/projects/project-clone.routes.ts) | — |
-| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
-| M | [src/modules/auth/tests/authTokenRefreshRemount.test.tsx](../../src/modules/auth/tests/authTokenRefreshRemount.test.tsx) | — |
-| M | [src/modules/plugins/tests/pluginGitErrors.test.tsx](../../src/modules/plugins/tests/pluginGitErrors.test.tsx) | — |
-| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
-| M | [src/shared/tests/authenticatedFetch.test.ts](../../src/shared/tests/authenticatedFetch.test.ts) | — |
-| M | [src/shared/tests/snapshotRequests.test.ts](../../src/shared/tests/snapshotRequests.test.ts) | — |
+| M | [src/modules/chat/tests/fileReferenceLinks.test.tsx](../../src/modules/chat/tests/fileReferenceLinks.test.tsx) | — |
+| M | [src/modules/chat/transcript/Markdown.tsx](../../src/modules/chat/transcript/Markdown.tsx) | — |
+| A | [src/modules/chat/transcript/WorkspaceFileLink.tsx](../../src/modules/chat/transcript/WorkspaceFileLink.tsx) | — |
+| M | [src/modules/code-editor/CodeEditorMediaPreview.tsx](../../src/modules/code-editor/CodeEditorMediaPreview.tsx) | — |
+| M | [src/modules/code-editor/hooks/useCodeEditorDocument.ts](../../src/modules/code-editor/hooks/useCodeEditorDocument.ts) | — |
+| D | [src/modules/code-editor/utils/binaryFile.ts](../../src/modules/code-editor/utils/binaryFile.ts) | — |
+| D | [src/modules/code-editor/utils/previewableFile.ts](../../src/modules/code-editor/utils/previewableFile.ts) | — |
+| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
+| M | [src/shared/utils.ts](../../src/shared/utils.ts) | — |
 
 ## NAS 主线提交
 
@@ -524,6 +522,28 @@
   - `src/shared/tests/chatDrafts.test.ts`
   - `src/shared/tests/snapshotRequests.test.ts`
   - `src/shared/types.ts`
+
+### d0664678 · 2026-10-25 · fix(cors): allow preflight reuse without caching API responses
+
+- 完整提交：`d0664678288d131b0656af6d64313aea1081ade9`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/browser-backend-traffic.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `server/index.ts`
+  - `server/modules/agent/agent.routes.ts`
+  - `server/modules/auth/index.ts`
+  - `server/modules/auth/response-cache.middleware.ts`
+  - `server/modules/auth/tests/cors-policy.test.ts`
+  - `server/modules/projects/project-clone.routes.ts`
+  - `server/modules/providers/provider.routes.ts`
+  - `src/modules/auth/tests/authTokenRefreshRemount.test.tsx`
+  - `src/modules/plugins/tests/pluginGitErrors.test.tsx`
+  - `src/shared/api.ts`
+  - `src/shared/tests/authenticatedFetch.test.ts`
+  - `src/shared/tests/snapshotRequests.test.ts`
 
 ## 从 PR / 其他分支合入的提交
 

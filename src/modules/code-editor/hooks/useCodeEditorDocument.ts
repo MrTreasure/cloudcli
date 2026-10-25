@@ -2,8 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { api, readApiJson } from '@/shared/api';
 import type { CodeEditorFile } from '@/shared/types';
-import { isBinaryFile } from '@/modules/code-editor/utils/binaryFile';
-import { getPreviewKind } from '@/modules/code-editor/utils/previewableFile';
+import { isBinaryFile, getPreviewKind } from '@/shared/utils';
 
 type UseCodeEditorDocumentParams = {
   file: CodeEditorFile;
