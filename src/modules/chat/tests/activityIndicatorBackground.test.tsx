@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { test, vi } from 'vitest';
 
@@ -73,15 +73,21 @@ test('an agent and a command are named by what they were asked to do; several ta
   assert.doesNotMatch(nested.container.textContent ?? '', /2 tasks/);
 });
 
-test('a response in flight still shows the Stop button and the primary dot', () => {
+test('a response in flight can be stopped with the button and shows no Escape shortcut', () => {
+  const onAbort = vi.fn();
   const { container } = render(
     <ActivityIndicator
       activity={{ statusText: 'Thinking', canInterrupt: true, startedAt: Date.now() }}
-      onAbort={() => {}}
+      onAbort={onAbort}
     />,
   );
 
-  assert.ok(screen.getByRole('button', { name: 'Stop' }));
+  const stop = screen.getByRole('button', { name: 'Stop' });
+  assert.equal(container.querySelector('kbd'), null);
+  fireEvent.keyDown(document, { key: 'Escape' });
+  assert.equal(onAbort.mock.calls.length, 0);
+  fireEvent.click(stop);
+  assert.equal(onAbort.mock.calls.length, 1);
   assert.ok(container.querySelector('.bg-primary'));
   assert.equal(container.querySelector('.bg-purple-500'), null);
 });

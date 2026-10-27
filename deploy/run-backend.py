@@ -32,6 +32,11 @@ environment.update({
     'CLOUDCLI_ORIGIN': 'https://agent.mrtreasure.cc',
     'PATH': str(root / 'node_modules/.bin') + os.pathsep + environment.get('PATH', os.defpath),
 })
+path_map = Path('/vol1/1000/appdata/cloudcli/config/workspace-path-map.json')
+if path_map.is_file():
+    environment['CLOUDCLI_WORKSPACE_PATH_MAP'] = path_map.read_text()
+environment['WORKSPACE'] = '/vol1/1000/workspace'
+environment.pop('PROJECT_PATH', None)
 os.chdir(root)
 # Replace the launcher so systemd tracks Node and signals it directly.
 os.execvpe('node', ['node', str(root / 'dist-server/server/index.js')], environment)

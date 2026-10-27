@@ -1,5 +1,5 @@
 {
-  "base": "https://assets.mrtreasure.cc/cloudcli/v1/",
-  "bucket": "mrtreasure-assets",
-  "origin": "https://agent.mrtreasure.cc"
+  "base": "https://assets.mrtreasure.cc/cloudcli/v2/",
+  "origin": "https://agent.mrtreasure.cc",
+  "hosting": "workers-static-assets"
 }

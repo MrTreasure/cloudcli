@@ -10,8 +10,8 @@ environment = os.environ.copy()
 environment['VITE_API_ORIGIN'] = 'https://agent-api-nas.mrtreasure.cc:15432'
 environment['VITE_STATIC_ASSET_BASE'] = json.loads((root / 'deploy/static-cdn.json').read_text())['base']
 subprocess.run(['pnpm', 'run', 'build:client'], cwd=root, env=environment, check=True)
-# Upload changed resources before pointing browsers at this build.
-environment['CLOUDCLI_PUBLISHED_ASSET_DIR'] = '/vol1/1000/nginx/public/cloudcli'
+# Publish resources to Workers Static Assets before pointing browsers at this build.
+environment['CLOUDCLI_PUBLISHED_ASSET_DIR'] = '/vol1/1000/appdata/nginx/public/cloudcli'
 subprocess.run(['node', 'deploy/publish-static.mjs'], cwd=root, env=environment, check=True)
 cdn = json.loads((root / 'deploy/static-cdn.json').read_text())['base']
 manifest_path = root / 'dist/manifest.json'
@@ -19,7 +19,7 @@ manifest = json.loads(manifest_path.read_text())
 for icon in manifest.get('icons', []):
     icon['src'] = cdn + icon['src'].lstrip('/')
 manifest_path.write_text(json.dumps(manifest, indent=2))
-destination = Path('/vol1/1000/nginx/public/cloudcli')
+destination = Path('/vol1/1000/appdata/nginx/public/cloudcli')
 destination.mkdir(parents=True, exist_ok=True)
 destination.chmod(0o755)
 # Keep older hashed assets for clients that still have an earlier page open.

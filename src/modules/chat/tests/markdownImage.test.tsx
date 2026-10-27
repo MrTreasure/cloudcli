@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 
-import { render, waitFor } from '@testing-library/react';
+import { fireEvent, render, waitFor } from '@testing-library/react';
 import { beforeEach, test, vi } from 'vitest';
 
 import { Markdown } from '@/modules/chat/transcript/Markdown';
@@ -94,4 +94,16 @@ test('the image is revoked when the markdown unmounts', async () => {
   unmount();
 
   await waitFor(() => assert.equal(revokeObjectURL.mock.calls[0]?.[0], OBJECT_URL));
+});
+
+test('Escape closes an expanded chat image and keeps its thumbnail visible', () => {
+  const { getByRole, queryByRole } = renderInProject('![preview](https://example.com/preview.png)');
+
+  fireEvent.click(getByRole('img'));
+  assert.ok(getByRole('dialog', { name: 'preview' }));
+
+  fireEvent.keyDown(document, { key: 'Escape' });
+
+  assert.equal(queryByRole('dialog'), null);
+  assert.ok(getByRole('img', { name: 'preview' }));
 });

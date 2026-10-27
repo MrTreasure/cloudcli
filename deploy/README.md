@@ -2,9 +2,9 @@
 
 NAS 分支全部源码变更、官方升级及功能回退参考：[维护指南](../docs/nas/README.md)、[完整提交记录](../docs/nas/commit-log.md)、[文件索引](../docs/nas/file-index.md)。
 
-- 前端：`https://agent.mrtreasure.cc`，CF Tunnel → 宿主机现有静态 Nginx `127.0.0.1:17843`。宿主机使用 pnpm 构建；前端不放入 Docker。
+- 前端：`https://agent.mrtreasure.cc`，Cloudflare Workers Static Assets 提供已发布的 HTML、PWA 清单和 Service Worker；既有 `/v1/` R2 CDN 提供当前 JS/CSS 等资源，后续新发布使用 `/v2/` Workers Static Assets。原 CF Tunnel → Nginx `127.0.0.1:17843` 保留用于旧资源兼容和回滚。宿主机使用 pnpm 构建；前端不放入 Docker。
 - 后端：`https://agent-api-nas.mrtreasure.cc:15432`，DNS only → IPv6 HTTPS Nginx → NAS 原生后端 `127.0.0.1:18803`。聊天、终端、插件 WebSocket、API、SSE、上传均使用这个地址。
-- 静态 JS、CSS、字体、图标和图片发布到 R2 CDN `https://assets.mrtreasure.cc/cloudcli/v1/`。哈希资源缓存一年，固定名称图片缓存一小时；Google 在线字体已改为本地依赖打包到 CDN。
+- 后续新版本的静态 JS、CSS、字体、图标和图片发布到 Workers Static Assets `https://assets.mrtreasure.cc/cloudcli/v2/`；已发布的 `/v1/` R2 对象保留。哈希资源缓存一年，固定名称图片使用平台的默认重新验证策略；Google 在线字体已改为本地依赖打包到 CDN。
 - HTML 在浏览器要求重新验证，首页在 CF 边缘缓存 30 秒。发布后仅清理首页缓存，保留旧哈希资源，避免打开中的页面缺少资源。
 - PWA manifest 和 service worker 使用应用域名；manifest 图标来自 CDN，启动地址与安装范围仍为应用域名。
 - 后端由 Treasure 用户的 `cloudcli-backend.service` 托管，直接运行 `dist-server/server/index.js` 编译产物；源码在宿主机项目目录维护。用户服务已启用开机启动，Treasure 已启用 linger。
@@ -40,9 +40,9 @@ python3 deploy/bootstrap-user.py
 systemctl --user status cloudcli-backend.service
 ```
 
-前端发布时先上传静态资源并校验发布内容，再原子更新 `/vol1/1000/nginx/public/cloudcli/index.html`，无需重建或重启后端。
+前端发布时先上传静态资源并校验发布内容，再原子更新 `/vol1/1000/appdata/nginx/public/cloudcli/index.html`，无需重建或重启后端。
 
-CDN 配置在 `deploy/static-cdn.json`，R2 凭据从密码本 `cloudflare.r2_admin` 读取；仅操作公开 bucket 的 `cloudcli/v1/` 前缀，保留其他应用 CORS 规则。现有不可变对象必须内容一致，固定文件使用 ETag 条件更新。`deploy/frontend.conf` 安装到现有静态 Nginx 的 sites 目录。
+CDN 配置在 `deploy/static-cdn.json`。`deploy/publish-static.mjs` 委托 NAS 旁侧项目 `../cloudflare-sites/scripts/assets.mjs`，仅发布 `/cloudcli/v2/` 到 `c137-assets-static`，保留历史哈希，校验不可变对象内容。公开资源的 CORS 与 SHA256 验证成功后才允许切换 HTML。凭据从密码本 `cloudflare.api_token_worker` 注入进程，不再访问或写入 R2。`deploy/frontend.conf` 安装到现有静态 Nginx 的 sites 目录。
 
 `deploy/agent-api.conf` 放在 HTTPS proxy 的 http 块内。使用现有证书与 IPv6 15432；访问日志不记录查询字符串，以免持久保存 WS/SSE 的 JWT。
 
@@ -71,3 +71,19 @@ daemon-reload 并重启后端。细节及测量边界见 [请求体压缩记录]
 - 项目仅依赖 Codex SDK。`pnpm-workspace.yaml` 的 `overrides` 中 `@openai/codex: "-"` 排除 SDK 与其他依赖携带的 CLI，避免项目安装再生成重复二进制。
 - 更新 CLI 使用 `pnpm add -g @openai/codex@<版本>`，随后重启使用旧进程的服务；版本检查使用 `codex --version`。
 - NAS daemon 的 `~/.codex/packages/app-server-daemon/current` 链接到全局 CLI 的原生 vendor 目录，共用二进制和配套资源。更新全局 CLI 后需同步该链接，再执行 `codex app-server daemon restart`；不要另行安装 daemon 包生成副本。
+
+## Cloudflare 页面同步（2026-10-22）
+
+`/vol1/1000/workspace/cloudflare-sites` 管理 `agent.mrtreasure.cc/*` 的精确域名 Worker Route。
+发布流程先发布并验证 `/cloudcli/v2/` Workers 静态资源，再原子更新 NAS 的 `public/cloudcli/index.html`；
+`cloudflare-static-sync.service` 每 15 秒扫描已发布文件，两次稳定后更新边缘页面。
+本地构建 `dist` 不触发发布。API 和 WebSocket 仍直连 `agent-api-nas.mrtreasure.cc:15432`，不重启后端。
+回滚：在 `cloudflare-sites` 执行 `pnpm run rollback:agent`，移除本项目路由后恢复原 Tunnel/Nginx。
+源、日志、运行数据、密码本不上传 Cloudflare；CloudCLI 的登录和终端交互由用户手动验收。
+
+## 2026-10-23 渐进切换（发布脚本已修改，尚未发布新前端）
+
+- 新构建使用 `https://assets.mrtreasure.cc/cloudcli/v2/`，同域仅该前缀路由到 `c137-assets-static`。旧 `/v1/`、共享图片及其他 R2 前缀保持原样。
+- Worker 使用原生静态资源托管，无 CDN 业务代理或后端凭据；构建文件、历史哈希、锁和验证收据放在 appdata。
+- 本次不上传当前开发中的前端，不删除 R2 对象。后续发布多个版本后，再检查引用与访问数据，人工决定清理范围；发布器不执行 R2 删除。
+- 回滚旧 HTML 时仍使用保留的 `/v1/` R2 资源；已发布的新版本依赖 appdata 中保留的 `/v2/` 资源。普通电脑的同源构建默认值不变，NAS 发布器才注入 CDN/API 地址。

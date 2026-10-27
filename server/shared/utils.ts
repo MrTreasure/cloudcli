@@ -363,6 +363,40 @@ function shouldUseWindowsPathNormalization(inputPath: string): boolean {
   return inputPath.startsWith('\\\\') || /^[a-zA-Z]:([\\/]|$)/.test(inputPath);
 }
 
+let projectPathMapSource: string | undefined;
+let projectPathMappings: Array<{ from: string; to: string }> = [];
+
+function applyProjectPathMapping(normalizedPath: string): string {
+  const source = process.env.CLOUDCLI_WORKSPACE_PATH_MAP ?? '';
+  if (source !== projectPathMapSource) {
+    const value: unknown = source ? JSON.parse(source) : {};
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      throw new Error('CLOUDCLI_WORKSPACE_PATH_MAP must be a JSON object');
+    }
+    const mappings = Object.entries(value).map(([from, to]) => {
+      if (typeof to !== 'string') throw new Error('Workspace path mappings must contain string paths');
+      const normalizeRoot = (root: string) => {
+        const parser = shouldUseWindowsPathNormalization(root) ? path.win32 : path.posix;
+        const result = parser.normalize(root.trim());
+        if (!parser.isAbsolute(result) || result === parser.parse(result).root) {
+          throw new Error('Workspace path mappings require absolute non-root directories');
+        }
+        return result.replace(/[\\/]+$/, '');
+      };
+      return { from: normalizeRoot(from), to: normalizeRoot(to) };
+    }).sort((a, b) => b.from.length - a.from.length);
+    projectPathMappings = mappings;
+    projectPathMapSource = source;
+  }
+  for (const { from, to } of projectPathMappings) {
+    const separator = shouldUseWindowsPathNormalization(from) ? '\\' : '/';
+    if (normalizedPath === from || normalizedPath.startsWith(from + separator)) {
+      return to + normalizedPath.slice(from.length);
+    }
+  }
+  return normalizedPath;
+}
+
 /**
  * Canonicalizes project/workspace paths for stable DB keys and comparisons.
  *
@@ -371,6 +405,10 @@ function shouldUseWindowsPathNormalization(inputPath: string): boolean {
  * - strip Windows long-path prefixes (`\\?\` and `\\?\UNC\`)
  * - normalize path separators and dot segments
  * - trim trailing separators except for filesystem roots
+ * - apply optional machine-local CLOUDCLI_WORKSPACE_PATH_MAP prefix relocation
+ *
+ * Database repositories, history indexers and workspace services share this
+ * mapping so old provider metadata cannot restore a relocated project path.
  */
 export function normalizeProjectPath(inputPath: string): string {
   if (typeof inputPath !== 'string') {
@@ -398,7 +436,7 @@ export function normalizeProjectPath(inputPath: string): string {
     return normalized;
   }
 
-  return normalized.replace(/[\\/]+$/, '');
+  return applyProjectPathMapping(normalized.replace(/[\\/]+$/, ''));
 }
 
 /**

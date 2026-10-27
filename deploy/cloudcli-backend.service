@@ -4,9 +4,9 @@ After=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/vol1/1000/deploy/data/MrTreasure/cloudcli
+WorkingDirectory=/vol1/1000/appdata/cloudcli/runtime
 Environment=PATH=/vol1/node/bin:/vol1/pnpm/bin:/home/Treasure/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/usr/bin/python3 /vol1/1000/deploy/data/MrTreasure/cloudcli/deploy/run-backend.py
+ExecStart=/usr/bin/python3 /vol1/1000/appdata/cloudcli/runtime/deploy/run-backend.py
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=30

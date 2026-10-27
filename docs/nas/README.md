@@ -4,6 +4,18 @@
 
 本地修复（无上游 PR），范围为 CORS 预检缓存、自适应状态/排队草稿同步、在途查询合并、隐藏页面历史刷新合并，以及 NAS JSON gzip 和去 query 的字节日志。未改 CloudCLI → CPA 压缩、模型、上下文、权限或历史；所属路径、实测与推算、发布/安全重启状态及成组回退依赖见 [浏览器到后端流量报告](browser-backend-traffic.md)。用户本次授权验证、NAS 部署及推送；真实浏览器交互仍由用户验收。其他 Agent 的未提交源码保留，发布从隔离构建输入执行。
 
+## 待实施方案：Codex 子 Agent 监控与管理（2026-10-24）
+
+社区候选、源码核对依据、推荐路线及验收/回退要求保存在 [Codex 子 Agent 监控与管理方案](codex-agent-monitor-plan.md)。候选包括 NAS 独立只读看板 Codex Fleet Monitor，以及参考 a0s/agent-monitor 为现有 CloudCLI Agent Monitor 增加 Codex 适配。当前仅按用户要求保存方案，未安装工具、修改插件或发布服务；完整控制需验证 CloudCLI 独立 app-server 的线程操作能力，不能把监控能力当作可停止能力。
+
+## 2026-10-25 对话文件下载入口发布修复
+
+- 目的：修复下载入口只在工作区、未包含在发布前端的问题。项目内文件链接右侧常驻“下载”按钮；ZIP 等浏览器无法预览的已识别二进制文件点击名称也直接下载，文本、图片、PDF 和支持的音视频继续打开既有编辑器/预览，目录仍打开文件树，外部网站链接保持浏览器跳转。
+- 所属路径：`src/modules/chat/transcript/{Markdown,WorkspaceFileLink}.tsx` 复用 `MarkdownWorkspaceContext` 和 `api.readFileBlob`；`src/shared/utils.ts` 集中既有文件格式/预览能力判断，编辑器消费者同步引用，避免聊天和编辑器判断漂移；`src/modules/i18n/locales/{en,zh-CN,zh-TW}/chat.json` 提供下载、等待和错误文案；回归在 `src/modules/chat/tests/fileReferenceLinks.test.tsx`。
+- 安全与行为：下载读取原始字节，移除编辑器行列号，解码中文/空格文件名；携带既有 Authorization，请求 URL 不放 token，不把私人文件上传 Cloudflare。保留工作区访问规则、等待状态、重复点击保护、错误重试及延后释放的对象 URL；按钮只在项目上下文内显示，不自动将目录打包，也不把浏览器触发保存当作磁盘写入已完成。
+- 来源：本地功能修复，用户以 40 MB 素材包缺失下载按钮说明问题；未合并上游 PR，未新增后端端点或权限规则。
+- 验证与发布：前端 121 文件 / 869 项测试、类型检查、lint 通过；使用已有 NAS 发布器发布前端，不重启后端。现有本机文件 API 用含中文/空格名称的模拟 ZIP 验证原始字节一致、Cache-Control no-store、未鉴权 401；临时文件已删除，不调用模型，不运行浏览器自动化。
+- 回退：成组恢复 Markdown 链接组件、共享格式判断及其编辑器消费者、语言文案和测试，并重新构建/发布前端；旧哈希资源保留。无数据库、模型配置或历史文件迁移。
 
 ## 2026-10-23 Codex GUI 提问恢复
 
@@ -330,6 +342,13 @@
 - 验证：10 项请求压缩定向测试、类型检查、后端构建及 lint 通过。额外核对编译产物与同参数异步 zstd level 3 输出一致、与 level 1 输出不同，且解压逐字节恢复输入；初次同步/异步编码字节比较因帧格式不同而失败，改为同一异步 API 验证后通过，并非请求体损坏。未调用真实模型。
 - NAS 已重启，PID 1555414 → 1562460，健康正常、运行模式 zstd，记录在 appdata `operations/zstd-level3-20261020-170015/`。无需前端发布；源码变更需 Git 提交供其他电脑同步，其后仍需各自构建和重启。回退仅将 zstd 参数改回 1 并构建重启，无数据或配置迁移。
 
+
+## 工作区路径迁移与独立运行目录（2026-10-21）
+
+本地部署改造：`server/shared/utils.ts` 的 `normalizeProjectPath` 支持可选 JSON 对象环境变量 `CLOUDCLI_WORKSPACE_PATH_MAP`，按完整目录边界和最长前缀映射项目路径，供项目/会话仓库及历史扫描统一使用，避免旧 rollout 的 cwd 把已迁项目写回旧路径。未配置时行为不变，不改聊天正文或原生线程ID。NAS映射存在appdata/cloudcli/config/workspace-path-map.json，由deploy/run-backend.py启动时读取，不作为其他电脑的默认值。新增定向边界/冲突/配置验证测试。
+
+运行时由同一源码构建后独立打包到appdata/cloudcli/runtime，数据库和Codex HOME保留原用户路径。回退需同时暂停会话写入、恢复启动单元和运行版本，并逆向迁移项目路径/映射，不能直接以旧数据库覆盖新消息。此节记录实施中的功能；线上切换结果另见迁移状态记录。
+
 ## 2026-10-22 大历史请求接收与网络代理前压缩（待部署）
 
 - 目的与来源：用户报告“科技树研发”多次无回复，定位为旧图片与工具裁图在过滤前超过 64 MiB；用户要求优化并在梯子代理转发前完成压缩。本分支本地修复，未合并上游 PR。
@@ -338,16 +357,38 @@
 - 验证：`codex-request-compression.test.ts` 定向 12 项通过，覆盖原始/zstd 大历史先过滤、最终/解码/原始接收超限、网络代理收到压缩体、父/子线程/关闭 lease、错误不重放、SSE、取消和计量隔离。只向本地模拟上游回放真实上下文：70,109,695 字节 → 过滤后 3,878,728 字节 → zstd 2,551,798 字节（约减少 96.4%），归档替换 91 个图片项，保留当前 8 个和历史 3 个；原生 rollout 未改。该测量不是生产公网/CPA 出站流量，也未调用真实模型。
 - 部署与回退：源码、定向测试、类型检查和构建可审查，运行实例尚未更新。按 `deploy/README.md` 仅在用户明确授权发布后更新后端，无需发布前端。只回退代理接收/编码逻辑与相关测试/配置说明即可；无 DB schema 或线程迁移，不删除图片档案/rollout。不覆盖同工作区已有的目录迁移及部署改动；完全回退图片/压缩体系仍须遵循前文成组依赖。
 
+
+## 2026-10-22 关闭 Esc 终止对话快捷键（已发布）
+
+- 目的与来源：按用户要求关闭 Esc 终止对话，避免聊天图片预览关闭时误停任务。本地行为调整，未合并上游 PR。
+- 所属路径：`src/modules/chat/ChatInterface.tsx` 移除全局捕获阶段的 Esc 取消监听；`src/modules/chat/composer/ActivityIndicator.tsx` 移除停止按钮旁的 `esc` 提示，保留点击停止；`src/modules/quick-settings-panel/QuickSettingsPanelView.tsx` 更新相关注释。图片预览、菜单和弹窗仍沿用各自 Esc 关闭行为，所有聊天供应商统一不再通过 Esc 终止对话。
+- 验证：现有 `activityIndicatorBackground.test.tsx` 覆盖停止按钮与快捷键提示，`markdownImage.test.tsx` 覆盖图片展开后 Esc 关闭并保留缩略图；全量前端 118 文件、846 项测试通过，类型检查、前端构建、lint 和 `git diff --check` 通过；保留既有 lint 警告及构建大包提示，未执行浏览器自动化。
+- 发布与回退：用户明确授权后通过 `deploy/publish-frontend.py` 发布前端，57 个变更资源上传、116 个未变更资源本地跳过，前端入口原子切换并清理首页缓存；发布入口及本地 Nginx 返回内容与构建一致。刷新页面生效，未重启后端；入口备份位于 appdata `operations/esc-frontend-release-20261022-230346/`。回退时成组恢复聊天 Esc 监听和停止按钮提示并重新发布；无配置、数据库或历史迁移，也无新增开关。
+
+### 2026-10-22：Cloudflare 前端页面托管
+
+- 用途：`agent.mrtreasure.cc` 首页、PWA 和图标从 NAS 迁到 Workers Static Assets；JS/CSS 沿用既有 R2 CDN。
+- 归属：`deploy/README.md`；部署实现独立位于 `/vol1/1000/workspace/cloudflare-sites`，同步已发布 Nginx 目录，不修改通用运行默认值。
+- 上游来源：NAS 部署配置，无上游 PR。API/WebSocket 仍使用现有独立域名，鉴权与会话存储保持现状。
+- 回滚依赖：保留原 Tunnel、Nginx、NAS 已发布目录与 R2 对象，运行 `pnpm run rollback:agent` 撤回域名路由并停用自动同步。
+
+
+## 2026-10-22 Agent Monitor 安装恢复（NAS 本机）
+
+- 故障与目的：用户报告插件安装失败，日志显示 GitHub `git clone` 出现 GnuTLS -110 连接中断及 443 端口连接超时。官方 API 与 codeload 归档可访问；非插件依赖或构建错误。没有修改应用安装器、全局 Git/代理配置或重启后端。
+- 来源与所属路径：安装官方 `notetook/cloudcli-plugin-agent-monitor` 0.1.0，固定提交 `0383c34cdfd76b13548695d538027660c708c9d5`，位于本机 `~/.claude-code-ui/plugins/cloudcli-plugin-agent-monitor`。从官方 API 及 codeload 获取内容，文件树与上游 Git tree 核对一致，并还原哈希一致的原始浅克隆提交、origin 和 main 跟踪分支，工作树干净；保留 Git 更新能力，但后续在线拉取仍依赖 GitHub 网络恢复。无依赖、无构建步骤，没有把第三方插件或 NAS 路径写入共享运行默认值。
+- 验证与范围：通过现有认证插件 API 启用，插件 health 返回 `ok: true`，status 正常返回，无错误；未调用停止进程接口。插件当前只支持 Claude Code 进程及其子代理/命令，不监控 Codex。入口与状态接口由本机验证，浏览器刷新后的实际界面由用户验收。
+- 记录与回退：获取归档、API 提交信息及原始源码保存在 appdata `operations/agent-monitor-install-20261022-235125/`；本机插件列表/启用状态属于运行数据，不随 Git 同步。可通过设置里的插件卸载移除，无应用源码、DB schema 或模型历史迁移，不需要回退此前 Esc 修复。插件含停止进程功能，卸载或修复不应调用该功能来验证。
+
+
+### 2026-10-23：静态资源发布脚本渐进迁出 R2（未发布新前端）
+
+- 目的与来源：按用户要求，先修改未来发布流程，暂缓删除旧 R2 静态资源；无上游 PR。
+- 所属路径：`deploy/static-cdn.json`、`deploy/publish-static.mjs`、`deploy/publish-frontend.py`、`deploy/cache-frontend.py`、`deploy/README.md`；共享 NAS 发布实现位于旁侧 `cloudflare-sites/scripts/assets.mjs` 与 `edge-request.mjs`。
+- 新发布使用 `/cloudcli/v2/` Workers Static Assets，保留全部新历史哈希，资源上传及公网 CORS/解压后 SHA256 验证先于 HTML。`/cloudcli/v1/`、旧 R2 对象及其他前缀保持不变，客户端 API 与普通电脑的默认构建不变。
+- 本次状态：只修改发布脚本与文档，不发布当前开发版本，不删除 R2。后续多个版本发布后检查引用和访问数据，再决定清理；无自动删除任务。
+- 回滚依赖：旧 HTML 依赖保留的 `/v1/` R2，新 HTML 依赖 appdata 中保留的 `/v2/` 静态资源。回退脚本时需成组恢复 CDN base、发布器、缓存清理白名单；不要删除已被新版引用的 Worker 路由或资源。
+
 ### 2026-10-25：预检缓存后续修复
 
 用户确认由服务器禁止业务响应缓存，替代请求侧强制 no-store，以允许 Chromium 复用跨域预检许可。入口 `/api` 的响应缓存中间件覆盖成功与错误，SSE 保持实时；前端固定版本参数避开旧缓存。归属：`server/modules/auth/response-cache.middleware.ts`、`server/index.ts`、三个 SSE 路由、`src/shared/api.ts`。来源：本地排查 Chromium 预检控制器；无上游合并。前后端需配套升级，回滚须恢复前端 no-store，NAS 继续保留 Nginx no-store。详见 [请求流量记录](browser-backend-traffic.md)。
-
-## 2026-10-25 对话文件下载入口发布修复
-
-- 目的：修复下载入口只在工作区、未包含在发布前端的问题。项目内文件链接右侧常驻“下载”按钮；ZIP 等浏览器无法预览的已识别二进制文件点击名称也直接下载，文本、图片、PDF 和支持的音视频继续打开既有编辑器/预览，目录仍打开文件树，外部网站链接保持浏览器跳转。
-- 所属路径：`src/modules/chat/transcript/{Markdown,WorkspaceFileLink}.tsx` 复用 `MarkdownWorkspaceContext` 和 `api.readFileBlob`；`src/shared/utils.ts` 集中既有文件格式/预览能力判断，编辑器消费者同步引用，避免聊天和编辑器判断漂移；`src/modules/i18n/locales/{en,zh-CN,zh-TW}/chat.json` 提供下载、等待和错误文案；回归在 `src/modules/chat/tests/fileReferenceLinks.test.tsx`。
-- 安全与行为：下载读取原始字节，移除编辑器行列号，解码中文/空格文件名；携带既有 Authorization，请求 URL 不放 token，不把私人文件上传 Cloudflare。保留工作区访问规则、等待状态、重复点击保护、错误重试及延后释放的对象 URL；按钮只在项目上下文内显示，不自动将目录打包，也不把浏览器触发保存当作磁盘写入已完成。
-- 来源：本地功能修复，用户以 40 MB 素材包缺失下载按钮说明问题；未合并上游 PR，未新增后端端点或权限规则。
-- 验证与发布：前端 121 文件 / 869 项测试、类型检查、lint 通过；使用已有 NAS 发布器发布前端，不重启后端。现有本机文件 API 用含中文/空格名称的模拟 ZIP 验证原始字节一致、Cache-Control no-store、未鉴权 401；临时文件已删除，不调用模型，不运行浏览器自动化。
-- 回退：成组恢复 Markdown 链接组件、共享格式判断及其编辑器消费者、语言文案和测试，并重新构建/发布前端；旧哈希资源保留。无数据库、模型配置或历史文件迁移。
-

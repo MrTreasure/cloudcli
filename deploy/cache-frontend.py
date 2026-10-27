@@ -34,7 +34,7 @@ if existing is None or any(existing.get(key) != value for key, value in rule.ite
         request('POST', f"zones/{zone}/rulesets/{ruleset['id']}/rules", rule)
 files = ['https://agent.mrtreasure.cc/', 'https://agent.mrtreasure.cc/index.html']
 for url in sys.argv[1:]:
-    if not url.startswith('https://assets.mrtreasure.cc/cloudcli/v1/assets/'):
+    if not any(url.startswith(f'https://assets.mrtreasure.cc/cloudcli/{version}/assets/') for version in ('v1', 'v2')):
         raise ValueError('Static cache purge must remain within CloudCLI assets')
     # Purge both the ordinary cache key and its browser Origin variant.
     files.extend([url, {'url': url, 'headers': {'Origin': 'https://agent.mrtreasure.cc'}}])

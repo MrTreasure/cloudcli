@@ -47,7 +47,7 @@ for path in ['/ws','/shell']:
     connection=websocket.create_connection('wss://agent-api-nas.mrtreasure.cc:15432'+path+'?token='+token,origin='https://agent.mrtreasure.cc',timeout=15,http_no_proxy=['agent-api-nas.mrtreasure.cc'])
     print(path,'TLS WebSocket: 101')
     if path=='/shell':
-        connection.send(json.dumps({'type':'init','projectPath':'/vol1/1000/deploy/data/MrTreasure/cloudcli','sessionId':None,'hasSession':False,'provider':'plain-shell','isPlainShell':True,'cols':80,'rows':24,'initialCommand':'printf CLOUDCLI_PTY_OK','forceRestart':True}))
+        connection.send(json.dumps({'type':'init','projectPath':'/vol1/1000/workspace/cloudcli','sessionId':None,'hasSession':False,'provider':'plain-shell','isPlainShell':True,'cols':80,'rows':24,'initialCommand':'printf CLOUDCLI_PTY_OK','forceRestart':True}))
         deadline=time.monotonic()+15
         while time.monotonic()<deadline:
             message=json.loads(connection.recv())
