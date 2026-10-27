@@ -671,6 +671,12 @@ export const api = {
   },
 
   system: {
+    // Health is public and can live on a different origin from the static UI.
+    health: (options: Pick<RequestInit, 'signal'> = {}) =>
+      fetch(backendUrl('/health'), { ...options, cache: 'no-store' }),
+    // GitHub must never receive the CloudCLI bearer token.
+    latestRelease: (owner: string, repo: string, options: Pick<RequestInit, 'signal'> = {}) =>
+      fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/releases/latest`, options),
     update: () => post('/api/system/update'),
   },
 };

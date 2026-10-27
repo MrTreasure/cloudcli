@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`41134cbe82ba2190778c15880ee0c4e274ce4bbc`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`11e96994090ae86da8409dee6467ec086dd64a4b`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -12,6 +12,12 @@
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
 | M | [docs/nas/upstream-1376-memory.md](../../docs/nas/upstream-1376-memory.md) | — |
+| M | [src/modules/sidebar/SidebarFooter.tsx](../../src/modules/sidebar/SidebarFooter.tsx) | — |
+| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
+| M | [src/shared/hooks/useAdaptivePolling.ts](../../src/shared/hooks/useAdaptivePolling.ts) | — |
+| M | [src/shared/hooks/useVersionCheck.ts](../../src/shared/hooks/useVersionCheck.ts) | — |
+| A | [src/shared/tests/useVersionCheck.test.tsx](../../src/shared/tests/useVersionCheck.test.tsx) | — |
+| A | [src/shared/tests/versionApi.test.ts](../../src/shared/tests/versionApi.test.ts) | — |
 
 ## NAS 主线提交
 
@@ -964,6 +970,16 @@
   - `docs/nas/file-index.md`
   - `docs/nas/upstream-base.txt`
   - `docs/nas/upstream-sync-policy.md`
+
+### 11e96994 · 2026-10-27 · docs(nas): record authorized v1.37.6 runtime deployment
+
+- 完整提交：`11e96994090ae86da8409dee6467ec086dd64a4b`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-1376-memory.md`
 
 ## 从 PR / 其他分支合入的提交
 

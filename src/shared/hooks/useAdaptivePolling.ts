@@ -11,7 +11,7 @@ type AdaptivePollingOptions = {
 };
 
 /**
- * Used by session activity and chat's queued drafts. Runs one request at a time,
+ * Used by session activity, chat's queued drafts and sidebar version checks. Runs one request at a time,
  * schedules from completion, pauses offline, and reconciles on visibility/online.
  * It owns no sockets and never cancels a model turn. No cross-tab state is shared.
  */
