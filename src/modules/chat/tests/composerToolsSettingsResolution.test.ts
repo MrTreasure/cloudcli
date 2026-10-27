@@ -102,7 +102,8 @@ beforeEach(() => {
   // The composer's slash-command hook fetches commands and skills on mount.
   vi.stubGlobal(
     'fetch',
-    vi.fn(async () => new Response('[]', {
+    vi.fn(async (url, init) => new Response(String(url).includes('/api/user/drafts/queued-message') && init?.method === 'POST'
+      ? JSON.stringify({ success: true, queuedMessage: JSON.parse(String(init.body)).queuedMessage, appended: false }) : '[]', {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     })),

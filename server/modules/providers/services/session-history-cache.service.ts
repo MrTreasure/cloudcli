@@ -1,150 +1,142 @@
 import fsp from 'node:fs/promises';
+import { performance } from 'node:perf_hooks';
 
 import type { FetchHistoryResult } from '@/shared/types.js';
 
-/**
- * Full-transcript cache for session history reads.
- *
- * Every provider history reader materializes the complete normalized
- * transcript and then slices out the requested page, so serving a 20-row page
- * of a large session re-read and re-parsed the whole transcript file on every
- * request — opening a session, each older page while scrolling up, and every
- * post-turn refresh. For a multi-megabyte JSONL that is most of a second of
- * CPU per request.
- *
- * Entries are keyed by app session id and validated with one `stat` per
- * request against the transcript file's identity (path + mtime + size), so
- * only the first read after the file changes pays the parse. Anything that
- * rewrites history (a new turn, an edit, a rewind, a fork) touches the file
- * and invalidates naturally.
- *
- * One thing the file cannot tell: whether the CLI process behind the session
- * is still running. Claude's history reader answers a background agent's
- * status from that, so a session's entry is also dropped explicitly when its
- * process starts or ends (`invalidate`) — otherwise a page read while the
- * process was up would keep reporting `running` after it had gone, until the
- * next row happened to land in the file.
- *
- * Only history readers that read `jsonl_path` itself may use this cache —
- * callers pass `transcriptPath: null` for providers whose messages live
- * elsewhere (Cursor's store.db, OpenCode's shared SQLite), which bypasses
- * caching entirely.
- */
-
-type CacheEntry = {
-  transcriptPath: string;
-  mtimeMs: number;
-  /** File size in bytes; doubles as the entry's cost against the byte budget. */
-  size: number;
-  full: FetchHistoryResult;
-};
-
+type Identity = { transcriptPath: string; mtimeMs: number; size: number; ino: number; dev: number; ctimeMs: number };
+type CacheEntry = { identity: Identity; full: FetchHistoryResult; cost: number; touchedAt: number };
+type PendingLoad = { identity: Identity; promise: Promise<FetchHistoryResult> };
 type GetFullHistoryArgs = {
   sessionId: string;
-  /** Path of the file the provider's history reader actually parses, or null to bypass. */
   transcriptPath: string | null | undefined;
-  /** Loads the complete transcript (`limit: null, offset: 0`) from the provider. */
   loadFull: () => Promise<FetchHistoryResult>;
 };
-
-/**
- * A transcript entry's heap cost is roughly the file it was parsed from, so
- * the budget is expressed in file bytes. The newest entry is always retained
- * even when it alone exceeds the budget — evicting it would just re-parse the
- * same file on the next request.
- */
-const MAX_CACHED_TRANSCRIPT_FILE_BYTES = 256 * 1024 * 1024;
+const MAX_ESTIMATED_HEAP_BYTES = 128 * 1024 * 1024;
 const MAX_CACHE_ENTRIES = 8;
+const MAX_IDLE_MS = 5 * 60 * 1000;
 
+// Account for UTF-16 strings, object/array slots and shared references without
+// allocating a second serialized transcript. This is a conservative estimate,
+// not a claim to measure V8's exact retained heap.
+function estimatedHeapBytes(value: unknown, ceiling: number): number {
+  const seen = new WeakSet<object>();
+  const remaining: unknown[] = [value];
+  let bytes = 0;
+  while (remaining.length && bytes <= ceiling) {
+    const item = remaining.pop();
+    if (typeof item === 'string') bytes += item.length * 2 + 24;
+    else if (item && typeof item === 'object' && !seen.has(item)) {
+      seen.add(item);
+      bytes += 128;
+      if (ArrayBuffer.isView(item)) bytes += item.byteLength;
+      else for (const key of Object.keys(item)) {
+        bytes += key.length * 2 + 16;
+        remaining.push((item as Record<string, unknown>)[key]);
+      }
+    } else bytes += 8;
+  }
+  return bytes;
+}
+function sameIdentity(a: Identity, b: Identity): boolean {
+  return a.transcriptPath === b.transcriptPath && a.mtimeMs === b.mtimeMs && a.size === b.size
+    && a.ino === b.ino && a.dev === b.dev && a.ctimeMs === b.ctimeMs;
+}
+async function identify(transcriptPath: string): Promise<Identity | null> {
+  try {
+    const stat = await fsp.stat(transcriptPath);
+    return stat.isFile() ? { transcriptPath, size: stat.size, mtimeMs: stat.mtimeMs, ctimeMs: stat.ctimeMs, ino: stat.ino, dev: stat.dev } : null;
+  } catch { return null; }
+}
+
+/** Sessions service caches normalized transcripts; tests and diagnostics inspect aggregate costs only. */
 export function createSessionHistoryCache(
-  maxTotalFileBytes = MAX_CACHED_TRANSCRIPT_FILE_BYTES,
+  maxEstimatedHeapBytes = MAX_ESTIMATED_HEAP_BYTES,
   maxEntries = MAX_CACHE_ENTRIES,
+  maxIdleMs = MAX_IDLE_MS,
 ) {
   const entries = new Map<string, CacheEntry>();
-  const pendingLoads = new Map<string, Promise<FetchHistoryResult>>();
+  const pendingLoads = new Map<string, PendingLoad>();
+  let expiry: ReturnType<typeof setTimeout> | undefined;
+  let hits = 0;
+  let misses = 0;
+  let coalescedLoads = 0;
+  let rejectedOversize = 0;
 
-  function evictOverBudget(): void {
-    let totalBytes = 0;
-    for (const entry of entries.values()) {
-      totalBytes += entry.size;
+  function prune(): void {
+    const now = performance.now();
+    let total = 0;
+    for (const [key, entry] of entries) {
+      if (now - entry.touchedAt >= maxIdleMs) entries.delete(key);
+      else total += entry.cost;
     }
-    for (const key of entries.keys()) {
-      if (entries.size <= 1 || (totalBytes <= maxTotalFileBytes && entries.size <= maxEntries)) {
-        break;
-      }
-      totalBytes -= entries.get(key)!.size;
+    for (const [key, entry] of entries) {
+      if (total <= maxEstimatedHeapBytes && entries.size <= maxEntries) break;
       entries.delete(key);
+      total -= entry.cost;
+    }
+    clearTimeout(expiry);
+    expiry = undefined;
+    if (entries.size) {
+      const oldest = entries.values().next().value!;
+      expiry = setTimeout(prune, Math.max(1, maxIdleMs - (now - oldest.touchedAt)));
+      expiry.unref();
     }
   }
 
   return {
-    /**
-     * Returns the session's full transcript through the cache, or null when
-     * the session is not cacheable (no transcript path, or the file cannot be
-     * stat'ed) — the caller then falls back to a plain provider read.
-     */
     async getFullHistory({ sessionId, transcriptPath, loadFull }: GetFullHistoryArgs): Promise<FetchHistoryResult | null> {
-      if (!transcriptPath) {
-        return null;
-      }
-
-      let stat;
-      try {
-        stat = await fsp.stat(transcriptPath);
-      } catch {
-        entries.delete(sessionId);
-        return null;
-      }
-      if (!stat.isFile()) {
-        entries.delete(sessionId);
-        return null;
-      }
-
+      if (!transcriptPath) return null;
+      const identity = await identify(transcriptPath);
+      if (!identity) { entries.delete(sessionId); pendingLoads.delete(sessionId); prune(); return null; }
+      prune();
       const cached = entries.get(sessionId);
-      if (
-        cached
-        && cached.transcriptPath === transcriptPath
-        && cached.mtimeMs === stat.mtimeMs
-        && cached.size === stat.size
-      ) {
-        // Re-insert to mark as most recently used.
+      if (cached && sameIdentity(cached.identity, identity)) {
+        hits += 1;
         entries.delete(sessionId);
-        entries.set(sessionId, cached);
+        entries.set(sessionId, { ...cached, touchedAt: performance.now() });
+        prune();
         return cached.full;
       }
-
-      // Concurrent requests for the same session share one parse. The file may
-      // gain rows while the load runs; the pre-load stat is what the entry is
-      // keyed by, so the next request would see a changed stat and re-read.
+      entries.delete(sessionId);
       const pending = pendingLoads.get(sessionId);
-      if (pending) {
-        return pending;
+      if (pending && sameIdentity(pending.identity, identity)) {
+        coalescedLoads += 1;
+        return pending.promise;
       }
-
-      const load = loadFull().then((full) => {
-        entries.delete(sessionId);
-        entries.set(sessionId, {
-          transcriptPath,
-          mtimeMs: stat.mtimeMs,
-          size: stat.size,
-          full,
-        });
-        evictOverBudget();
+      misses += 1;
+      const record: PendingLoad = { identity, promise: Promise.resolve(null as unknown as FetchHistoryResult) };
+      record.promise = Promise.resolve().then(loadFull).then(async full => {
+        const after = await identify(transcriptPath);
+        // Invalidation, replacement, a new load or a growing live transcript
+        // must never let an older parse re-populate the cache.
+        if (pendingLoads.get(sessionId) === record && after && sameIdentity(identity, after)) {
+          const cost = estimatedHeapBytes(full, maxEstimatedHeapBytes);
+          if (cost <= maxEstimatedHeapBytes && maxEntries > 0 && maxIdleMs > 0) {
+            entries.set(sessionId, { identity, full, cost, touchedAt: performance.now() });
+            prune();
+          } else rejectedOversize += 1;
+        }
         return full;
+      }).finally(() => {
+        if (pendingLoads.get(sessionId) === record) pendingLoads.delete(sessionId);
       });
-      pendingLoads.set(sessionId, load);
-      try {
-        return await load;
-      } finally {
-        pendingLoads.delete(sessionId);
-      }
+      pendingLoads.set(sessionId, record);
+      return record.promise;
     },
-
-    /** Forgets a session's entry so the next read re-parses its transcript. */
+    /** Runtime lifecycle changes fence in-flight loads as well as cached entries. */
     invalidate(sessionId: string): void {
       entries.delete(sessionId);
+      pendingLoads.delete(sessionId);
+      prune();
+    },
+    /** Aggregate diagnostics contain no transcript text, session IDs or paths. */
+    getStatistics() {
+      prune();
+      return { entries: entries.size, estimatedHeapBytes: [...entries.values()].reduce((sum, entry) => sum + entry.cost, 0),
+        budgetBytes: maxEstimatedHeapBytes, pendingLoads: pendingLoads.size, hits, misses, coalescedLoads, rejectedOversize };
     },
   };
 }
 
+/** Used by sessions service and provider runtime invalidation. */
 export const sessionHistoryCache = createSessionHistoryCache();

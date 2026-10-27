@@ -464,7 +464,7 @@ test('createEntry performs filesystem mutation only through the injected adapter
  * which is the only way to exercise the read-only roots: the whole guarantee
  * rests on `realpath` resolving symlinks before the comparison.
  */
-function createRealFileSystemService(projectRoot: string): FileTreeServices {
+function createRealFileSystemService(projectRoot: string, workspaceRoot = projectRoot): FileTreeServices {
   return createFileTreeService({
     fileSystem: {
       access: (candidatePath) => fsPromises.access(candidatePath),

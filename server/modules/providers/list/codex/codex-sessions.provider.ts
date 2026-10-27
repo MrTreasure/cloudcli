@@ -4,6 +4,8 @@ import path from 'node:path';
 import readline from 'node:readline';
 
 import { sessionsDb, codexContextDb } from '@/modules/database/index.js';
+import { readCodexHistoryRecords } from '@/modules/providers/services/codex-history-reader.service.js';
+import { externalizeCodexHistoryImages } from '@/modules/providers/services/codex-history-images.service.js';
 import { codexAppServer } from '@/modules/providers/list/codex/codex-app-server.client.js';
 import { parseFilesInputTag, toImageAttachments } from '@/shared/image-attachments.js';
 import type { IProviderSessions } from '@/shared/interfaces.js';
@@ -210,13 +212,9 @@ async function* readCodexRolloutLines(
     if (endByteOffset === 0) return;
   }
   const nextAncestors = new Set(ancestors).add(canonicalPath);
-  const stream = fsSync.createReadStream(canonicalPath, {
-    ...(endByteOffset !== undefined ? { end: endByteOffset - 1 } : {}),
-  });
-  const lines = readline.createInterface({ input: stream, crlfDelay: Infinity });
   let readMetadata = false;
-  try {
-    for await (const line of lines) {
+  {
+    for await (const { line } of readCodexHistoryRecords(canonicalPath, { end: endByteOffset })) {
       let entry: AnyRecord | undefined;
       if (!readMetadata) {
         try { entry = readObjectRecord(JSON.parse(line)) ?? undefined; } catch { /* Skip malformed rows. */ }
@@ -245,9 +243,6 @@ async function* readCodexRolloutLines(
       }
       yield line;
     }
-  } finally {
-    lines.close();
-    stream.destroy();
   }
 }
 
@@ -1899,6 +1894,7 @@ async function getCodexSessionMessages(sessionId: string, transcriptPath?: strin
   }
 
   messages.sort((a, b) => new Date(a.timestamp || 0).getTime() - new Date(b.timestamp || 0).getTime());
+  await externalizeCodexHistoryImages(messages);
   return { messages, tokenUsage: tokenUsage ?? undefined };
 }
 

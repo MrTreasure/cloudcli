@@ -275,13 +275,15 @@ export default function ChatComposer({
   const hasQueuedDraft = Boolean(queuedDraft);
   const canQueueDraft = isLoading && Boolean(input.trim() || attachedFiles.length > 0);
   const submitHint = canQueueDraft
-    ? t(sendByCtrlEnter ? 'input.hintText.ctrlQueue' : 'input.hintText.queue')
+    ? hasQueuedDraft
+      ? t('input.hintText.appendQueued')
+      : t(sendByCtrlEnter ? 'input.hintText.ctrlQueue' : 'input.hintText.queue')
     : sendByCtrlEnter
       ? t('input.hintText.ctrlEnter')
       : t('input.hintText.enter');
   const submitAriaLabel = canQueueDraft
     ? hasQueuedDraft
-      ? t('input.queue.update', { defaultValue: 'Update queued message' })
+      ? t('input.queue.append', { defaultValue: 'Add to queued message' })
       : t('input.queue.sendNext', { defaultValue: 'Queue next message' })
     : isLoading
       ? t('input.stop')

@@ -2,11 +2,12 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import AppearanceSettingsTab from '@/modules/settings/tabs/AppearanceSettingsTab';
+import { UiPreferencesProvider } from '@/shared/context/UiPreferencesContext';
 import { api } from '@/shared/api';
 import { CODE_EDITOR_DEFAULTS } from '@/shared/constants';
 import { readUserPreference, resetUserPreferences } from '@/shared/userSettings';
 
-vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string, fallback?: string) => fallback || key }) }));
+vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string, fallback?: string | { defaultValue?: string }) => typeof fallback === 'string' ? fallback : fallback?.defaultValue || key }) }));
 vi.mock('@/modules/i18n', () => ({ LanguageSelector: () => null }));
 vi.mock('@/shared/ui/LocalizedText', () => ({ LocalizedText: ({ text }: { text: string }) => text }));
 vi.mock('@/shared/context/ThemeContext', () => ({ useTheme: () => ({ themeMode: 'system', setThemeMode: vi.fn() }) }));
@@ -19,7 +20,7 @@ afterEach(() => resetUserPreferences());
 
 test('appearance controls save interface and file name sizes separately from code body size', () => {
   const changeCodeSize = vi.fn();
-  render(<AppearanceSettingsTab
+  render(<UiPreferencesProvider><AppearanceSettingsTab
     projectSortOrder="name"
     onProjectSortOrderChange={vi.fn()}
     codeEditorSettings={{ ...CODE_EDITOR_DEFAULTS }}
@@ -27,7 +28,7 @@ test('appearance controls save interface and file name sizes separately from cod
     onCodeEditorShowMinimapChange={vi.fn()}
     onCodeEditorLineNumbersChange={vi.fn()}
     onCodeEditorFontSizeChange={changeCodeSize}
-  />);
+  /></UiPreferencesProvider>);
   const interfaceControl = screen.getByRole('combobox', { name: 'Interface font size' });
   const fileControl = screen.getByRole('combobox', { name: 'File name font size' });
   expect((interfaceControl as HTMLSelectElement).value).toBe('16');

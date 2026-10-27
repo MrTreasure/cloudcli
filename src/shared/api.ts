@@ -140,8 +140,9 @@ export async function readApiJson<T>(response: Response): Promise<T> {
  *
  * The non-throwing counterpart of readApiJson, used by the auth and onboarding
  * screens because they show their own localized message when the server gives
- * none, and by the plugins context for failed plugin list, install, update,
- * uninstall and toggle calls, which all answer with the structured envelope.
+ * none, by the plugins context for failed plugin list, install, update,
+ * uninstall and toggle calls, which all answer with the structured envelope,
+ * and by the chat drafts store to say why the server refused a queued message.
  */
 export function readApiErrorMessage(body: unknown): string | null {
   if (!body || typeof body !== 'object') {
@@ -462,6 +463,10 @@ export const api = {
     capabilities: () => get('/api/providers/capabilities'),
     authStatus: (provider: string) =>
       get(`/api/providers/${encodeURIComponent(provider)}/auth/status`),
+    cliStatus: (provider: string) =>
+      get(`/api/providers/${encodeURIComponent(provider)}/cli`),
+    updateCli: (provider: string) =>
+      post(`/api/providers/${encodeURIComponent(provider)}/cli/update`),
     claudeSettingsPermissions: () => get('/api/providers/claude/settings-permissions'),
 
     models: (provider: string) => get(`/api/providers/${provider}/models`),
@@ -581,9 +586,14 @@ export const api = {
     savePreferences: (updates: Record<string, unknown>) =>
       patch('/api/user/preferences', updates),
     drafts: () => getSnapshot('/api/user/drafts'),
+    // Text-only saves leave the server-owned queued message intact.
     saveDraft: (scope: string, draft: { text: string; queuedMessage?: unknown }) =>
       put('/api/user/drafts', { scope, ...draft }),
-    deleteDraft: (scope: string) => del('/api/user/drafts', { scope }),
+    // Appends to the scope's queued message on the server and returns the
+    // message that is now queued.
+    appendQueuedMessage: (scope: string, queuedMessage: unknown) =>
+      post('/api/user/drafts/queued-message', { scope, queuedMessage }),
+    clearQueuedMessage: (scope: string) => del('/api/user/drafts/queued-message', { scope }),
   },
 
   // Server-side settings: API keys, stored credentials, notifications, web push

@@ -111,7 +111,7 @@ test('concurrent misses share a single load', async () => {
   });
 });
 
-test('the oldest entries are evicted over budget, but the newest survives alone', async () => {
+test('the oldest normalized entries are evicted under a strict heap estimate budget', async () => {
   const tempDirectory = await mkdtemp(path.join(os.tmpdir(), 'session-history-cache-evict-'));
   try {
     const firstPath = path.join(tempDirectory, 'first.jsonl');
@@ -121,7 +121,11 @@ test('the oldest entries are evicted over budget, but the newest survives alone'
     await writeFile(firstPath, 'x'.repeat(100), 'utf8');
     await writeFile(secondPath, 'y'.repeat(100), 'utf8');
 
-    const cache = createSessionHistoryCache(150);
+    const measuring = createSessionHistoryCache();
+    await measuring.getFullHistory({ sessionId: 's1', transcriptPath: firstPath, loadFull: async () => historyResult('s1') });
+    const cost = measuring.getStatistics().estimatedHeapBytes;
+    measuring.invalidate('s1');
+    const cache = createSessionHistoryCache(Math.floor(cost * 1.5));
     const loadsBySession = new Map<string, number>();
     const loaderFor = (sessionId: string) => async () => {
       loadsBySession.set(sessionId, (loadsBySession.get(sessionId) ?? 0) + 1);
@@ -161,5 +165,54 @@ test('invalidating a session re-parses its unchanged transcript on the next read
     assert.equal(loads, 2);
     assert.notEqual(second, first);
     assert.equal(second?.messages[0]?.content, 'load-2');
+  });
+});
+
+test('an oversized newest entry is returned but never retained', async () => {
+  await withTranscriptFile(async transcriptPath => {
+    const cache = createSessionHistoryCache(4096);
+    let loads = 0;
+    const loadFull = async () => { loads++; return historyResult('x'.repeat(10000)); };
+    await cache.getFullHistory({ sessionId: 'large', transcriptPath, loadFull });
+    await cache.getFullHistory({ sessionId: 'large', transcriptPath, loadFull });
+    assert.equal(loads, 2);
+    assert.equal(cache.getStatistics().entries, 0);
+    assert.equal(cache.getStatistics().rejectedOversize, 2);
+  });
+});
+
+test('invalidation fences an older pending load without overwriting the newer cache', async () => {
+  await withTranscriptFile(async transcriptPath => {
+    const cache = createSessionHistoryCache();
+    let release!: () => void;
+    let admitted!: () => void;
+    const started = new Promise<void>(resolve => { admitted = resolve; });
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    const older = cache.getFullHistory({ sessionId: 's', transcriptPath, loadFull: async () => { admitted(); await gate; return historyResult('old'); } });
+    await started;
+    cache.invalidate('s');
+    await cache.getFullHistory({ sessionId: 's', transcriptPath, loadFull: async () => historyResult('new') });
+    release(); await older;
+    const result = await cache.getFullHistory({ sessionId: 's', transcriptPath, loadFull: async () => historyResult('wrong') });
+    assert.equal(result?.messages[0].content, 'new');
+  });
+});
+
+test('a changing transcript is returned without caching under a stale identity', async () => {
+  await withTranscriptFile(async transcriptPath => {
+    const cache = createSessionHistoryCache();
+    await cache.getFullHistory({ sessionId: 's', transcriptPath, loadFull: async () => {
+      await appendFile(transcriptPath, '{}\n'); return historyResult('changed');
+    } });
+    assert.equal(cache.getStatistics().entries, 0);
+  });
+});
+
+test('idle expiry releases the transcript without needing another request', async () => {
+  await withTranscriptFile(async transcriptPath => {
+    const cache = createSessionHistoryCache(100000, 8, 15);
+    await cache.getFullHistory({ sessionId: 's', transcriptPath, loadFull: async () => historyResult('expires') });
+    await new Promise(resolve => setTimeout(resolve, 35));
+    assert.equal(cache.getStatistics().entries, 0);
   });
 });

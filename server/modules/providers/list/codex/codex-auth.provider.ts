@@ -2,11 +2,9 @@ import { readFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
-import spawn from 'cross-spawn';
-
 import type { IProviderAuth } from '@/shared/interfaces.js';
-import type { ProviderAuthStatus } from '@/shared/types.js';
-import { readObjectRecord, readOptionalString } from '@/shared/utils.js';
+import type { CliVersionProbe, ProviderAuthStatus } from '@/shared/types.js';
+import { probeCliVersion, resolveCodexExecutable, readObjectRecord, readOptionalString } from '@/shared/utils.js';
 
 type CodexCredentialsStatus = {
   authenticated: boolean;
@@ -16,28 +14,23 @@ type CodexCredentialsStatus = {
 };
 
 export class CodexProviderAuth implements IProviderAuth {
-  /**
-   * Checks whether Codex is available to the server runtime.
-   */
-  private checkInstalled(): boolean {
-    try {
-      spawn.sync('codex', ['--version'], { stdio: 'ignore', timeout: 5000 });
-      return true;
-    } catch {
-      return false;
-    }
+  /** Reports the installed CLI used by this machine's Codex app-server and SDK. */
+  checkInstalled(): CliVersionProbe {
+    try { return probeCliVersion(resolveCodexExecutable(), ['--version']); }
+    catch { return { installed: false, exitCode: null, version: null }; }
   }
 
   /**
    * Returns Codex SDK availability and credential status.
    */
   async getStatus(): Promise<ProviderAuthStatus> {
-    const installed = this.checkInstalled();
+    const { installed, version: installedVersion } = this.checkInstalled();
     const credentials = await this.checkCredentials();
 
     return {
       installed,
       provider: 'codex',
+      installedVersion,
       authenticated: credentials.authenticated,
       email: credentials.email,
       method: credentials.method,

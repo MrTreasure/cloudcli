@@ -7,6 +7,7 @@ import readline from 'node:readline';
 import { codexContextDb, sessionsDb, getConnection, getDatabasePath } from '@/modules/database/index.js';
 import { optimizeImageBuffer } from '@/shared/index.js';
 import type { AnyRecord, CodexContextState, CodexHttpMeasurement, CodexImageContextPolicy, CodexImageFilterLease, ProviderRuntimeContext } from '@/shared/types.js';
+import { readCodexHistoryRecords } from '@/modules/providers/services/codex-history-reader.service.js';
 import { AppError } from '@/shared/utils.js';
 
 const limit = (value: unknown, fallback: number, maximum: number) => {
@@ -94,51 +95,74 @@ async function catalogue(sessionId: string, state: CodexContextState) {
   return file;
 }
 
+// Bounded metadata-only scan cache: image bytes remain on disk, never in this map.
+const describedTranscripts = new Map<string, string>();
+const descriptionsInFlight = new Map<string, Promise<CodexContextState>>();
+function fileIdentity(file: string, info: Awaited<ReturnType<typeof stat>>) {
+  return `${file}:${info.dev}:${info.ino}:${info.size}:${info.mtimeMs}:${info.ctimeMs}`;
+}
 async function countCompactions(file: string | null) {
   if (!file) return 0;
   let count = 0;
-  const stream = createReadStream(file, { encoding: 'utf8' });
-  const lines = readline.createInterface({ input: stream, crlfDelay: Infinity });
   try {
-    for await (const line of lines) {
+    for await (const { line } of readCodexHistoryRecords(file)) {
       if (!line.includes('"compacted"')) continue;
       try { if (JSON.parse(line).type === 'compacted') count += 1; } catch { /* incomplete live tail */ }
     }
   } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-  finally { lines.close(); stream.destroy(); }
   return count;
 }
 
 /** Providers uses this service for local HTTP image filtering, authenticated settings and explicit clear. */
 export const codexImageContextService = {
   snapshot(sessionId: string) { return sessionState(sessionId).state; },
-  async describe(sessionId: string) {
+  async describe(sessionId: string): Promise<CodexContextState> {
     const { session, state } = sessionState(sessionId);
-    // The popup may be opened before the first intercepted request. Populate its
-    // attachment references from the original rollout, without changing that file.
-    if (session.jsonl_path) {
-      const stream = createReadStream(session.jsonl_path, { encoding: 'utf8' });
-      const lines = readline.createInterface({ input: stream, crlfDelay: Infinity });
+    const file = session.jsonl_path;
+    if (!file) return state;
+    let before: Awaited<ReturnType<typeof stat>>;
+    try { before = await stat(file); }
+    catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return state; throw error; }
+    const identity = fileIdentity(file, before);
+    if (describedTranscripts.get(sessionId) === identity) return state;
+    const key = `${sessionId}:${identity}`;
+    const existing = descriptionsInFlight.get(key);
+    if (existing) return existing;
+    const scan = (async () => {
       let compactions = 0;
-      try {
-        for await (const line of lines) {
-          let row: AnyRecord; try { row = JSON.parse(line); } catch { continue; }
-          if (row.type === 'compacted') compactions += 1;
-          if (row.type !== 'response_item' && row.type !== 'compacted') continue;
-          const items: AnyRecord[] = [];
-          visitImages(row, item => items.push(item));
-          for (const item of items) await archive(item, state);
+      const seen = new Set<string>();
+      // Initial inspection still sees images present only in legacy compaction
+      // snapshots. An unchanged file is never scanned again, concurrent popups
+      // share a scan, and only hashes (not data URLs) are retained while reading.
+      for await (const { line } of readCodexHistoryRecords(file, { compactSnapshots: false, end: before.size })) {
+        let row: AnyRecord; try { row = JSON.parse(line); } catch { continue; }
+        if (row.type === 'compacted') compactions += 1;
+        if (row.type !== 'response_item' && row.type !== 'compacted') continue;
+        const items: AnyRecord[] = [];
+        visitImages(row, item => items.push(item));
+        for (const item of items) {
+          if (typeof item.image_url !== 'string') continue;
+          const hash = createHash('sha256').update(item.image_url).digest('hex');
+          if (seen.has(hash)) continue;
+          seen.add(hash);
+          await archive(item, state);
         }
-      } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
-      finally { lines.close(); stream.destroy(); }
+      }
       const latest = sessionState(sessionId).state;
-      state.policy = latest.policy;
-      state.segments = latest.segments;
-      state.images = [...new Map([...latest.images, ...state.images].map(image => [image.id, image])).values()];
-      state.metrics = { ...latest.metrics, compactions: latest.segments.reduce((sum, segment) => sum + (segment.compactions ?? 0), 0) + compactions };
-      codexContextDb.save(sessionId, state);
-    }
-    return state;
+      latest.images = [...new Map([...latest.images, ...state.images].map(image => [image.id, image])).values()];
+      latest.metrics.compactions = latest.segments.reduce((sum, segment) => sum + (segment.compactions ?? 0), 0) + compactions;
+      codexContextDb.save(sessionId, latest);
+      const after = await stat(file);
+      if (fileIdentity(file, after) === identity) {
+        describedTranscripts.delete(sessionId);
+        describedTranscripts.set(sessionId, identity);
+        while (describedTranscripts.size > 32) describedTranscripts.delete(describedTranscripts.keys().next().value!);
+      }
+      return latest;
+    })();
+    descriptionsInFlight.set(key, scan);
+    try { return await scan; }
+    finally { if (descriptionsInFlight.get(key) === scan) descriptionsInFlight.delete(key); }
   },
   update(sessionId: string, policy: Partial<CodexImageContextPolicy>) {
     const { state } = sessionState(sessionId);

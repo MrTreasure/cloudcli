@@ -1,4 +1,17 @@
-# NAS 精简分支维护指南
+# NAS / C137 分支维护指南
+
+
+## 2026-10-27 官方 v1.37.6 升级与历史图片、缓存修复
+
+- 官方来源：[v1.37.6](https://github.com/siteboon/claudecodeui/releases/tag/v1.37.6)，提交 `c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`；通过普通 merge 保留官方祖先关系，升级前未提交的源码已先保存在 `2dd64b5e`。原 `nas`、`nas-clean-v1.37.5` 不改写。
+- 用户确认：采用官方连续输入追加合并为同一条排队消息；继续保留“立即发送”的原生 `turn/steer`、Fast 参数、附件、状态订阅和未知执行结果不自动重发。`useChatComposerState`、`chatDrafts`、scheduled dispatcher 进行兼容适配，保留原有可见性轮询、请求合并、账户切换隔离和草稿确认写入。不是多条 FIFO。
+- TypeScript 7 / pnpm、C137 品牌与头像、字号、隐藏文件及依赖过滤、跨项目文件访问、Fast/Todo/原生插入、本机模型和仅自定义模型偏好、部署脚本与当前未提交改动继续保留。官方新增 CLI 状态使用本机 Codex 入口；明确显示由原安装方式升级，不虚报依赖内置 CLI，不新增第二套 Codex。
+- 缓存：`server/modules/providers/services/session-history-cache.service.ts` 按规范化结果估计堆成本，总预算 128 MiB、至多 8 会话、5 分钟闲置释放；最新大条目也受预算约束，超限照常返回但不常驻。文件身份变化和 runtime invalidate 对在途加载进行隔离，防止旧结果重新污染缓存。
+- 图片与读取：`codex-history-reader.service.ts` 在流式阶段跳过 GUI 不使用的压缩上下文快照和工具图片 Base64；普通文字、调用 ID、用户图片与 fork 字节边界保留。`codex-history-images.service.ts` 对 GUI 可见的历史内嵌图片按原始字节 SHA-256 去重到受鉴权 assets，并保留原图；写盘失败回退原内嵌预览。`codex-image-context.service.ts` 合并同一文件的并发详情扫描，未变化文件不反复扫描，仍检查仅出现在旧快照中的图片。
+- 限制与实测：此次修复 CloudCLI 的读取、缓存和 GUI 传输；Codex 自己记录的历史图片及 `replacement_history` 仍在原生 JSONL 中。未压缩、截断、覆盖正在使用的 1 GiB 历史；未修改模型上下文和付费 API，未改变现有请求压缩策略。详细同一冻结历史的消息等价、耗时和内存数据见 [升级与内存报告](upstream-1376-memory.md)。不能将缓存预算当作进程 RSS 限制，也不能声称已使峰值 RSS 显著下降。
+- 回退：源码与部署分别回退；有新会话数据时禁止因代码回退直接恢复旧数据库。图片本地引用依赖 assets 文件，与提供鉴权的已有 assets 路由共同保留；原生历史始终可重建 GUI 引用。完整退回 1.37.5 还会撤销官方新增功能，应按升级前标签/发布产物操作，不能只覆盖共享的 composer 或 provider 文件。
+- 状态：源码、测试和构建状态见报告；本次未发布前端、未重启后端，运行实例继续使用原版本。真实浏览器交互由用户手工验收，未运行浏览器自动化或调用收费模型。
+
 
 ## 2026-10-25 浏览器到后端请求与传输优化
 
@@ -63,7 +76,7 @@
 
 - 官方 1.37.5 的发送、后台任务确认及单条 `session_drafts` 持久排队结构保留；队列分发、草稿竞态与实时订阅已修复，另恢复 `turn/steer` 插入，不移入旧 NAS FIFO 表/队列。
 - 命令菜单、模型目录、技能描述、Question 卡片、loading/会话活跃状态、注册/登录按官方实现；Logo、静态用户头像与侧栏推广入口保留 NAS 外观定制。原来隐藏的 `/help`、`/model` 等命令不再由 NAS 定制过滤。
-- Codex 历史、分页、文件缓存及引用式 fork 历史继续使用官方 JSONL 读取；没有新增 app-server 历史端点。官方 fork 客户端只适配本机 CLI 入口，不改为共享长连接 fork。
+- Codex 历史、分页、文件缓存及引用式 fork 历史继续使用官方 JSONL 读取；没有新增 app-server 历史端点。官方 fork 客户端只适配本机 CLI 入口，不改为共享长连接 fork。2026-10-27 起 GUI 历史读取额外使用下述流式投影和严格预算缓存，不改写原生 rollout。
 - NAS 分离部署仅额外保留 URL/CORS、自动化 API key 作用域和根工作空间路径的必要适配。普通电脑默认同源；部署脚本中的域名、路径和密码本配置不自动应用于其他电脑。
 - 未改动 `.env`、密码本、用户数据库、Codex/Claude 配置、已安装插件和系统服务；旧功能对应的数据库表/偏好数据也未删除。
 

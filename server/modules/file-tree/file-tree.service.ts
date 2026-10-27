@@ -9,7 +9,12 @@ import type {
   FileTreeServices,
   FileTreeUploadedFile,
 } from '@/shared/types.js';
-import { AppError, FORBIDDEN_WORKSPACE_PATHS, normalizeProjectPath } from '@/shared/utils.js';
+import {
+  AppError,
+  FORBIDDEN_WORKSPACE_PATHS,
+  normalizeProjectPath,
+  resolvePathUnderRoots,
+} from '@/shared/utils.js';
 
 const HARD_EXCLUDED_DIRECTORY_NAMES = new Set([
   'node_modules', '.git', '.svn', '.hg',
