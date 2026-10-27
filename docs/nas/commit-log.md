@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`f04d065a0fe2612bb0099afd23540d0e80722d70`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`41134cbe82ba2190778c15880ee0c4e274ce4bbc`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,8 +10,8 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
-| M | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
+| M | [docs/nas/README.md](../../docs/nas/README.md) | — |
+| M | [docs/nas/upstream-1376-memory.md](../../docs/nas/upstream-1376-memory.md) | — |
 
 ## NAS 主线提交
 
@@ -954,6 +954,16 @@
   - `tsconfig.json`
   - `vite.config.js`
   - `vitest.setup.ts`
+
+### 41134cbe · 2026-10-27 · docs(nas): finalize verified v1.37.6 baseline
+
+- 完整提交：`41134cbe82ba2190778c15880ee0c4e274ce4bbc`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-base.txt`
+  - `docs/nas/upstream-sync-policy.md`
 
 ## 从 PR / 其他分支合入的提交
 
