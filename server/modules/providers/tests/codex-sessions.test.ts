@@ -639,7 +639,13 @@ test('Codex history restores user prompts from typed item_completed rows', { con
     });
     await writeFile(
       transcriptPath,
-      [JSON.stringify({ type: 'session_meta', payload: { id: providerSessionId, cwd: workspacePath } }), typedLine, wireUserEcho].join(lineEnd) + lineEnd,
+      [JSON.stringify({ type: 'session_meta', payload: { id: providerSessionId, cwd: workspacePath } }), typedLine, wireUserEcho,
+        JSON.stringify({ type: 'response_item', payload: { type: 'function_call', name: 'request_user_input_async', call_id: 'async-q-1', arguments: '{}' } }),
+        JSON.stringify({ type: 'event_msg', payload: { type: 'item_completed', item: {
+          type: 'AgentMessage', id: 'async-q-1', delivery: 'async', content: [{ type: 'text', text: 'Choose a time' }],
+          questions: [{ title: 'When to restart?', options: ['Wait', 'Now'] }],
+        } } }),
+      ].join(lineEnd) + lineEnd,
       'utf8',
     );
 
@@ -655,6 +661,11 @@ test('Codex history restores user prompts from typed item_completed rows', { con
       assert.equal(users.length, 1, 'the wire user echo must not duplicate the typed prompt');
       assert.equal(users[0]?.content, prompt);
       assert.equal(images?.[0]?.path, '/tmp/prompt-picture.png');
+      const questions = history.messages.filter((message) => message.asyncQuestions);
+      assert.equal(questions.length, 1);
+      assert.equal(questions[0].id, 'async-q-1');
+      assert.deepEqual(questions[0].asyncQuestions, [{ title: 'When to restart?', options: ['Wait', 'Now'] }]);
+      assert.equal(history.messages.some((message) => message.toolName === 'request_user_input_async'), false);
     });
   } finally {
     restoreHomeDir();

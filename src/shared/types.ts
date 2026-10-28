@@ -14,6 +14,8 @@ export type ProviderModelOption = {
   description?: string;
   recordId?: number;
   isCustom?: boolean;
+  /** Confirmed by the configured gateway catalog; independent of saved manual overrides. */
+  isDiscovered?: boolean;
   effort?: {
     default?: string;
     values: {
@@ -362,6 +364,10 @@ export type SubagentInfo = {
 
 /** One rendered entry in a chat transcript — user turn, assistant turn, tool call and result, local command output, or subagent container — and the shape the chat message list and message components consume. */
 export type ChatMessage = {
+  /** Async model questions rendered with selectable options beside the reply. */
+  asyncQuestions?: AsyncUserInputQuestion[];
+  /** Earlier question cards become read-only after a subsequent user turn. */
+  asyncQuestionAnswered?: boolean;
   type: string;
   content?: string;
   displayText?: string;
@@ -497,8 +503,13 @@ type QuestionOption = {
 
 //----------------- CHAT SESSION STORE ------------
 
+/** An async model question delivered as a chat message; answering sends a regular follow-up rather than resolving a blocked tool call. */
+export type AsyncUserInputQuestion = { title: string; options?: string[] | null };
+
 /** A provider-agnostic transcript event as normalized by the backend adapters, with all kind-specific fields kept flat; it is the shape the session store holds and that chat converts into ChatMessage for rendering, so treat it as the wire contract rather than a view model. */
 export type NormalizedMessage = {
+  /** Structured async questions, preserved for live delivery and history reload. */
+  asyncQuestions?: AsyncUserInputQuestion[];
   id: string;
   /**
    * The provider's own id for the transcript row behind this message, when the

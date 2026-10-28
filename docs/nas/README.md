@@ -422,3 +422,51 @@
 ### 2026-10-25：预检缓存后续修复
 
 用户确认由服务器禁止业务响应缓存，替代请求侧强制 no-store，以允许 Chromium 复用跨域预检许可。入口 `/api` 的响应缓存中间件覆盖成功与错误，SSE 保持实时；前端固定版本参数避开旧缓存。归属：`server/modules/auth/response-cache.middleware.ts`、`server/index.ts`、三个 SSE 路由、`src/shared/api.ts`。来源：本地排查 Chromium 预检控制器；无上游合并。前后端需配套升级，回滚须恢复前端 no-store，NAS 继续保留 Nginx no-store。详见 [请求流量记录](browser-backend-traffic.md)。
+
+## 2026-10-27 OpenCode 永久删除后被重新同步修复
+
+- 目的：OpenCode 会话保存在共享 SQLite 数据库，索引的 `jsonl_path` 刻意为 NULL。原永久删除只移除 CloudCLI 索引和独立历史文件，未删除 OpenCode 原始记录，导致下次扫描重新导入。
+- 所属路径：`server/shared/interfaces.ts` 的可选 `IProviderSessions.deleteFromStorage` 为共享存储提供按原生会话 ID 删除的契约；`server/modules/providers/list/opencode/opencode-sessions.provider.ts` 使用 `opencode --pure session delete <id>` 并验证原始记录确已消失；`server/modules/providers/services/sessions.service.ts` 在明确选择永久删除磁盘记录时先调用该契约，失败保留索引，成功后清理历史缓存。不会删除整个 opencode.db，归档和显式仅删除索引的行为保留；运行中的已跟踪会话拒绝磁盘删除。
+- 来源：本地排查，不涉及上游合并。用户反复删除的 LUNA_OK 会话仍为 2026-09-08 的旧测试，未产生新的模型调用。2026-10-27 已通过原生 CLI 删除该特定旧会话，再删除 CloudCLI 索引；连续两轮项目同步后会话查询均为 404。原始导出仅保存在 appdata 的私有操作目录，不进入 Git。
+- 验证：既有 `server/modules/providers/tests/opencode-sessions.test.ts` 增补成功删除后反复同步不复活、区分 app/native ID、保留其他会话、幂等、CLI 失败/虚假成功时保留索引及归档/仅删索引不调用原生删除的回归；OpenCode 与既有 Codex 删除回归共 29 项：28 通过、1 既有跳过，类型检查、lint、前后端构建通过；CLI 进程复用 cross-spawn 的 Windows .cmd/PATHEXT 支持。不调用真实模型，不运行浏览器自动化。
+- 发布与回退：此次针对旧记录的数据清理已在 NAS 生效，无需重启；通用后端代码仍须另行发布和重启才能处理后续 OpenCode 永久删除。回退代码需成组恢复接口、Provider、Service 和测试；没有数据库结构迁移，原生 CLI 删除的会话不会因回退代码而恢复，需要时使用私有导出恢复。OpenCode CLI 不可用、版本不支持删除或存储路径不一致时返回错误并保留索引，不伪报成功。
+
+## 2026-10-27 Codex 异步提问选择框适配
+
+- 根因：截图对应原始 Codex rollout 的 `request_user_input_async` 调用；原生 `AgentMessage` 带有 `delivery: async`、`questions: [{title, options}]`。旧适配只处理阻塞式 `item/tool/requestUserInput`，没有传递异步消息的结构化问题。已在本机 CLI 生成的协议 `v2/ThreadItem.ts` / `AsyncUserInputQuestion.ts` 核对字段；没有从 Markdown 项目符号猜测问题。流式最终文本与正式消息去重还可能丢掉后来到达的选项元数据。
+- 归属：`server/modules/providers/list/codex/{codex-app-server.runtime,codex-sessions.provider}.ts` 同时传递实时问题、恢复 rollout `item_completed/AgentMessage` 的历史问题，并隐藏重复的工具编排行；前后端 `shared/types.ts` 增加序列化问题字段。`src/modules/chat/transcript/{MessageComponent,AsyncQuestionCard}.tsx` 显示单选、自定义回答、提交等待/错误重试；`useChatMessages` 标记已有后续用户消息的旧卡片为只读，`useSessionStore` 去重时保留结构化选择项，导出仍保留原始文本。
+- 答复语义：经 `TranscriptSessionContext` 和 `useChatComposerState.submitQuestionAnswer` 使用普通聊天发送或现有持久化队列；不冒充原生阻塞工具的 permission decision，不自动执行重启等操作。保留独立草稿、附件和编辑状态；忙碌时排队、后台发送确认、鉴权、模型偏好与会话隔离继续走既有机制。其他设备/刷新从后续用户消息判断旧问题结束；异步问题没有服务端“阻塞等待”状态。
+- 来源：本地协议适配修复，不涉及上游合并；既有阻塞式 GUI 提问开关、接收与恢复逻辑保留。前端语言文案位于 en/zh-CN/zh-TW 的 chat.json。
+- 验证：后端 Codex 定向 88 项通过；前端全量 132 文件 / 990 项通过，类型检查、lint 和前后端构建通过（保留既有警告）；结果见 appdata `operations/async-questions-20261027`。覆盖结构化问题实时/历史恢复、旧卡片只读、自由文本、失败重试、重复提交防护、发送/排队不清空既有草稿和附件、流式去重保留选项。不运行浏览器自动化或收费模型调用。
+- 发布与回退：用户已明确要求部署后重启。新前端已由既有发布器发布，后端编译模块通过独立维护进程在活动会话归零后安装并重启；最终状态以 appdata `operations/async-questions-20261027/backend-restart-result.json` 为准。按最新交付偏好不做批量公网/视觉验收，用户自行检查 `https://agent.mrtreasure.cc/`。需要前后端成组升级后再手动验收，单独升级前端无法取回旧后端丢掉的 questions；此前截图所属的历史问题可由新历史读取器恢复。回退需成组恢复传输字段、适配器、前端卡片/上下文/发送桥接及测试，无数据库迁移，无模型或系统提示词修改。
+
+- 2026-10-27 发布器验收策略：`deploy/publish-static.mjs` 仅在 `CLOUDCLI_VERIFY_PUBLIC_ASSETS=1` 时启用批量公网验收。旁侧 `cloudflare-sites/scripts/assets.mjs` 增加 `verifyPublic` 可选参数，其他调用者默认行为保持不变；跳过时不伪造已验证记录，仍保留发布锁、资源凭据/尺寸扫描、不可变文件校验、鉴权边界、旧资源保留及资源先于页面的发布顺序。回退副本位于本次 appdata 操作目录 `assets-publisher.before.mjs`。
+
+
+## 2026-10-28 Codex 网关模型按需发现
+
+- 来源：C137 本地改进，非上游合并；不修改官方对比基线。修复 CPA `/models` 已有新模型而 CloudCLI 静态目录没有的问题。
+- 后端归属：`server/modules/providers/list/codex/codex-models.provider.ts` 从当前电脑 Codex 配置（支持 `CODEX_HOME`）选中的 `model_provider` / `base_url` 请求 `/models?client_version=cpa`（兼容返回 `models` 的 Codex 目录和返回 `data` 的普通网关），凭据仅在服务器内存使用，禁止跟随重定向。不读取本机密码本，不硬编码 NAS 域名或 key，不发推理请求。
+- 使用 `experimental_bearer_token`、`env_key` 或明确要求 OpenAI API 鉴权时的本机 `auth.json` API key；不转发 ChatGPT OAuth 凭据。无自定义网关的同源/普通电脑继续使用内置目录。
+- 成功结果按配置端点和身份缓存 60 秒，并发请求合并；5 秒请求超时、8 MiB 响应上限（完整 Codex 目录含官方指令模板，实测约 1.01 MiB；仅提取模型元数据返回浏览器）；失败保留该配置的上次成功目录并冷却 30 秒，无成功结果时用内置目录。无独立定时任务。
+- `isDiscovered` 表示模型被当前配置的网关列出，不是模型厂商认证；同 ID 的手动记录仍保留 `isCustom`/`recordId` 供管理，但选择器不再显示 Custom 徽标（归属 `composer/ModelGroupList.tsx`、`modals/CommandResultModal.tsx` 及共享模型类型）。自动发现添加 GPT/o 系列与 Codex 文本模型，排除图像、音频、嵌入等非本链路模型；保留内置项、现有默认值及已声明的推理档位。从完整目录的 `supported_reasoning_levels` / `default_reasoning_level` 同步档位及默认值；新增模型无可信档位信息时不猜测，使用提供方默认值。旧手动条目未声明 effort 时继承上游能力，有明确声明时保留用户覆盖。Terra 实测上游声明 low/medium/high/xhigh/max/ultra、默认 low。成功刷新时自动发现项按最新响应重建，内置与手动项不会被上游删除。
+- `server/modules/providers/services/provider-models.service.ts` 合并手动目录时同 ID 以手动记录为准，保留可编辑性、顺序、默认与 `CUSTOM_MODELS_ONLY`。启用“仅使用我的模型”时依旧只显示手动项，不擅自放开过滤。
+- 前端归属：`src/modules/chat/hooks/useChatProviderState.ts`。按老大本次澄清，仅在页面加载/刷新时读取目录，保留并发合并，移除打开菜单、焦点、可见性和网络恢复触发；无持续轮询。服务端 60 秒缓存仍保留，间隔不足 60 秒的页面刷新可复用目录。
+- 回退：恢复上述后端文件和前端回调改动，重新构建发布；手动模型 SQLite 数据无需回滚或删除。NAS 服务需更新后端运行产物并安全重启，Mac/Windows 同步源码后本机构建/重启才生效；每台电脑继续使用自己的 Codex 配置与凭据。
+
+- 补充核对管理后台现有方案：`language-learning-platform/apps/backend/src/modules/admin/cpa.ts` 的 `loadAccountModels` 走 CPA 管理接口账号目录，`cpa-pricing-store.ts` 仅持久化 id/name/type 和价格，不存 reasoning 能力；该流程不是 CloudCLI 的元数据来源，本次未改动管理后台或 CPA 服务。CloudCLI 直接复用现有的 Codex 完整目录协议解决档位丢失。
+
+
+## 2026-10-28 思考强度菜单本地化
+
+- C137 本地修复：`src/modules/chat/composer/ComposerModelMenu.tsx` 按稳定 effort 值显示本地化档位名和说明；补齐 `composer` 下的标题、默认项、快速模式、加载和无障碍名称。英文保留英文，未知档位/说明回退原文；不改变 API 发出的原始 effort 值。
+- 简体、繁体及英文文案归属 `src/modules/i18n/locales/{zh-CN,zh-TW,en}/chat.json`。上游新模型经现有目录接入时直接复用本地翻译，不将服务端全局改成中文，不改变推理能力和档位。
+- 只需更新前端资源，无后端升级/重启；回退上述菜单和本地化键并重新发布前端。其它电脑同步后重建前端生效。
+
+
+## 2026-10-28 对话文件下载入口按预览能力显示
+
+- 老大明确交互：对话 Markdown 中能直接打开的文件只显示打开链接；不能预览的压缩包等二进制文件才显示旁侧下载入口，点击文件名也继续下载。
+- 归属 `src/modules/chat/transcript/WorkspaceFileLink.tsx`，复用编辑器同一套 `isBinaryFile` / `getPreviewKind` 能力判断，保留行号路径解析、鉴权下载、原始字节、错误重试和并发保护。目录、外部链接、没有项目上下文的链接沿用原逻辑。
+- 来源：C137 本地交互调整；定向验证归属 `src/modules/chat/tests/fileReferenceLinks.test.tsx`。文本、Markdown、源码、PDF、图片及支持的音视频不再显示多余下载按钮。
+- 只需发布前端，无后端重启或数据迁移。回退该链接组件的条件判断并重建发布即可。

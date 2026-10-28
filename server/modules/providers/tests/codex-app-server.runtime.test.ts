@@ -14,7 +14,7 @@ import {
   registerDesktopNotificationClient,
   unregisterDesktopNotificationClient,
 } from '@/modules/notifications/index.js';
-import { createCodexAppServerRuntime } from '@/modules/providers/list/codex/codex-app-server.runtime.js';
+import { createCodexAppServerRuntime, transformCodexAppServerItem } from '@/modules/providers/list/codex/codex-app-server.runtime.js';
 import { CodexSessionsProvider } from '@/modules/providers/list/codex/codex-sessions.provider.js';
 import { createNormalizedMessage } from '@/shared/index.js';
 import type {
@@ -1289,4 +1289,14 @@ test('steering rejection and ambiguous acknowledgements never emit a false user 
   assert.equal(output.messages.filter((m) => m.role === 'user').length, 0);
   harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-1', status: 'interrupted' } });
   await runPromise;
+});
+
+
+test('native async question metadata survives the live item adapter', () => {
+  const questions = [{ title: 'When should the service restart?', options: ['After tasks finish', 'Now'] }];
+  const raw = transformCodexAppServerItem({ type: 'agentMessage', id: 'async-1', text: 'Choose a time', delivery: 'async', questions });
+  const [message] = new CodexSessionsProvider().normalizeMessage(raw, 'session-1');
+  assert.equal(message.id, 'async-1');
+  assert.deepEqual(message.asyncQuestions, questions);
+  assert.equal(message.kind, 'text');
 });

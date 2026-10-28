@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`11e96994090ae86da8409dee6467ec086dd64a4b`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`e725601899a9c2fddfc72bd533629329b915832a`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,14 +10,42 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
+| M | [deploy/README.md](../../deploy/README.md) | — |
+| M | [deploy/publish-static.mjs](../../deploy/publish-static.mjs) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [docs/nas/upstream-1376-memory.md](../../docs/nas/upstream-1376-memory.md) | — |
-| M | [src/modules/sidebar/SidebarFooter.tsx](../../src/modules/sidebar/SidebarFooter.tsx) | — |
-| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
-| M | [src/shared/hooks/useAdaptivePolling.ts](../../src/shared/hooks/useAdaptivePolling.ts) | — |
-| M | [src/shared/hooks/useVersionCheck.ts](../../src/shared/hooks/useVersionCheck.ts) | — |
-| A | [src/shared/tests/useVersionCheck.test.tsx](../../src/shared/tests/useVersionCheck.test.tsx) | — |
-| A | [src/shared/tests/versionApi.test.ts](../../src/shared/tests/versionApi.test.ts) | — |
+| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
+| M | [server/modules/providers/list/codex/codex-models.provider.ts](../../server/modules/providers/list/codex/codex-models.provider.ts) | — |
+| M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
+| M | [server/modules/providers/list/opencode/opencode-sessions.provider.ts](../../server/modules/providers/list/opencode/opencode-sessions.provider.ts) | — |
+| M | [server/modules/providers/services/provider-models.service.ts](../../server/modules/providers/services/provider-models.service.ts) | — |
+| M | [server/modules/providers/services/sessions.service.ts](../../server/modules/providers/services/sessions.service.ts) | — |
+| M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
+| M | [server/modules/providers/tests/codex-models.test.ts](../../server/modules/providers/tests/codex-models.test.ts) | — |
+| M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
+| M | [server/modules/providers/tests/opencode-sessions.test.ts](../../server/modules/providers/tests/opencode-sessions.test.ts) | — |
+| M | [server/modules/providers/tests/provider-models.service.test.ts](../../server/modules/providers/tests/provider-models.service.test.ts) | — |
+| M | [server/shared/interfaces.ts](../../server/shared/interfaces.ts) | — |
+| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
+| M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
+| M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
+| M | [src/modules/chat/composer/ModelGroupList.tsx](../../src/modules/chat/composer/ModelGroupList.tsx) | — |
+| M | [src/modules/chat/context/TranscriptSessionContext.ts](../../src/modules/chat/context/TranscriptSessionContext.ts) | — |
+| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
+| M | [src/modules/chat/hooks/useChatMessages.ts](../../src/modules/chat/hooks/useChatMessages.ts) | — |
+| M | [src/modules/chat/hooks/useChatProviderState.ts](../../src/modules/chat/hooks/useChatProviderState.ts) | — |
+| M | [src/modules/chat/hooks/useSessionStore.ts](../../src/modules/chat/hooks/useSessionStore.ts) | — |
+| M | [src/modules/chat/modals/CommandResultModal.tsx](../../src/modules/chat/modals/CommandResultModal.tsx) | — |
+| A | [src/modules/chat/tests/AsyncQuestionCard.test.tsx](../../src/modules/chat/tests/AsyncQuestionCard.test.tsx) | — |
+| M | [src/modules/chat/tests/chatProviderModels.test.ts](../../src/modules/chat/tests/chatProviderModels.test.ts) | — |
+| M | [src/modules/chat/tests/composerQueuedFollowUps.test.ts](../../src/modules/chat/tests/composerQueuedFollowUps.test.ts) | — |
+| M | [src/modules/chat/tests/fileReferenceLinks.test.tsx](../../src/modules/chat/tests/fileReferenceLinks.test.tsx) | — |
+| A | [src/modules/chat/transcript/AsyncQuestionCard.tsx](../../src/modules/chat/transcript/AsyncQuestionCard.tsx) | — |
+| M | [src/modules/chat/transcript/MessageComponent.tsx](../../src/modules/chat/transcript/MessageComponent.tsx) | — |
+| M | [src/modules/chat/transcript/WorkspaceFileLink.tsx](../../src/modules/chat/transcript/WorkspaceFileLink.tsx) | — |
+| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
+| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 
 ## NAS 主线提交
 
@@ -980,6 +1008,22 @@
   - `docs/nas/commit-log.md`
   - `docs/nas/file-index.md`
   - `docs/nas/upstream-1376-memory.md`
+
+### e7256018 · 2026-10-27 · fix(sidebar): check deployed version before offering updates
+
+- 完整提交：`e725601899a9c2fddfc72bd533629329b915832a`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-1376-memory.md`
+  - `src/modules/sidebar/SidebarFooter.tsx`
+  - `src/shared/api.ts`
+  - `src/shared/hooks/useAdaptivePolling.ts`
+  - `src/shared/hooks/useVersionCheck.ts`
+  - `src/shared/tests/useVersionCheck.test.tsx`
+  - `src/shared/tests/versionApi.test.ts`
 
 ## 从 PR / 其他分支合入的提交
 

@@ -165,6 +165,8 @@ export function useChatProviderState({ selectedSession, selectedProject: _select
   const [providerModelsLoading, setProviderModelsLoading] = useState(true);
 
   const providerModelsRequestIdRef = useRef(0);
+  // Coalesce initial catalog hydration when React repeats the mounting effect.
+  const providerModelsPendingRef = useRef<Promise<void> | null>(null);
   const sessionSelectionLoadRequestIdRef = useRef(0);
   const sessionModelMutationIdRef = useRef(0);
   const sessionEffortMutationIdRef = useRef(0);
@@ -188,34 +190,40 @@ export function useChatProviderState({ selectedSession, selectedProject: _select
   }, []);
 
   const loadProviderModels = useCallback(async () => {
+    if (providerModelsPendingRef.current) return providerModelsPendingRef.current;
     const requestId = providerModelsRequestIdRef.current + 1;
     providerModelsRequestIdRef.current = requestId;
     setProviderModelsLoading(true);
 
-    try {
-      // Each provider lands in the catalog as soon as it answers, so a slow
-      // one (OpenCode shells out to its CLI) cannot hold back the others.
-      await Promise.all(
-        PROVIDERS.map(async (p) => {
-          try {
-            const response = await api.providers.models(p);
-            const body = (await response.json()) as ProviderModelsApiResponse;
-            const models = body.success ? body.data?.models : undefined;
-            if (!models || providerModelsRequestIdRef.current !== requestId) {
-              return;
-            }
+    const pending = (async () => {
+      try {
+        // Each provider lands in the catalog as soon as it answers, so a slow
+        // one (OpenCode shells out to its CLI) cannot hold back the others.
+        await Promise.all(
+          PROVIDERS.map(async (p) => {
+            try {
+              const response = await api.providers.models(p);
+              const body = (await response.json()) as ProviderModelsApiResponse;
+              const models = body.success ? body.data?.models : undefined;
+              if (!models || providerModelsRequestIdRef.current !== requestId) {
+                return;
+              }
 
-            setProviderModelCatalog((previous) => ({ ...previous, [p]: models }));
-          } catch (error) {
-            console.error(`Error loading ${p} models:`, error);
-          }
-        }),
-      );
-    } finally {
-      if (providerModelsRequestIdRef.current === requestId) {
-        setProviderModelsLoading(false);
+              setProviderModelCatalog((previous) => ({ ...previous, [p]: models }));
+            } catch (error) {
+              console.error(`Error loading ${p} models:`, error);
+            }
+          }),
+        );
+      } finally {
+        if (providerModelsRequestIdRef.current === requestId) {
+          setProviderModelsLoading(false);
+        }
+        providerModelsPendingRef.current = null;
       }
-    }
+    })();
+    providerModelsPendingRef.current = pending;
+    return pending;
   }, []);
 
   useEffect(() => {

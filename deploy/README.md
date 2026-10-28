@@ -42,7 +42,7 @@ systemctl --user status cloudcli-backend.service
 
 前端发布时先上传静态资源并校验发布内容，再原子更新 `/vol1/1000/appdata/nginx/public/cloudcli/index.html`，无需重建或重启后端。
 
-CDN 配置在 `deploy/static-cdn.json`。`deploy/publish-static.mjs` 委托 NAS 旁侧项目 `../cloudflare-sites/scripts/assets.mjs`，仅发布 `/cloudcli/v2/` 到 `c137-assets-static`，保留历史哈希，校验不可变对象内容。公开资源的 CORS 与 SHA256 验证成功后才允许切换 HTML。凭据从密码本 `cloudflare.api_token_worker` 注入进程，不再访问或写入 R2。`deploy/frontend.conf` 安装到现有静态 Nginx 的 sites 目录。
+CDN 配置在 `deploy/static-cdn.json`。`deploy/publish-static.mjs` 委托 NAS 旁侧项目 `../cloudflare-sites/scripts/assets.mjs`，仅发布 `/cloudcli/v2/` 到 `c137-assets-static`，保留历史哈希，校验不可变对象内容。保留上传前的凭据、尺寸和不可变对象检查，资源上传成功后再切换 HTML。按 2026-10-27 最新交付偏好，默认不运行批量公网字节/CORS 验收；只有用户另行要求时设置 `CLOUDCLI_VERIFY_PUBLIC_ASSETS=1`。凭据从密码本 `cloudflare.api_token_worker` 注入进程，不再访问或写入 R2。`deploy/frontend.conf` 安装到现有静态 Nginx 的 sites 目录。
 
 `deploy/agent-api.conf` 放在 HTTPS proxy 的 http 块内。使用现有证书与 IPv6 15432；访问日志不记录查询字符串，以免持久保存 WS/SSE 的 JWT。
 

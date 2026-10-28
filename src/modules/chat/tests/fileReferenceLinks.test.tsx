@@ -95,17 +95,17 @@ test('a download preserves original binary bytes, filename and authentication AP
 
 test('download strips editor line and column metadata and decodes the link path', async () => {
   readFileBlob.mockResolvedValue({ ok: false, status: 404 });
-  renderProjectLink('[文档](docs/release%20notes.md:12:3)');
-  fireEvent.click(screen.getByRole('button', { name: /release notes.md/ }));
+  renderProjectLink('[归档](docs/release%20notes.zip:12:3)');
+  fireEvent.click(screen.getByRole('button', { name: /release notes.zip/ }));
   await screen.findByRole('alert');
-  assert.deepEqual(readFileBlob.mock.calls, [['project-1', 'docs/release notes.md']]);
+  assert.deepEqual(readFileBlob.mock.calls, [['project-1', 'docs/release notes.zip']]);
 });
 
 test('failed downloads show an error and allow retry without saving an error body', async () => {
   const blob = vi.fn();
   readFileBlob.mockResolvedValue({ ok: false, status: 403, blob });
-  renderProjectLink('[报告](report.pdf)');
-  const button = screen.getByRole('button', { name: /report.pdf/ });
+  renderProjectLink('[报告](report.zip)');
+  const button = screen.getByRole('button', { name: /report.zip/ });
   fireEvent.click(button);
   await screen.findByRole('alert');
   assert.equal(blob.mock.calls.length, 0);
@@ -139,19 +139,22 @@ test('directories, web links and links without a project do not offer workspace 
 
 test('network failures show a retryable error beside the file link', async () => {
   readFileBlob.mockRejectedValue(new Error('Network unavailable'));
-  renderProjectLink('[附件](attachment.pdf)');
-  const button = screen.getByRole('button', { name: /attachment.pdf/ });
+  renderProjectLink('[附件](attachment.zip)');
+  const button = screen.getByRole('button', { name: /attachment.zip/ });
   fireEvent.click(button);
   await screen.findByRole('alert');
   assert.equal((button as HTMLButtonElement).disabled, false);
 });
 
-// Previewable binary formats keep the established editor preview; download stays explicit.
-test('PDF filenames keep preview behavior while retaining an explicit download action', () => {
-  openFileInEditor.mockReset();
-  renderProjectLink('[报告](report.pdf)');
-  fireEvent.click(screen.getByText('报告'));
-  assert.deepEqual(openFileInEditor.mock.calls, [['report.pdf', null]]);
-  assert.equal(readFileBlob.mock.calls.length, 0);
-  assert.ok(screen.getByRole('button', { name: /report.pdf/ }));
+// Preview support is shared with the editor, including text and browser media.
+test('previewable files open directly without displaying download actions', () => {
+  for (const filename of ['SKILL.md', 'notes.txt', 'source.ts', 'report.pdf', 'picture.png', 'drawing.svg', 'clip.mp4', 'sound.mp3']) {
+    openFileInEditor.mockReset();
+    const { unmount } = renderProjectLink(`[打开文件](${filename})`);
+    assert.equal(screen.queryAllByRole('button').length, 0);
+    fireEvent.click(screen.getByText('打开文件'));
+    assert.deepEqual(openFileInEditor.mock.calls, [[filename, null]]);
+    assert.equal(readFileBlob.mock.calls.length, 0);
+    unmount();
+  }
 });

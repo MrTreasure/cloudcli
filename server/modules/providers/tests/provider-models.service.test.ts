@@ -128,6 +128,7 @@ const createTestService = (options: {
   settings?: ReturnType<typeof createSettingsStore>;
   activeModel?: (provider: LLMProvider, sessionId?: string) => string;
   onCatalogRead?: (provider: LLMProvider) => void;
+  predefined?: ProviderModelsDefinition;
 } = {}) => {
   const catalog = options.catalog ?? createCatalogStore();
   const sessions = options.sessions ?? createSessionStore();
@@ -140,7 +141,7 @@ const createTestService = (options: {
       models: {
         getSupportedModels: async () => {
           options.onCatalogRead?.(provider);
-          return createModels(`${provider}-default`);
+          return options.predefined ?? createModels(`${provider}-default`);
         },
         getCurrentActiveModel: async (sessionId) => createCurrentActiveModel(
           options.activeModel?.(provider, sessionId) ?? `${provider}-default`,
@@ -584,4 +585,36 @@ test('resolveResumeModel never consults provider-global state', async () => {
 
   assert.equal(model, 'gpt-5.5');
   assert.equal(providerLookups, 0);
+});
+
+test('a newly discovered model preserves and can update an existing manual row with the same id', async () => {
+  const { service, catalog } = createTestService({ predefined: {
+    OPTIONS: [{ value: 'codex-default', label: 'Gateway model', isDiscovered: true }],
+    DEFAULT: 'codex-default',
+  } });
+  const manual = catalog.createCustomProviderModel('codex', {
+    id: 'codex-default', model: 'My model', effort: { values: ['low', 'high'], default: 'high' },
+  });
+  const models = await service.getProviderModels('codex');
+  assert.equal(models.OPTIONS.length, 1);
+  assert.equal(models.OPTIONS[0].isDiscovered, true);
+  assert.equal(models.OPTIONS[0].label, 'My model');
+  assert.equal(models.OPTIONS[0].isCustom, true);
+  assert.equal(models.OPTIONS[0].effort?.default, 'high');
+  await service.updateCustomModel('codex', manual.recordId, { id: 'codex-default', model: 'Renamed model' });
+  assert.equal((await service.getProviderModels('codex')).OPTIONS[0].label, 'Renamed model');
+});
+
+
+test('manual model ids without declared effort inherit discovered reasoning capabilities', async () => {
+  const { service, catalog } = createTestService({ predefined: {
+    OPTIONS: [{ value: 'gpt-6.1-terra', label: 'Terra', isDiscovered: true,
+      effort: { values: [{ value: 'low' }, { value: 'ultra' }], default: 'low' } }],
+    DEFAULT: 'gpt-6.1-terra',
+  } });
+  catalog.createCustomProviderModel('codex', { id: 'gpt-6.1-terra', model: 'GPT-6.1 Terra' });
+  const option = (await service.getProviderModels('codex')).OPTIONS[0];
+  assert.equal(option.isDiscovered, true);
+  assert.equal(option.recordId, 1);
+  assert.deepEqual(option.effort, { values: [{ value: 'low' }, { value: 'ultra' }], default: 'low' });
 });

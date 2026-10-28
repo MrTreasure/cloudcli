@@ -104,13 +104,25 @@ const mergeProviderModels = (
   custom: CustomProviderModelRecord[],
   customModelsOnly: boolean,
 ): ProviderModelsDefinition => {
-  const customOptions = custom.map(toCustomProviderModelOption);
+  const customOptions = custom.map((record) => {
+    const option = toCustomProviderModelOption(record);
+    const discovered = predefined.OPTIONS.find((entry) => entry.value === option.value);
+    return discovered?.isDiscovered ? {
+      ...option,
+      isDiscovered: true,
+      // The old add-model workflow saved ids without capability metadata. Let
+      // those rows inherit upstream effort while retaining explicit overrides.
+      ...(!option.effort && discovered.effort ? { effort: discovered.effort } : {}),
+    } : option;
+  });
   const listOnlyCustomModels = customModelsOnly && customOptions.length > 0;
   return {
     OPTIONS: listOnlyCustomModels
       ? customOptions
       : [
-        ...predefined.OPTIONS.map((option) => ({ ...option, isCustom: false })),
+        ...predefined.OPTIONS
+          .filter((option) => !customOptions.some((custom) => custom.value === option.value))
+          .map((option) => ({ ...option, isCustom: false })),
         ...customOptions,
       ],
     DEFAULT: listOnlyCustomModels ? customOptions[0].value : predefined.DEFAULT,
@@ -168,8 +180,8 @@ const isUniqueConstraintError = (error: unknown): boolean => (
  * Commands, and provider runtimes.
  *
  * Curated adapter definitions stay source-controlled and are merged at read
- * time with custom SQLite rows. This deliberately has no predefined-model
- * persistence, memory cache, disk cache, TTL, or provider-native discovery.
+ * time with custom SQLite rows. Discovery and short-lived request coalescing belong to each adapter; this
+ * service does not persist or schedule discovery.
  * Tests inject a small custom-model store through the same boundary.
  */
 export const createProviderModelsService = (dependencies: ProviderModelsServiceDependencies = {}) => {
@@ -238,14 +250,17 @@ export const createProviderModelsService = (dependencies: ProviderModelsServiceD
     modelId: string,
     currentRecordId?: number,
   ): void => {
-    if (predefined.OPTIONS.some((option) => option.value === modelId)) {
+    const duplicate = catalog.findCustomProviderModelByModelId(provider, modelId);
+    // Discovery may now include a model that was manually added earlier. That
+    // existing row must remain editable and retain its user-defined metadata.
+    if (predefined.OPTIONS.some((option) => option.value === modelId)
+      && !(currentRecordId !== undefined && duplicate?.recordId === currentRecordId)) {
       throw new AppError(`A ${provider} model with this ID already exists.`, {
         code: 'MODEL_ID_ALREADY_EXISTS',
         statusCode: 409,
       });
     }
 
-    const duplicate = catalog.findCustomProviderModelByModelId(provider, modelId);
     if (duplicate && duplicate.recordId !== currentRecordId) {
       throw new AppError(`A ${provider} model with this ID already exists.`, {
         code: 'MODEL_ID_ALREADY_EXISTS',

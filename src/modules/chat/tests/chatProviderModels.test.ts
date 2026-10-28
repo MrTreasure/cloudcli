@@ -27,7 +27,7 @@ vi.mock('@/shared/api', () => ({
       savePreferences: () => okJson({ success: true, preferences: {} }),
     },
     providers: {
-      models: () => okJson({ success: true, data: null }),
+      models: vi.fn(() => okJson({ success: true, data: null })),
       capabilities: () => okJson({ success: true, data: null }),
       sessionActiveModel: () => okJson({ success: true, data: null }),
       setSessionActiveModel: () => okJson({ success: true, data: null }),
@@ -145,4 +145,25 @@ test('the active provider’s model is what currentProviderModel reports', async
     assert.equal(result.current.provider, 'cursor');
   });
   assert.equal(result.current.currentProviderModel, 'cursor-active');
+});
+
+
+test('model discovery runs on page hydration without focus or reconnect polling', async () => {
+  const { api } = await import('@/shared/api');
+  const calls = vi.mocked(api.providers.models);
+  calls.mockClear();
+  const { result, unmount } = await renderProviderState();
+  await waitFor(() => assert.equal(result.current.providerModelsLoading, false));
+  assert.equal(calls.mock.calls.length, 4);
+  act(() => {
+    window.dispatchEvent(new Event('focus'));
+    window.dispatchEvent(new Event('online'));
+    document.dispatchEvent(new Event('visibilitychange'));
+  });
+  assert.equal(calls.mock.calls.length, 4);
+  unmount();
+  const reopened = await renderProviderState();
+  await waitFor(() => assert.equal(reopened.result.current.providerModelsLoading, false));
+  assert.equal(calls.mock.calls.length, 8);
+  reopened.unmount();
 });

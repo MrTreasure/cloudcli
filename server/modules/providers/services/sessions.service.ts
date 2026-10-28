@@ -713,6 +713,13 @@ export const sessionsService = {
 
     let removedFromDisk = false;
     if (options.deletedFromDisk) {
+      const provider = providerRegistry.resolveProvider(session.provider);
+      if (provider.sessions.deleteFromStorage && session.provider_session_id) {
+        if (chatRunRegistry.listRunningRuns().some((run) => run.sessionId === sessionId)) {
+          throw new AppError('Stop the session before deleting it.', { code: 'SESSION_BUSY', statusCode: 409 });
+        }
+        removedFromDisk = await provider.sessions.deleteFromStorage(session.provider_session_id);
+      }
       // Every file the conversation has lived in, not just the one the row
       // points at now: editing a message on a provider that rewinds by
       // branching moves the session onto a copy and leaves the earlier
@@ -736,6 +743,7 @@ export const sessionsService = {
       });
     }
 
+    sessionHistoryCache.invalidate(sessionId);
     return {
       sessionId,
       action: 'deleted',

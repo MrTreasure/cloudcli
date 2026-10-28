@@ -400,7 +400,7 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
         const content = msg.content || '';
         const images = Array.isArray(msg.images) && msg.images.length > 0 ? msg.images : undefined;
         const files = Array.isArray(msg.files) && msg.files.length > 0 ? msg.files : undefined;
-        if (!content.trim() && !images && !files) break;
+        if (!content.trim() && !images && !files && !msg.asyncQuestions?.length) break;
 
         if (msg.role === 'user') {
           // Parse task notifications
@@ -441,6 +441,7 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
             content: text,
             timestamp: msg.timestamp,
             memoryCitations: msg.memoryCitations,
+            asyncQuestions: msg.asyncQuestions,
             ...sharedMetadata,
           });
         }
@@ -600,5 +601,14 @@ export function normalizedToChatMessages(messages: NormalizedMessage[]): ChatMes
     });
   }
 
-  return converted;
+  // A follow-up makes older question cards historical, including across refreshes
+  // and devices. Do not mutate cached per-message projections.
+  let hasLaterUserTurn = false;
+  const projected = [...converted];
+  for (let index = projected.length - 1; index >= 0; index--) {
+    const message = projected[index];
+    if (message.type === 'user') hasLaterUserTurn = true;
+    if (message.asyncQuestions) projected[index] = { ...message, asyncQuestionAnswered: hasLaterUserTurn };
+  }
+  return projected;
 }

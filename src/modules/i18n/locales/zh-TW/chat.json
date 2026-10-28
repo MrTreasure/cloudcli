@@ -1,4 +1,11 @@
 {
+  "asyncQuestions": {
+    "other": "其他回答",
+    "submit": "傳送回答",
+    "submitting": "提交中…",
+    "answered": "此問題已結束",
+    "failed": "回答未提交，請重試。"
+  },
   "fileLinks": {
     "downloadAction": "下載",
     "download": "下載 {{name}}",
@@ -313,7 +320,39 @@
     },
     "permissionHeading": "如何核准 {{provider}} 的操作？",
     "permissionCycleHint": "在輸入框中按 Tab 切換模式",
-    "permissionTriggerLabel": "{{mode}}：{{heading}}"
+    "permissionTriggerLabel": "{{mode}}：{{heading}}",
+    "reasoning": "思考強度",
+    "model": "模型",
+    "effortDefault": "預設",
+    "loadingModels": "正在載入模型…",
+    "modelMenu": "選擇模型與思考強度",
+    "fast": "快速模式",
+    "efforts": {
+      "low": {
+        "label": "低",
+        "description": "較少思考，更快回應"
+      },
+      "medium": {
+        "label": "中",
+        "description": "兼顧速度與思考深度，適合日常任務"
+      },
+      "high": {
+        "label": "高",
+        "description": "深入思考，適合複雜問題"
+      },
+      "xhigh": {
+        "label": "極高",
+        "description": "更深入思考，適合複雜問題"
+      },
+      "max": {
+        "label": "最大",
+        "description": "最大思考深度，適合最困難的問題"
+      },
+      "ultra": {
+        "label": "極致",
+        "description": "極致思考強度，支援自動委派任務"
+      }
+    }
   },
   "export": {
     "trigger": "匯出對話",

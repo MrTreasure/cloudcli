@@ -12,6 +12,7 @@ import type { IProviderSessions } from '@/shared/interfaces.js';
 import { prepareTranscriptMessages } from '@/shared/message-unification.js';
 import type {
   AnyRecord,
+  AsyncUserInputQuestion,
   FetchHistoryOptions,
   FetchHistoryResult,
   MemoryCitation,
@@ -1277,6 +1278,20 @@ const CODEX_COLLABORATION_CONTROL_TOOLS = new Set([
  * Reads one Codex rollout file and produces the compact per-message records
  * `normalizeHistoryEntry` turns into `NormalizedMessage`s.
  */
+/** Keep only the native structured fields; Markdown bullets are never guessed into executable choices. */
+function readAsyncQuestions(value: unknown): AsyncUserInputQuestion[] | undefined {
+  if (!Array.isArray(value)) return undefined;
+  const questions = value.flatMap((entry) => {
+    const row = readObjectRecord(entry);
+    const title = readNonEmptyString(row?.title);
+    if (!title) return [];
+    const options = Array.isArray(row?.options)
+      ? row.options.filter((option): option is string => typeof option === 'string' && Boolean(option.trim())) : [];
+    return [{ title, options }];
+  });
+  return questions.length ? questions : undefined;
+}
+
 async function getCodexSessionMessages(sessionId: string, transcriptPath?: string): Promise<CodexHistoryResult> {
   const sessionFilePath = transcriptPath ?? sessionsDb.getSessionById(sessionId)?.jsonl_path;
 
@@ -1440,6 +1455,13 @@ async function getCodexSessionMessages(sessionId: string, transcriptPath?: strin
       // `UserMessage`; wire `response_item` user rows are internal, not prompts.
       if (payload.type === 'item_completed') {
         const item = readObjectRecord(payload.item);
+        if (item?.type === 'AgentMessage' && item.delivery === 'async') {
+          const asyncQuestions = readAsyncQuestions(item.questions);
+          if (asyncQuestions) messages.push({
+            uuid: readNonEmptyString(item.id), type: 'assistant', timestamp, asyncQuestions,
+            message: { role: 'assistant', content: extractCodexTextContent(item.content) },
+          });
+        }
         if (item?.type === 'UserMessage') {
           const content = extractCodexTextContent(item.content);
           const images = extractCodexTypedUserImages(item.content);
@@ -1595,6 +1617,11 @@ async function getCodexSessionMessages(sessionId: string, transcriptPath?: strin
       const callId = readNonEmptyString(payload.call_id) ?? generateMessageId('codex-call');
       const name = readNonEmptyString(payload.name) ?? 'tool';
       const rawInput = payload.type === 'custom_tool_call' ? payload.input : payload.arguments;
+
+      if (name === 'request_user_input_async') {
+        ignoredToolCallIds.add(callId);
+        continue; // The structured item_completed AgentMessage is authoritative.
+      }
 
       if (name === 'spawn_agent') {
         let taskName = 'agent';
@@ -2106,7 +2133,7 @@ export class CodexSessionsProvider implements IProviderSessions {
             .filter(Boolean)
             .join('\n')
           : '';
-      if (!content.trim()) {
+      if (!content.trim() && !readAsyncQuestions(raw.asyncQuestions)?.length) {
         return [];
       }
       return [createNormalizedMessage({
@@ -2118,6 +2145,7 @@ export class CodexSessionsProvider implements IProviderSessions {
         role: 'assistant',
         content,
         memoryCitations: raw.memoryCitations,
+        asyncQuestions: readAsyncQuestions(raw.asyncQuestions),
       })];
     }
 
@@ -2205,6 +2233,7 @@ export class CodexSessionsProvider implements IProviderSessions {
             role: 'assistant',
             content: text,
             memoryCitations: cited.memoryCitations,
+            asyncQuestions: readAsyncQuestions(raw.asyncQuestions),
           })];
         }
         case 'reasoning':

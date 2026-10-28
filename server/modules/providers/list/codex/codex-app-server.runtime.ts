@@ -307,6 +307,7 @@ export function transformCodexAppServerItem(item: AnyRecord): AnyRecord {
         itemType,
         uuid,
         message: { role: 'assistant', content: readString(item.text) ?? '' },
+        ...(item.delivery === 'async' ? { asyncQuestions: item.questions } : {}),
       };
     case 'reasoning':
       return {

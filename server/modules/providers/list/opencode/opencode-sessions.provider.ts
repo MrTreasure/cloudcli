@@ -1,6 +1,7 @@
 import fsSync from 'node:fs';
 
 import Database from 'better-sqlite3';
+import spawn from 'cross-spawn';
 
 import { isOpenCodeSessionActive } from '@/modules/providers/list/opencode/opencode-runtime.provider.js';
 import { parseFilesInputTag, parseImagesInputTag } from '@/shared/image-attachments.js';
@@ -14,6 +15,7 @@ import type {
   SubagentInfo,
 } from '@/shared/types.js';
 import {
+  AppError,
   createNormalizedMessage,
   generateMessageId,
   getOpenCodeDatabasePath,
@@ -380,6 +382,44 @@ const openOpenCodeDatabaseForLiveEvent = (): Database.Database | null => {
 };
 
 export class OpenCodeSessionsProvider implements IProviderSessions {
+  /** Session deletion uses OpenCode's own CLI to remove one SQLite conversation, never the shared database file. */
+  async deleteFromStorage(providerSessionId: string): Promise<boolean> {
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(providerSessionId)) {
+      throw new AppError('Invalid OpenCode session id.', { code: 'INVALID_SESSION_ID', statusCode: 400 });
+    }
+    const exists = (): boolean => {
+      const db = openOpenCodeDatabase();
+      if (!db) return false;
+      try { return Boolean(db.prepare('SELECT 1 FROM session WHERE id = ?').get(providerSessionId)); }
+      finally { db.close(); }
+    };
+    if (!exists()) return false;
+    if (isOpenCodeSessionActive(providerSessionId)) {
+      throw new AppError('Stop the OpenCode session before deleting it.', { code: 'SESSION_BUSY', statusCode: 409 });
+    }
+    // Pure mode avoids loading third-party plugins during this local storage operation.
+    await new Promise<void>((resolve, reject) => {
+      const fail = () => reject(new AppError('OpenCode could not delete the conversation. The session was retained; check the installed CLI and retry.', {
+        code: 'PROVIDER_SESSION_DELETE_FAILED', statusCode: 502,
+      }));
+      // Match the runtime's Windows .cmd/PATHEXT support; no prompt or secret
+      // goes into these arguments, and output is discarded rather than logged.
+      const child = spawn('opencode', ['--pure', 'session', 'delete', providerSessionId], {
+        timeout: 30_000, windowsHide: true, stdio: 'ignore', shell: false,
+      });
+      child.once('error', fail);
+      child.once('close', (code) => { if (code === 0) resolve(); else fail(); });
+    });
+    // CLI success alone is insufficient: a different CLI data home must not
+    // make CloudCLI claim deletion while its synchronizer still sees the row.
+    if (exists()) {
+      throw new AppError('OpenCode still contains the conversation after deletion.', {
+        code: 'PROVIDER_SESSION_DELETE_FAILED', statusCode: 502,
+      });
+    }
+    return true;
+  }
+
   /**
    * Normalizes live `opencode run --format json` events into frontend messages.
    */

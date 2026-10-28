@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`11e96994090ae86da8409dee6467ec086dd64a4b`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`e725601899a9c2fddfc72bd533629329b915832a`。
 
-记录基线与当前暂存树之间的全部净差异，共 310 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 322 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -111,8 +111,10 @@
 | A | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.transport.ts](../../server/modules/providers/list/codex/codex-app-server.transport.ts) | — |
 | M | [server/modules/providers/list/codex/codex-auth.provider.ts](../../server/modules/providers/list/codex/codex-auth.provider.ts) | — |
+| M | [server/modules/providers/list/codex/codex-models.provider.ts](../../server/modules/providers/list/codex/codex-models.provider.ts) | — |
 | M | [server/modules/providers/list/codex/codex-runtime.provider.ts](../../server/modules/providers/list/codex/codex-runtime.provider.ts) | — |
 | M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
+| M | [server/modules/providers/list/opencode/opencode-sessions.provider.ts](../../server/modules/providers/list/opencode/opencode-sessions.provider.ts) | — |
 | M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
 | M | [server/modules/providers/README.md](../../server/modules/providers/README.md) | — |
 | A | [server/modules/providers/services/codex-context-limits.service.ts](../../server/modules/providers/services/codex-context-limits.service.ts) | — |
@@ -122,6 +124,7 @@
 | A | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
 | A | [server/modules/providers/services/codex-request-compression.service.ts](../../server/modules/providers/services/codex-request-compression.service.ts) | — |
 | M | [server/modules/providers/services/provider-cli.service.ts](../../server/modules/providers/services/provider-cli.service.ts) | — |
+| M | [server/modules/providers/services/provider-models.service.ts](../../server/modules/providers/services/provider-models.service.ts) | — |
 | M | [server/modules/providers/services/provider-runtime.service.ts](../../server/modules/providers/services/provider-runtime.service.ts) | — |
 | A | [server/modules/providers/services/provider-session-settings.service.ts](../../server/modules/providers/services/provider-session-settings.service.ts) | — |
 | M | [server/modules/providers/services/provider-token-usage.service.ts](../../server/modules/providers/services/provider-token-usage.service.ts) | — |
@@ -138,7 +141,9 @@
 | A | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
 | M | [server/modules/providers/tests/codex-runtime.test.ts](../../server/modules/providers/tests/codex-runtime.test.ts) | — |
 | M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
+| M | [server/modules/providers/tests/opencode-sessions.test.ts](../../server/modules/providers/tests/opencode-sessions.test.ts) | — |
 | M | [server/modules/providers/tests/provider-cli.service.test.ts](../../server/modules/providers/tests/provider-cli.service.test.ts) | — |
+| M | [server/modules/providers/tests/provider-models.service.test.ts](../../server/modules/providers/tests/provider-models.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider-runtime.service.test.ts](../../server/modules/providers/tests/provider-runtime.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider-token-usage.service.test.ts](../../server/modules/providers/tests/provider-token-usage.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider.routes.test.ts](../../server/modules/providers/tests/provider.routes.test.ts) | — |
@@ -173,10 +178,14 @@
 | M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
 | M | [src/modules/chat/composer/ComposerMenuPrimitives.tsx](../../src/modules/chat/composer/ComposerMenuPrimitives.tsx) | — |
 | M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
+| M | [src/modules/chat/composer/ModelGroupList.tsx](../../src/modules/chat/composer/ModelGroupList.tsx) | — |
 | M | [src/modules/chat/composer/PermissionRequestsBanner.tsx](../../src/modules/chat/composer/PermissionRequestsBanner.tsx) | — |
 | M | [src/modules/chat/composer/QueuedMessageCard.tsx](../../src/modules/chat/composer/QueuedMessageCard.tsx) | — |
 | M | [src/modules/chat/composer/TokenUsageSummary.tsx](../../src/modules/chat/composer/TokenUsageSummary.tsx) | — |
+| M | [src/modules/chat/context/TranscriptSessionContext.ts](../../src/modules/chat/context/TranscriptSessionContext.ts) | — |
 | M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
+| M | [src/modules/chat/hooks/useChatMessages.ts](../../src/modules/chat/hooks/useChatMessages.ts) | — |
+| M | [src/modules/chat/hooks/useChatProviderState.ts](../../src/modules/chat/hooks/useChatProviderState.ts) | — |
 | M | [src/modules/chat/hooks/useChatRealtimeHandlers.ts](../../src/modules/chat/hooks/useChatRealtimeHandlers.ts) | — |
 | M | [src/modules/chat/hooks/useChatSessionState.ts](../../src/modules/chat/hooks/useChatSessionState.ts) | — |
 | A | [src/modules/chat/hooks/useCodexFastState.ts](../../src/modules/chat/hooks/useCodexFastState.ts) | — |
@@ -185,6 +194,8 @@
 | M | [src/modules/chat/modals/CommandResultModal.tsx](../../src/modules/chat/modals/CommandResultModal.tsx) | — |
 | M | [src/modules/chat/tests/activityIndicatorBackground.test.tsx](../../src/modules/chat/tests/activityIndicatorBackground.test.tsx) | — |
 | A | [src/modules/chat/tests/AskUserQuestionPanel.test.tsx](../../src/modules/chat/tests/AskUserQuestionPanel.test.tsx) | — |
+| A | [src/modules/chat/tests/AsyncQuestionCard.test.tsx](../../src/modules/chat/tests/AsyncQuestionCard.test.tsx) | — |
+| M | [src/modules/chat/tests/chatProviderModels.test.ts](../../src/modules/chat/tests/chatProviderModels.test.ts) | — |
 | A | [src/modules/chat/tests/codexFastState.test.ts](../../src/modules/chat/tests/codexFastState.test.ts) | — |
 | M | [src/modules/chat/tests/composerQueuedFollowUps.test.ts](../../src/modules/chat/tests/composerQueuedFollowUps.test.ts) | — |
 | M | [src/modules/chat/tests/composerSendOverBackgroundWork.test.ts](../../src/modules/chat/tests/composerSendOverBackgroundWork.test.ts) | — |
@@ -198,6 +209,7 @@
 | M | [src/modules/chat/tests/sessionMessageReconciliation.test.ts](../../src/modules/chat/tests/sessionMessageReconciliation.test.ts) | — |
 | M | [src/modules/chat/tests/sessionStoreTruncate.test.tsx](../../src/modules/chat/tests/sessionStoreTruncate.test.tsx) | — |
 | M | [src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx](../../src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx) | — |
+| A | [src/modules/chat/transcript/AsyncQuestionCard.tsx](../../src/modules/chat/transcript/AsyncQuestionCard.tsx) | — |
 | M | [src/modules/chat/transcript/Markdown.tsx](../../src/modules/chat/transcript/Markdown.tsx) | — |
 | M | [src/modules/chat/transcript/MessageComponent.tsx](../../src/modules/chat/transcript/MessageComponent.tsx) | — |
 | A | [src/modules/chat/transcript/WorkspaceFileLink.tsx](../../src/modules/chat/transcript/WorkspaceFileLink.tsx) | — |

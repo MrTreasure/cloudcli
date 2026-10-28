@@ -700,3 +700,32 @@ test('a session switch during the upload keeps a draft that changed in the sessi
   assert.equal(queuedOnServer('session-1')?.content, 'follow-up B');
   assert.equal(readDraftText('session-1'), 'written on the laptop');
 });
+
+
+for (const busy of [true, false]) {
+  test(`async question answers preserve unrelated draft and attachments (busy=${busy})`, async () => {
+    const { view } = render({ isLoading: busy });
+    const file = new File(['draft'], 'draft.txt');
+    await act(async () => { view.result.current.setInput('Unfinished draft'); view.result.current.setAttachedFiles([file]); });
+    let accepted = false;
+    await act(async () => { accepted = await view.result.current.submitQuestionAnswer('When to restart?\nWait'); });
+    assert.equal(accepted, true);
+    assert.equal(view.result.current.input, 'Unfinished draft');
+    assert.deepEqual(view.result.current.attachedFiles, [file]);
+    if (busy) assert.equal(queuedOnServer()?.content, 'When to restart?\nWait');
+  });
+}
+
+test('a refused async answer leaves the draft intact and permits a retry', async () => {
+  const { view } = render();
+  await act(async () => view.result.current.setInput('Keep this draft'));
+  refuseQueueing = true;
+  let accepted = true;
+  await act(async () => { accepted = await view.result.current.submitQuestionAnswer('Wait'); });
+  assert.equal(accepted, false);
+  assert.equal(view.result.current.input, 'Keep this draft');
+  refuseQueueing = false;
+  await act(async () => { accepted = await view.result.current.submitQuestionAnswer('Wait'); });
+  assert.equal(accepted, true);
+  assert.equal(queuedOnServer()?.content, 'Wait');
+});

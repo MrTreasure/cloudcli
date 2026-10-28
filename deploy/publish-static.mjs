@@ -7,4 +7,5 @@ import {publishAssets} from '../../cloudflare-sites/scripts/assets.mjs';
 const config=JSON.parse(await readFile(new URL('./static-cdn.json',import.meta.url),'utf8'));
 const site='cloudcli';
 if(config.hosting!=='workers-static-assets'||config.base!==`https://assets.mrtreasure.cc/${site}/v2/`)throw new Error('Invalid static publication scope');
-await publishAssets({site,directory:resolve(import.meta.dirname,'../dist')});
+// Public edge acceptance is opt-in; retain local credential/size gates and asset-before-HTML ordering.
+await publishAssets({site,directory:resolve(import.meta.dirname,'../dist'),verifyPublic:process.env.CLOUDCLI_VERIFY_PUBLIC_ASSETS==='1'});

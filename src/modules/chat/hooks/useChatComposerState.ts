@@ -97,6 +97,10 @@ type CommandExecutionResult = {
 };
 
 type SubmitOptions = {
+  /** A question card sends its own payload without consuming the user's draft, attachments or edit state. */
+  preserveDraft?: boolean;
+  /** Marks the payload accepted by the regular send or persisted queue path. */
+  onAccepted?: () => void;
   /**
    * Send the text as a chat message even when it starts with "/" (or is
    * "help"). Set only for the re-submit of a custom command's expanded body:
@@ -765,9 +769,9 @@ export function useChatComposerState({
   // anything typed since, and the composer says so, rather than showing a card
   // nothing will send.
   const queueMessage = useCallback(
-    async (durableDraft: QueuedDraft, queuedSessionKey: string | null) => {
+    async (durableDraft: QueuedDraft, queuedSessionKey: string | null, preserveDraft = false) => {
       const queuedFromOpenComposer = !queuedSessionKey || sessionKeyRef.current === queuedSessionKey;
-      if (queuedFromOpenComposer) {
+      if (queuedFromOpenComposer && !preserveDraft) {
         setInput('');
         inputValueRef.current = '';
         setAttachedFiles([]);
@@ -780,7 +784,7 @@ export function useChatComposerState({
         if (draftScopeRef.current) {
           writeDraftText(draftScopeRef.current, '');
         }
-      } else if (queuedSessionKey && readDraftText(queuedSessionKey) === durableDraft.content) {
+      } else if (!preserveDraft && queuedSessionKey && readDraftText(queuedSessionKey) === durableDraft.content) {
         // The user changed sessions during the upload. The composer they left
         // still holds the text as its draft: clear it, or going back and
         // pressing Enter would queue the same message a second time.
@@ -815,6 +819,7 @@ export function useChatComposerState({
               : `Failed to queue message: ${message}`,
             timestamp: new Date(),
           });
+          if (preserveDraft) return false;
           const withTypedSince = (typedSince: string) => (
             [durableDraft.content, typedSince].filter((part) => part.trim()).join('\n\n')
           );
@@ -832,7 +837,7 @@ export function useChatComposerState({
             // Browser files cannot follow it into a composer that is not open.
             writeDraftText(queuedSessionKey, withTypedSince(readDraftText(queuedSessionKey)));
           }
-          return;
+          return false;
         }
       }
 
@@ -845,7 +850,7 @@ export function useChatComposerState({
       // sessions meanwhile, the durable record is already enough; do not
       // attach its UI card to the newly opened composer.
       if (queuedSessionKey && sessionKeyRef.current !== queuedSessionKey) {
-        return;
+        return true;
       }
 
       queuedDraftSessionRef.current = queuedSessionKey;
@@ -859,6 +864,7 @@ export function useChatComposerState({
           ? [...previous.attachments, ...queuedCard.attachments]
           : queuedCard.attachments,
       }));
+      return true;
     },
     [addMessage, recordSentMessage, resetCommandMenuState, setInput, t],
   );
@@ -870,6 +876,7 @@ export function useChatComposerState({
       submitOptions?: SubmitOptions,
     ) => {
       event.preventDefault();
+      const submissionAnchorId = submitOptions?.preserveDraft ? null : editingAnchorId;
       const currentInput = queuedSubmission?.content ?? inputValueRef.current;
       const currentAttachments = queuedSubmission?.attachments ?? attachedFiles;
       const previouslyUploadedAttachments = queuedSubmission?.uploadedAttachments ?? [];
@@ -892,7 +899,7 @@ export function useChatComposerState({
         // A run can restart in the tiny gap between scheduling and flushing a
         // queued submission. Put the same durable draft back without uploading
         // its files again.
-        if (queuedSubmission) {
+        if (queuedSubmission && !submitOptions?.preserveDraft) {
           queuedDraftSessionRef.current = sessionKey;
           setQueuedDraft(queuedSubmission);
           return;
@@ -915,12 +922,13 @@ export function useChatComposerState({
           return;
         }
 
-        await queueMessage({
+        const accepted = await queueMessage({
           content: currentInput,
           attachments: currentAttachments,
           uploadedAttachments,
           options: queuedOptions,
-        }, queuedSessionKey);
+        }, queuedSessionKey, submitOptions?.preserveDraft);
+        if (accepted) submitOptions?.onAccepted?.();
         // Immediate insertion is an explicit action on the queued card.
         return;
       }
@@ -1056,18 +1064,19 @@ export function useChatComposerState({
           return;
         }
         if (choice === 'queue') {
-          if (queuedSubmission) {
+          if (queuedSubmission && !submitOptions?.preserveDraft) {
             queuedDraftSessionRef.current = sessionKey;
             setQueuedDraft(queuedSubmission);
             return;
           }
           // Attachments were uploaded above; queue the same descriptors.
-          await queueMessage({
+          const accepted = await queueMessage({
             content: currentInput,
             attachments: currentAttachments,
             uploadedAttachments,
             options: buildSendOptions(currentInput),
-          }, targetSessionId);
+          }, targetSessionId, submitOptions?.preserveDraft);
+          if (accepted) submitOptions?.onAccepted?.();
           return;
         }
       }
@@ -1082,7 +1091,7 @@ export function useChatComposerState({
         // Tags this echo as the replacement, so the truncation the server
         // broadcasts a moment later cuts the turns being replaced without
         // taking the message the user just sent with them.
-        ...(editingAnchorId ? { replacesAnchorId: editingAnchorId } : {}),
+        ...(submissionAnchorId ? { replacesAnchorId: submissionAnchorId } : {}),
       };
 
       addMessage(userMessage);
@@ -1104,35 +1113,38 @@ export function useChatComposerState({
         // Replacing an already-sent message is its own frame: it changes the
         // shape of the conversation, so it gets validated separately and can
         // report why it was refused.
-        type: editingAnchorId ? 'chat.edit-send' : 'chat.send',
+        type: submissionAnchorId ? 'chat.edit-send' : 'chat.send',
         sessionId: targetSessionId,
-        ...(editingAnchorId ? { anchorId: editingAnchorId } : {}),
+        ...(submissionAnchorId ? { anchorId: submissionAnchorId } : {}),
         content: messageContent,
         options: {
           ...submissionOptions,
           attachments: uploadedAttachments,
         },
       });
-      setEditingAnchorId(null);
+      if (!submitOptions?.preserveDraft) setEditingAnchorId(null);
 
       // Recorded under the (possibly just-allocated) session id, so the first
       // message of a new chat lands in the history of the session the user is
       // navigated to. Queued drafts were recorded when they were queued; the
       // consecutive-duplicate check keeps this second call a no-op.
       recordSentMessage(currentInput, targetSessionId);
-      setInput('');
-      inputValueRef.current = '';
-      resetCommandMenuState();
-      setAttachedFiles([]);
-      setFileErrors(new Map());
-      setIsTextareaExpanded(false);
+      submitOptions?.onAccepted?.();
+      if (!submitOptions?.preserveDraft) {
+        setInput('');
+        inputValueRef.current = '';
+        resetCommandMenuState();
+        setAttachedFiles([]);
+        setFileErrors(new Map());
+        setIsTextareaExpanded(false);
 
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto';
-      }
+        if (textareaRef.current) {
+          textareaRef.current.style.height = 'auto';
+        }
 
-      if (draftScopeRef.current) {
-        writeDraftText(draftScopeRef.current, '');
+        if (draftScopeRef.current) {
+          writeDraftText(draftScopeRef.current, '');
+        }
       }
     },
     [
@@ -1194,6 +1206,16 @@ export function useChatComposerState({
 
   useEffect(() => {
     handleSubmitRef.current = handleSubmit;
+  }, [handleSubmit]);
+
+  // Reuse normal auth, model options, background prompts and queue persistence;
+  // async choices never pretend to resolve a blocked native tool request.
+  const submitQuestionAnswer = useCallback(async (content: string): Promise<boolean> => {
+    let accepted = false;
+    await handleSubmit(createFakeSubmitEvent(), { content, attachments: [] }, {
+      preserveDraft: true, skipCommandInterception: true, onAccepted: () => { accepted = true; },
+    });
+    return accepted;
   }, [handleSubmit]);
 
   // Follow merged server messages with the retained visibility-aware polling.
@@ -1612,6 +1634,7 @@ export function useChatComposerState({
     isDragActive,
     openAttachmentPicker: open,
     handleSubmit,
+    submitQuestionAnswer,
     backgroundSendPrompt,
     resolveBackgroundSendPrompt,
     queuedDraft,

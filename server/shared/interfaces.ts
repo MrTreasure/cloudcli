@@ -216,6 +216,15 @@ export interface IProviderSessions {
   fetchHistory(sessionId: string, options?: FetchHistoryOptions): Promise<FetchHistoryResult>;
 
   /**
+   * Removes a provider-native conversation from shared storage when the caller
+   * explicitly requests permanent disk deletion. Takes the provider id, never
+   * an app id or a database filename. Returns false if already absent; throws
+   * on failure so the caller retains its index row and can safely retry.
+   * File-backed providers omit this and use their indexed transcript paths.
+   */
+  deleteFromStorage?(providerSessionId: string): Promise<boolean>;
+
+  /**
    * Resolves where a conversation must resume from so that the turn identified
    * by `anchorId`, and everything after it, is replaced.
    *

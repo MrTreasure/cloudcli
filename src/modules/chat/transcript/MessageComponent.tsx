@@ -12,6 +12,7 @@ import { Reasoning, ReasoningContent, ReasoningTrigger } from '@/modules/chat/tr
 import ChatMessageImages from '@/modules/chat/transcript/ChatMessageImages';
 import ChatMessageFiles from '@/modules/chat/transcript/ChatMessageFiles';
 import { Markdown } from '@/modules/chat/transcript/Markdown';
+import { AsyncQuestionCard } from '@/modules/chat/transcript/AsyncQuestionCard';
 import StreamingMarkdown from '@/modules/chat/transcript/StreamingMarkdown';
 import MessageCopyControl from '@/modules/chat/transcript/MessageCopyControl';
 import MessageModelLabel from '@/modules/chat/transcript/MessageModelLabel';
@@ -354,6 +355,10 @@ const MessageComponent = memo(({ message, prevMessage, createDiff, onFileOpen, s
 
                 {(() => {
                   const content = formattedMessageContent;
+                  if (!isExporting && message.asyncQuestions?.length) {
+                    return <AsyncQuestionCard questions={message.asyncQuestions} answered={message.asyncQuestionAnswered} />;
+                  }
+
 
                   // Detect if content is pure JSON (starts with { or [)
                   const trimmedContent = content.trim();

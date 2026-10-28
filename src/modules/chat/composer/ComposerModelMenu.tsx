@@ -68,7 +68,9 @@ function ComposerModelMenu({
     () => (effortOptions.length > 0 ? [{ value: DEFAULT_EFFORT_VALUE }, ...effortOptions] : []),
     [effortOptions],
   );
-  const effortLabel = effort === DEFAULT_EFFORT_VALUE ? defaultEffortLabel : effort;
+  const effortLabel = effort === DEFAULT_EFFORT_VALUE
+    ? defaultEffortLabel
+    : t(`composer.efforts.${effort}.label`, { defaultValue: effort });
 
   const selectedModelOption = useMemo(
     () => modelOptions.find((option) => option.value === model) ?? null,
@@ -117,7 +119,7 @@ function ComposerModelMenu({
             <>
               <ComposerMenuItem
                 role="switch"
-                label="Fast"
+                label={t('composer.fast', { defaultValue: 'Fast' })}
                 description={codexFastError
                   ? t('input.fast.retry', { defaultValue: 'Failed. Click to retry.' })
                   : t('input.fast.hint', { defaultValue: 'Faster responses · Higher usage' })}
@@ -143,14 +145,17 @@ function ComposerModelMenu({
               {resolvedEffortOptions.map((option) => (
                 <ComposerMenuItem
                   key={option.value}
-                  label={option.value === DEFAULT_EFFORT_VALUE ? defaultEffortLabel : option.value}
-                  description={option.description}
+                  label={option.value === DEFAULT_EFFORT_VALUE
+                    ? defaultEffortLabel
+                    : t(`composer.efforts.${option.value}.label`, { defaultValue: option.value })}
+                  description={option.description
+                    ? t(`composer.efforts.${option.value}.description`, { defaultValue: option.description })
+                    : undefined}
                   isSelected={option.value === effort}
                   onSelect={() => {
                     onSelectEffort(option.value);
                     setIsOpen(false);
                   }}
-                  className="capitalize"
                 />
               ))}
             </>

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import childProcess from 'node:child_process';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -9,6 +10,7 @@ import Database from 'better-sqlite3';
 import { closeConnection, initializeDatabase, sessionsDb } from '@/modules/database/index.js';
 import { OpenCodeSessionSynchronizer } from '@/modules/providers/list/opencode/opencode-session-synchronizer.provider.js';
 import { OpenCodeSessionsProvider } from '@/modules/providers/list/opencode/opencode-sessions.provider.js';
+import { sessionsService } from '@/modules/providers/services/sessions.service.js';
 import { appendImagesInputTag } from '@/shared/image-attachments.js';
 
 const patchHomeDir = (nextHomeDir: string) => {
@@ -676,6 +678,84 @@ test('OpenCode synchronizer keeps the stored title for indexed sessions', { conc
       await new OpenCodeSessionSynchronizer().synchronize();
 
       assert.equal(sessionsDb.getSessionById('oc-indexed-1')?.custom_name, 'OpenCode generated title');
+    });
+  } finally {
+    restoreHomeDir();
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+
+test('permanent OpenCode deletion removes native storage and stays absent after repeated full synchronization', { concurrency: false }, async (context) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'opencode-delete-'));
+  const restoreHomeDir = patchHomeDir(tempRoot);
+  const workspacePath = path.join(tempRoot, 'workspace');
+  const databasePath = path.join(tempRoot, '.local', 'share', 'opencode', 'opencode.db');
+  try {
+    await createOpenCodeDatabase(tempRoot, workspacePath);
+    const native = new Database(databasePath);
+    native.prepare(`INSERT INTO session (id, project_id, slug, directory, title, version, time_created, time_updated)
+      SELECT 'other-session', project_id, 'other-session', directory, title, version, time_created, time_updated FROM session WHERE id = ?`).run('open-session-1');
+    native.close();
+    context.mock.method(childProcess, 'spawn', (...args: unknown[]) => {
+      assert.equal(args[0], 'opencode');
+      assert.deepEqual(args[1], ['--pure', 'session', 'delete', 'open-session-1']);
+      const db = new Database(databasePath);
+      db.prepare('DELETE FROM session WHERE id = ?').run('open-session-1');
+      db.close();
+      const child = new childProcess.ChildProcess();
+      queueMicrotask(() => child.emit('close', 0, null));
+      return child;
+    });
+    await withIsolatedDatabase(async () => {
+      // The app id differs from the provider id; deletion must use the native id.
+      sessionsDb.createAppSession('app-session', 'opencode', workspacePath);
+      sessionsDb.assignProviderSessionId('app-session', 'open-session-1');
+      const synchronizer = new OpenCodeSessionSynchronizer();
+      await synchronizer.synchronize();
+      const result = await sessionsService.deleteOrArchiveSessionById('app-session', { force: true, deletedFromDisk: true });
+      assert.equal(result.deletedFromDisk, true);
+      for (let i = 0; i < 2; i++) await new OpenCodeSessionSynchronizer().synchronize();
+      assert.equal(sessionsDb.getSessionById('app-session'), null);
+      assert.equal(sessionsDb.getSessionByProviderSessionId('open-session-1'), null);
+      assert.ok(sessionsDb.getSessionByProviderSessionId('other-session'));
+      assert.equal(await new OpenCodeSessionsProvider().deleteFromStorage('open-session-1'), false);
+    });
+  } finally {
+    restoreHomeDir();
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});
+
+test('OpenCode deletion retains its app index when the CLI fails or leaves native storage unchanged', { concurrency: false }, async (context) => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'opencode-delete-failure-'));
+  const restoreHomeDir = patchHomeDir(tempRoot);
+  let cliFails = true;
+  let calls = 0;
+  try {
+    await createOpenCodeDatabase(tempRoot, tempRoot);
+    context.mock.method(childProcess, 'spawn', (...args: unknown[]) => {
+      calls++;
+      const child = new childProcess.ChildProcess();
+      queueMicrotask(() => {
+        if (cliFails) child.emit('error', new Error('mock CLI failure'));
+        else child.emit('close', 0, null);
+      });
+      return child;
+    });
+    await withIsolatedDatabase(async () => {
+      await new OpenCodeSessionSynchronizer().synchronize();
+      // Archiving and index-only deletion never invoke provider disk deletion.
+      await sessionsService.deleteOrArchiveSessionById('open-session-1');
+      assert.equal(calls, 0);
+      assert.equal(sessionsDb.getSessionById('open-session-1')?.isArchived, 1);
+      await assert.rejects(sessionsService.deleteOrArchiveSessionById('open-session-1', { force: true, deletedFromDisk: true }), /could not delete/);
+      assert.ok(sessionsDb.getSessionById('open-session-1'));
+      cliFails = false;
+      await assert.rejects(sessionsService.deleteOrArchiveSessionById('open-session-1', { force: true, deletedFromDisk: true }), /still contains/);
+      assert.ok(sessionsDb.getSessionById('open-session-1'));
+      await sessionsService.deleteOrArchiveSessionById('open-session-1', { force: true, deletedFromDisk: false });
+      assert.equal(calls, 2);
     });
   } finally {
     restoreHomeDir();

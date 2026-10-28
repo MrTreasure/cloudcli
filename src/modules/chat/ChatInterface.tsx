@@ -224,6 +224,7 @@ function ChatInterface({
     isDragActive,
     openAttachmentPicker,
     handleSubmit,
+    submitQuestionAnswer,
     backgroundSendPrompt,
     resolveBackgroundSendPrompt,
     queuedDraft,
@@ -402,7 +403,7 @@ function ChatInterface({
   }), [selectedProject?.projectId]);
 
   // Lets a workflow card fetch its agents' timelines for this session.
-  const transcriptSessionValue = useMemo(() => ({ sessionId: currentSessionId }), [currentSessionId]);
+  const transcriptSessionValue = useMemo(() => ({ sessionId: currentSessionId, answerQuestion: submitQuestionAnswer }), [currentSessionId, submitQuestionAnswer]);
 
   // A composer pick becomes the default for new chats and, when a session is
   // open, is recorded against that session so reopening it restores this model.

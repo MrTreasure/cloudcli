@@ -278,7 +278,10 @@ function dedupeAdjacentAssistantEchoes(merged: NormalizedMessage[]): NormalizedM
       ) {
         const ms = (m.content || '').trim();
         if (ms.length > 0 && ms === (prev.content || '').trim()) {
-          continue;
+          // A finalized stream can precede the same text with native question
+          // metadata. Keep the interactive row instead of dropping its choices.
+          if (m.asyncQuestions?.length && !prev.asyncQuestions?.length) out[out.length - 1] = m;
+          if (!m.asyncQuestions?.length || !prev.asyncQuestions?.length || m.id === prev.id) continue;
         }
       }
     }

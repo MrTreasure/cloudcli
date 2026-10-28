@@ -34,6 +34,9 @@ export function WorkspaceFileLink({ reference, href, children }: WorkspaceFileLi
   const isDirectory = filePath.endsWith('/');
   const filename = filePath.split(/[\\/]/).pop() || filePath;
   const downloadLabel = t('fileLinks.download', { name: filename });
+  // Match the editor's preview support: text and supported media only open;
+  // unsupported binary formats expose download instead.
+  const requiresDownload = !isDirectory && isBinaryFile(filename) && !getPreviewKind(filename);
 
   const download = async () => {
     if (!projectId || isDownloading) return;
@@ -76,13 +79,13 @@ export function WorkspaceFileLink({ reference, href, children }: WorkspaceFileLi
         onClick={(event) => {
           event.preventDefault();
           if (isDirectory) openDirectory(filePath);
-          else if (projectId && isBinaryFile(filename) && !getPreviewKind(filename)) void download();
+          else if (projectId && requiresDownload) void download();
           else openFileInEditor(filePath, line ? Number(line[1]) : null);
         }}
       >
         {children}
       </a>
-      {!isDirectory && projectId && (
+      {requiresDownload && projectId && (
         <button
           type="button"
           onClick={() => void download()}

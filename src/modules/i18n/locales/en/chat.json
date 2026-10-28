@@ -1,4 +1,11 @@
 {
+  "asyncQuestions": {
+    "other": "Your own answer",
+    "submit": "Send answer",
+    "submitting": "Submitting…",
+    "answered": "Question closed",
+    "failed": "Answer was not submitted. Try again."
+  },
   "fileLinks": {
     "downloadAction": "Download",
     "download": "Download {{name}}",
@@ -208,7 +215,34 @@
       "cancel": "Cancel"
     },
     "permissionCycleHint": "Press Tab in the message box to switch modes",
-    "permissionTriggerLabel": "{{mode}}: {{heading}}"
+    "permissionTriggerLabel": "{{mode}}: {{heading}}",
+    "fast": "Fast",
+    "efforts": {
+      "low": {
+        "label": "Low",
+        "description": "Fast responses with lighter reasoning"
+      },
+      "medium": {
+        "label": "Medium",
+        "description": "Balances speed and reasoning depth for everyday tasks"
+      },
+      "high": {
+        "label": "High",
+        "description": "Greater reasoning depth for complex problems"
+      },
+      "xhigh": {
+        "label": "Extra high",
+        "description": "Extra high reasoning depth for complex problems"
+      },
+      "max": {
+        "label": "Max",
+        "description": "Maximum reasoning depth for the hardest problems"
+      },
+      "ultra": {
+        "label": "Ultra",
+        "description": "Maximum reasoning with automatic task delegation"
+      }
+    }
   },
   "providerSelection": {
     "title": "Choose Your AI Assistant",

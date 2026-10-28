@@ -80,6 +80,8 @@ export type ProviderModelOption = {
   recordId?: number;
   /** True for user-created rows; false for immutable CloudCLI defaults. */
   isCustom?: boolean;
+  /** Confirmed by the configured gateway catalog; independent of saved manual overrides. */
+  isDiscovered?: boolean;
   effort?: {
     default?: string;
     values: {
@@ -316,7 +318,13 @@ export type CompactionInfo = {
   error?: string | null;
 };
 
+/** An async model question delivered as a chat message; answering sends a regular follow-up rather than resolving a blocked tool call. */
+export type AsyncUserInputQuestion = { title: string; options?: string[] | null };
+
+/** Shared serialized envelope for provider messages, including optional native question metadata. */
 export type NormalizedMessage = {
+  /** Structured async questions, preserved for live delivery and history reload. */
+  asyncQuestions?: AsyncUserInputQuestion[];
   id: string;
   /**
    * The provider's own identifier for the transcript row this message came
