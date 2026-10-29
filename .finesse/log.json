@@ -1,0 +1,11 @@
+[
+  {
+    "date": "2026-10-29",
+    "target": "subAgent",
+    "register": "product/ai-console",
+    "palette": "existing CloudCLI neutral and semantic tokens",
+    "layout": "compact project activity strip and split task inspector",
+    "motion": "feedback only",
+    "images": "none"
+  }
+]

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import DOMPurify from 'dompurify';
+import { Bot } from 'lucide-react';
 
 import { api } from '@/shared/api';
 
@@ -56,7 +57,8 @@ function sanitizeSvg(svgText: string): string | null {
 
 /** Used by the project-workspace module's tab bar and by this module's PluginSettingsTab to show a plugin's icon. */
 export default function PluginIcon({ pluginName, iconFile, className }: Props) {
-  const url = iconFile ? api.plugins.assetUrl(pluginName, iconFile) : '';
+  const isNativeCodexAgents = pluginName === 'codex-agents';
+  const url = iconFile && !isNativeCodexAgents ? api.plugins.assetUrl(pluginName, iconFile) : '';
   const [svg, setSvg] = useState<string | null>(url ? (svgCache.get(url) ?? null) : null);
 
   useEffect(() => {
@@ -77,6 +79,7 @@ export default function PluginIcon({ pluginName, iconFile, className }: Props) {
       .catch(() => {});
   }, [url, pluginName, iconFile]);
 
+  if (isNativeCodexAgents) return <Bot className={className} aria-hidden="true" />;
   if (!svg) return <span className={className} />;
 
   return (

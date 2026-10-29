@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import type { AppTab, Project, ProjectSession } from '@/shared/types';
 import { cn } from '@/shared/utils';
+import { CodexAgentsActivity } from '@/modules/codex-agents';
 import MobileMenuButton from '@/modules/project-workspace/MobileMenuButton';
 import WorkspaceConnectionStatus from '@/modules/project-workspace/WorkspaceConnectionStatus';
 import WorkspaceTabs from '@/modules/project-workspace/WorkspaceTabs';
@@ -157,6 +158,7 @@ export default function WorkspaceHeader({
           </div>
         </div>
       </div>
+      <CodexAgentsActivity onOpen={() => setActiveTab('plugin:codex-agents')} />
     </header>
   );
 }

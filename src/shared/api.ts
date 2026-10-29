@@ -469,6 +469,8 @@ export const api = {
       post(`/api/providers/${encodeURIComponent(provider)}/cli/update`),
     claudeSettingsPermissions: () => get('/api/providers/claude/settings-permissions'),
 
+    answerAsyncQuestion: (sessionId: string, content: string, requestId: string) =>
+      post(`/api/providers/sessions/${encodeURIComponent(sessionId)}/answer`, { content, requestId }),
     models: (provider: string) => get(`/api/providers/${provider}/models`),
     createModel: (provider: string, input: unknown) =>
       post(`/api/providers/${provider}/models`, input),

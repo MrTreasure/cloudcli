@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`e725601899a9c2fddfc72bd533629329b915832a`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`9139e428b139909a570ef6ab472ccaaeccdd9bd3`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,41 +10,44 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
+| A | [.finesse/log.json](../../.finesse/log.json) | — |
 | M | [deploy/README.md](../../deploy/README.md) | — |
-| M | [deploy/publish-static.mjs](../../deploy/publish-static.mjs) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
+| A | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
+| A | [local-plugins/cloudcli-codex-agents/manifest.json](../../local-plugins/cloudcli-codex-agents/manifest.json) | — |
+| A | [local-plugins/cloudcli-codex-agents/package.json](../../local-plugins/cloudcli-codex-agents/package.json) | — |
+| A | [local-plugins/cloudcli-codex-agents/pnpm-lock.yaml](../../local-plugins/cloudcli-codex-agents/pnpm-lock.yaml) | — |
+| A | [local-plugins/cloudcli-codex-agents/pnpm-workspace.yaml](../../local-plugins/cloudcli-codex-agents/pnpm-workspace.yaml) | — |
+| A | [local-plugins/cloudcli-codex-agents/src/history.ts](../../local-plugins/cloudcli-codex-agents/src/history.ts) | — |
+| A | [local-plugins/cloudcli-codex-agents/src/index.ts](../../local-plugins/cloudcli-codex-agents/src/index.ts) | — |
+| A | [local-plugins/cloudcli-codex-agents/src/reader.ts](../../local-plugins/cloudcli-codex-agents/src/reader.ts) | — |
+| A | [local-plugins/cloudcli-codex-agents/src/server.ts](../../local-plugins/cloudcli-codex-agents/src/server.ts) | — |
+| A | [local-plugins/cloudcli-codex-agents/tsconfig.json](../../local-plugins/cloudcli-codex-agents/tsconfig.json) | — |
+| M | [local-plugins/cloudcli-host-dashboard/src/server.ts](../../local-plugins/cloudcli-host-dashboard/src/server.ts) | — |
+| M | [server/modules/plugins/plugin-process.service.ts](../../server/modules/plugins/plugin-process.service.ts) | — |
+| M | [server/modules/plugins/plugins.routes.ts](../../server/modules/plugins/plugins.routes.ts) | — |
+| M | [server/modules/plugins/tests/plugins.service.test.ts](../../server/modules/plugins/tests/plugins.service.test.ts) | — |
 | M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
-| M | [server/modules/providers/list/codex/codex-models.provider.ts](../../server/modules/providers/list/codex/codex-models.provider.ts) | — |
-| M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
-| M | [server/modules/providers/list/opencode/opencode-sessions.provider.ts](../../server/modules/providers/list/opencode/opencode-sessions.provider.ts) | — |
-| M | [server/modules/providers/services/provider-models.service.ts](../../server/modules/providers/services/provider-models.service.ts) | — |
-| M | [server/modules/providers/services/sessions.service.ts](../../server/modules/providers/services/sessions.service.ts) | — |
+| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
+| M | [server/modules/providers/services/provider-runtime.service.ts](../../server/modules/providers/services/provider-runtime.service.ts) | — |
 | M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
-| M | [server/modules/providers/tests/codex-models.test.ts](../../server/modules/providers/tests/codex-models.test.ts) | — |
-| M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
-| M | [server/modules/providers/tests/opencode-sessions.test.ts](../../server/modules/providers/tests/opencode-sessions.test.ts) | — |
-| M | [server/modules/providers/tests/provider-models.service.test.ts](../../server/modules/providers/tests/provider-models.service.test.ts) | — |
-| M | [server/shared/interfaces.ts](../../server/shared/interfaces.ts) | — |
-| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
-| M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
-| M | [src/modules/chat/composer/ComposerModelMenu.tsx](../../src/modules/chat/composer/ComposerModelMenu.tsx) | — |
-| M | [src/modules/chat/composer/ModelGroupList.tsx](../../src/modules/chat/composer/ModelGroupList.tsx) | — |
+| M | [server/modules/providers/tests/provider.routes.test.ts](../../server/modules/providers/tests/provider.routes.test.ts) | — |
 | M | [src/modules/chat/context/TranscriptSessionContext.ts](../../src/modules/chat/context/TranscriptSessionContext.ts) | — |
 | M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
-| M | [src/modules/chat/hooks/useChatMessages.ts](../../src/modules/chat/hooks/useChatMessages.ts) | — |
-| M | [src/modules/chat/hooks/useChatProviderState.ts](../../src/modules/chat/hooks/useChatProviderState.ts) | — |
-| M | [src/modules/chat/hooks/useSessionStore.ts](../../src/modules/chat/hooks/useSessionStore.ts) | — |
-| M | [src/modules/chat/modals/CommandResultModal.tsx](../../src/modules/chat/modals/CommandResultModal.tsx) | — |
-| A | [src/modules/chat/tests/AsyncQuestionCard.test.tsx](../../src/modules/chat/tests/AsyncQuestionCard.test.tsx) | — |
-| M | [src/modules/chat/tests/chatProviderModels.test.ts](../../src/modules/chat/tests/chatProviderModels.test.ts) | — |
+| M | [src/modules/chat/tests/AsyncQuestionCard.test.tsx](../../src/modules/chat/tests/AsyncQuestionCard.test.tsx) | — |
 | M | [src/modules/chat/tests/composerQueuedFollowUps.test.ts](../../src/modules/chat/tests/composerQueuedFollowUps.test.ts) | — |
-| M | [src/modules/chat/tests/fileReferenceLinks.test.tsx](../../src/modules/chat/tests/fileReferenceLinks.test.tsx) | — |
-| A | [src/modules/chat/transcript/AsyncQuestionCard.tsx](../../src/modules/chat/transcript/AsyncQuestionCard.tsx) | — |
-| M | [src/modules/chat/transcript/MessageComponent.tsx](../../src/modules/chat/transcript/MessageComponent.tsx) | — |
-| M | [src/modules/chat/transcript/WorkspaceFileLink.tsx](../../src/modules/chat/transcript/WorkspaceFileLink.tsx) | — |
-| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/chat.json](../../src/modules/i18n/locales/zh-TW/chat.json) | — |
+| M | [src/modules/chat/transcript/AsyncQuestionCard.tsx](../../src/modules/chat/transcript/AsyncQuestionCard.tsx) | — |
+| A | [src/modules/codex-agents/CodexAgentsActivity.tsx](../../src/modules/codex-agents/CodexAgentsActivity.tsx) | — |
+| A | [src/modules/codex-agents/CodexAgentsPanel.tsx](../../src/modules/codex-agents/CodexAgentsPanel.tsx) | — |
+| A | [src/modules/codex-agents/CodexAgentsPlugin.tsx](../../src/modules/codex-agents/CodexAgentsPlugin.tsx) | — |
+| A | [src/modules/codex-agents/context/CodexAgentsContext.tsx](../../src/modules/codex-agents/context/CodexAgentsContext.tsx) | — |
+| A | [src/modules/codex-agents/index.ts](../../src/modules/codex-agents/index.ts) | — |
+| A | [src/modules/codex-agents/tests/codexAgentsState.test.tsx](../../src/modules/codex-agents/tests/codexAgentsState.test.tsx) | — |
+| M | [src/modules/plugins/PluginIcon.tsx](../../src/modules/plugins/PluginIcon.tsx) | — |
+| M | [src/modules/plugins/PluginTabContent.tsx](../../src/modules/plugins/PluginTabContent.tsx) | — |
+| M | [src/modules/project-workspace/WorkspaceHeader.tsx](../../src/modules/project-workspace/WorkspaceHeader.tsx) | — |
+| M | [src/modules/project-workspace/WorkspaceMain.tsx](../../src/modules/project-workspace/WorkspaceMain.tsx) | — |
+| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
 | M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 
 ## NAS 主线提交
@@ -1024,6 +1027,50 @@
   - `src/shared/hooks/useVersionCheck.ts`
   - `src/shared/tests/useVersionCheck.test.tsx`
   - `src/shared/tests/versionApi.test.ts`
+
+### 9139e428 · 2026-10-28 · fix(chat): sync gateway models and restore interactive workflows
+
+- 完整提交：`9139e428b139909a570ef6ab472ccaaeccdd9bd3`
+- 相对第一父提交涉及文件：
+
+  - `deploy/README.md`
+  - `deploy/publish-static.mjs`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `server/modules/providers/list/codex/codex-app-server.runtime.ts`
+  - `server/modules/providers/list/codex/codex-models.provider.ts`
+  - `server/modules/providers/list/codex/codex-sessions.provider.ts`
+  - `server/modules/providers/list/opencode/opencode-sessions.provider.ts`
+  - `server/modules/providers/services/provider-models.service.ts`
+  - `server/modules/providers/services/sessions.service.ts`
+  - `server/modules/providers/tests/codex-app-server.runtime.test.ts`
+  - `server/modules/providers/tests/codex-models.test.ts`
+  - `server/modules/providers/tests/codex-sessions.test.ts`
+  - `server/modules/providers/tests/opencode-sessions.test.ts`
+  - `server/modules/providers/tests/provider-models.service.test.ts`
+  - `server/shared/interfaces.ts`
+  - `server/shared/types.ts`
+  - `src/modules/chat/ChatInterface.tsx`
+  - `src/modules/chat/composer/ComposerModelMenu.tsx`
+  - `src/modules/chat/composer/ModelGroupList.tsx`
+  - `src/modules/chat/context/TranscriptSessionContext.ts`
+  - `src/modules/chat/hooks/useChatComposerState.ts`
+  - `src/modules/chat/hooks/useChatMessages.ts`
+  - `src/modules/chat/hooks/useChatProviderState.ts`
+  - `src/modules/chat/hooks/useSessionStore.ts`
+  - `src/modules/chat/modals/CommandResultModal.tsx`
+  - `src/modules/chat/tests/AsyncQuestionCard.test.tsx`
+  - `src/modules/chat/tests/chatProviderModels.test.ts`
+  - `src/modules/chat/tests/composerQueuedFollowUps.test.ts`
+  - `src/modules/chat/tests/fileReferenceLinks.test.tsx`
+  - `src/modules/chat/transcript/AsyncQuestionCard.tsx`
+  - `src/modules/chat/transcript/MessageComponent.tsx`
+  - `src/modules/chat/transcript/WorkspaceFileLink.tsx`
+  - `src/modules/i18n/locales/en/chat.json`
+  - `src/modules/i18n/locales/zh-CN/chat.json`
+  - `src/modules/i18n/locales/zh-TW/chat.json`
+  - `src/shared/types.ts`
 
 ## 从 PR / 其他分支合入的提交
 

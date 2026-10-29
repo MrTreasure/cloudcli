@@ -764,6 +764,16 @@ router.post(
 );
 
 /** Image policy follows the stable application session across native context handoffs. */
+router.post('/sessions/:sessionId/answer', asyncHandler(async (req: Request, res: Response) => {
+  const content = typeof req.body?.content === 'string' ? req.body.content : '';
+  const requestId = typeof req.body?.requestId === 'string' ? req.body.requestId : '';
+  if (!content.trim() || content.length > 100_000 || !/^[a-zA-Z0-9_-]{1,128}$/.test(requestId)) {
+    throw new AppError('A nonempty answer and valid request id are required.', { code: 'INVALID_ANSWER', statusCode: 400 });
+  }
+  await providerRuntimeService.answerAsyncQuestion(readPathParam(req.params.sessionId, 'sessionId'), content, requestId);
+  res.json(createApiSuccessResponse({ status: 'inserted' }));
+}));
+
 router.get('/sessions/:sessionId/image-context', asyncHandler(async (req: Request, res: Response) => {
   res.json(createApiSuccessResponse(await codexImageContextService.describe(parseSessionId(req.params.sessionId))));
 }));

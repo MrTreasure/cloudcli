@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`e725601899a9c2fddfc72bd533629329b915832a`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`9139e428b139909a570ef6ab472ccaaeccdd9bd3`。
 
-记录基线与当前暂存树之间的全部净差异，共 322 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 345 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -10,6 +10,7 @@
 | --- | --- | --- |
 | A | [.dockerignore](../../.dockerignore) | — |
 | M | [.env.example](../../.env.example) | — |
+| A | [.finesse/log.json](../../.finesse/log.json) | — |
 | M | [.husky/pre-commit](../../.husky/pre-commit) | — |
 | M | [.oxlintrc.json](../../.oxlintrc.json) | — |
 | M | [AGENTS.md](../../AGENTS.md) | — |
@@ -39,6 +40,16 @@
 | A | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
 | A | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
 | M | [index.html](../../index.html) | — |
+| A | [local-plugins/cloudcli-codex-agents/manifest.json](../../local-plugins/cloudcli-codex-agents/manifest.json) | — |
+| A | [local-plugins/cloudcli-codex-agents/package.json](../../local-plugins/cloudcli-codex-agents/package.json) | — |
+| A | [local-plugins/cloudcli-codex-agents/pnpm-lock.yaml](../../local-plugins/cloudcli-codex-agents/pnpm-lock.yaml) | — |
+| A | [local-plugins/cloudcli-codex-agents/pnpm-workspace.yaml](../../local-plugins/cloudcli-codex-agents/pnpm-workspace.yaml) | — |
+| A | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
+| A | [local-plugins/cloudcli-codex-agents/src/history.ts](../../local-plugins/cloudcli-codex-agents/src/history.ts) | — |
+| A | [local-plugins/cloudcli-codex-agents/src/index.ts](../../local-plugins/cloudcli-codex-agents/src/index.ts) | — |
+| A | [local-plugins/cloudcli-codex-agents/src/reader.ts](../../local-plugins/cloudcli-codex-agents/src/reader.ts) | — |
+| A | [local-plugins/cloudcli-codex-agents/src/server.ts](../../local-plugins/cloudcli-codex-agents/src/server.ts) | — |
+| A | [local-plugins/cloudcli-codex-agents/tsconfig.json](../../local-plugins/cloudcli-codex-agents/tsconfig.json) | — |
 | A | [local-plugins/cloudcli-host-dashboard/icon.svg](../../local-plugins/cloudcli-host-dashboard/icon.svg) | — |
 | A | [local-plugins/cloudcli-host-dashboard/manifest.json](../../local-plugins/cloudcli-host-dashboard/manifest.json) | — |
 | A | [local-plugins/cloudcli-host-dashboard/package.json](../../local-plugins/cloudcli-host-dashboard/package.json) | — |
@@ -104,6 +115,9 @@
 | M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
 | M | [server/modules/notifications/index.ts](../../server/modules/notifications/index.ts) | — |
 | M | [server/modules/notifications/services/notification-orchestrator.service.js](../../server/modules/notifications/services/notification-orchestrator.service.js) | — |
+| M | [server/modules/plugins/plugin-process.service.ts](../../server/modules/plugins/plugin-process.service.ts) | — |
+| M | [server/modules/plugins/plugins.routes.ts](../../server/modules/plugins/plugins.routes.ts) | — |
+| M | [server/modules/plugins/tests/plugins.service.test.ts](../../server/modules/plugins/tests/plugins.service.test.ts) | — |
 | M | [server/modules/projects/project-clone.routes.ts](../../server/modules/projects/project-clone.routes.ts) | — |
 | M | [server/modules/providers/list/codex/codex-app-server.client.ts](../../server/modules/providers/list/codex/codex-app-server.client.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.config.ts](../../server/modules/providers/list/codex/codex-app-server.config.ts) | — |
@@ -220,6 +234,12 @@
 | M | [src/modules/code-editor/hooks/useCodeEditorDocument.ts](../../src/modules/code-editor/hooks/useCodeEditorDocument.ts) | — |
 | D | [src/modules/code-editor/utils/binaryFile.ts](../../src/modules/code-editor/utils/binaryFile.ts) | — |
 | D | [src/modules/code-editor/utils/previewableFile.ts](../../src/modules/code-editor/utils/previewableFile.ts) | — |
+| A | [src/modules/codex-agents/CodexAgentsActivity.tsx](../../src/modules/codex-agents/CodexAgentsActivity.tsx) | — |
+| A | [src/modules/codex-agents/CodexAgentsPanel.tsx](../../src/modules/codex-agents/CodexAgentsPanel.tsx) | — |
+| A | [src/modules/codex-agents/CodexAgentsPlugin.tsx](../../src/modules/codex-agents/CodexAgentsPlugin.tsx) | — |
+| A | [src/modules/codex-agents/context/CodexAgentsContext.tsx](../../src/modules/codex-agents/context/CodexAgentsContext.tsx) | — |
+| A | [src/modules/codex-agents/index.ts](../../src/modules/codex-agents/index.ts) | — |
+| A | [src/modules/codex-agents/tests/codexAgentsState.test.tsx](../../src/modules/codex-agents/tests/codexAgentsState.test.tsx) | — |
 | M | [src/modules/command-palette/CommandPalette.tsx](../../src/modules/command-palette/CommandPalette.tsx) | — |
 | M | [src/modules/file-tree/FileTree.tsx](../../src/modules/file-tree/FileTree.tsx) | — |
 | M | [src/modules/file-tree/FileTreeNode.tsx](../../src/modules/file-tree/FileTreeNode.tsx) | — |
@@ -286,10 +306,13 @@
 | M | [src/modules/i18n/locales/zh-TW/common.json](../../src/modules/i18n/locales/zh-TW/common.json) | — |
 | M | [src/modules/i18n/locales/zh-TW/settings.json](../../src/modules/i18n/locales/zh-TW/settings.json) | — |
 | M | [src/modules/i18n/locales/zh-TW/sidebar.json](../../src/modules/i18n/locales/zh-TW/sidebar.json) | — |
+| M | [src/modules/plugins/PluginIcon.tsx](../../src/modules/plugins/PluginIcon.tsx) | — |
 | M | [src/modules/plugins/PluginTabContent.tsx](../../src/modules/plugins/PluginTabContent.tsx) | — |
 | A | [src/modules/plugins/tests/hostDashboardPolling.test.ts](../../src/modules/plugins/tests/hostDashboardPolling.test.ts) | — |
 | M | [src/modules/plugins/tests/pluginGitErrors.test.tsx](../../src/modules/plugins/tests/pluginGitErrors.test.tsx) | — |
 | M | [src/modules/project-workspace/ProjectWorkspaceRoute.tsx](../../src/modules/project-workspace/ProjectWorkspaceRoute.tsx) | — |
+| M | [src/modules/project-workspace/WorkspaceHeader.tsx](../../src/modules/project-workspace/WorkspaceHeader.tsx) | — |
+| M | [src/modules/project-workspace/WorkspaceMain.tsx](../../src/modules/project-workspace/WorkspaceMain.tsx) | — |
 | M | [src/modules/quick-settings-panel/QuickSettingsPanelView.tsx](../../src/modules/quick-settings-panel/QuickSettingsPanelView.tsx) | — |
 | M | [src/modules/settings/hooks/useSettingsController.ts](../../src/modules/settings/hooks/useSettingsController.ts) | — |
 | M | [src/modules/settings/Settings.tsx](../../src/modules/settings/Settings.tsx) | — |

@@ -12,8 +12,8 @@ import { closeConnection, initializeDatabase, sessionsDb } from '@/modules/datab
 import providerRouter from '@/modules/providers/provider.routes.js';
 import { providerRuntimeService } from '@/modules/providers/services/provider-runtime.service.js';
 import { providerRegistry } from '@/modules/providers/provider.registry.js';
-import type { IProvider } from '@/shared/interfaces.js';
-import type { BackgroundTaskSummary, WorkflowAgentActivity } from '@/shared/types.js';
+import type { IProvider, IProviderRuntime } from '@/shared/interfaces.js';
+import type { BackgroundTaskSummary, ProviderSteerInput, WorkflowAgentActivity } from '@/shared/types.js';
 import { AppError, IS_PLATFORM } from '@/shared/utils.js';
 
 async function withProviderServer(
@@ -650,5 +650,32 @@ test('Codex Fast persists on stable app ids, defaults off and validates writes',
     assert.equal((await patch('missing-fast-session', true)).status, 404);
     const claude = await create('claude');
     assert.equal((await patch(claude, true)).status, 400);
+  });
+});
+
+
+test('async question answers use native steering without queueing or aborting', async (t) => {
+  const runtime = providerRegistry.resolveProvider('codex').runtime as IProviderRuntime
+    & Required<Pick<IProviderRuntime, 'activeTurnToken' | 'steer'>>;
+  let token: string | null = 'test-active-turn';
+  const originalActiveTurnToken = runtime.activeTurnToken;
+  const originalSteer = runtime.steer;
+  const inserted: ProviderSteerInput[] = [];
+  runtime.activeTurnToken = () => token;
+  runtime.steer = async (input) => { inserted.push(input); };
+  t.after(() => { runtime.activeTurnToken = originalActiveTurnToken; runtime.steer = originalSteer; });
+  await withProviderServer(async (baseUrl, workspacePath) => {
+    sessionsDb.createAppSession('answer-session', 'codex', workspacePath);
+    const send = (body: unknown) => fetch(`${baseUrl}/api/providers/sessions/answer-session/answer`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    });
+    assert.equal((await send({ content: 'Which group?\nFirst', requestId: 'answer-1' })).status, 200);
+    assert.equal(inserted.length, 1);
+    assert.deepEqual(inserted[0], { sessionId: 'answer-session', activeTurnToken: 'test-active-turn', content: 'Which group?\nFirst', attachments: [], messageId: 'answer-1' });
+    assert.equal((await send({ content: '', requestId: 'answer-2' })).status, 400);
+    assert.equal((await send({ content: 'First', requestId: 'bad id' })).status, 400);
+    token = null;
+    assert.equal((await send({ content: 'First', requestId: 'answer-3' })).status, 409);
+    assert.equal(inserted.length, 1);
   });
 });

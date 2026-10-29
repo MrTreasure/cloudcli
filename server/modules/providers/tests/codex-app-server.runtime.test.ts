@@ -1255,13 +1255,16 @@ test('native steering targets the accepted turn, keeps it running and emits one 
   await assert.rejects(runtime.steer({ sessionId: 'plan-app', activeTurnToken: 'stale', content: 'wrong turn', attachments: [], messageId: 'stale' }), { code: 'ACTIVE_TURN_CHANGED' });
   await assert.rejects(runtime.steer({ sessionId: 'another-session', activeTurnToken: token, content: 'wrong session', attachments: [], messageId: 'other' }), { code: 'NO_ACTIVE_TURN' });
   const inserted = runtime.steer({ sessionId: 'plan-app', activeTurnToken: token, content: 'also check tests', attachments: [{ path: '/uploads/check.txt', mimeType: 'text/plain' }], messageId: 'insert-1' });
+  const repeated = runtime.steer({ sessionId: 'plan-app', activeTurnToken: token, content: 'also check tests', attachments: [{ path: '/uploads/check.txt', mimeType: 'text/plain' }], messageId: 'insert-1' });
   const request = await harness.nextRequest();
   assert.equal(request.method, 'turn/steer');
   assert.equal((request.params as AnyRecord).threadId, 'thread-new');
   assert.equal((request.params as AnyRecord).expectedTurnId, 'turn-1');
   assert.match(JSON.stringify((request.params as AnyRecord).input), /check.txt/);
   harness.respondWithResult(request, { turnId: 'turn-1' });
-  await inserted;
+  await Promise.all([inserted, repeated]);
+  await runtime.steer({ sessionId: 'plan-app', activeTurnToken: token, content: 'also check tests', attachments: [{ path: '/uploads/check.txt', mimeType: 'text/plain' }], messageId: 'insert-1' });
+  await assert.rejects(runtime.steer({ sessionId: 'plan-app', activeTurnToken: token, content: 'changed answer', attachments: [], messageId: 'insert-1' }), { code: 'ANSWER_CHANGED' });
   harness.notify('item/completed', { threadId: 'thread-new', turnId: 'turn-1', item: { id: 'native-user', type: 'userMessage', content: [{ type: 'inputText', text: 'also check tests' }] } });
   await new Promise<void>((resolve) => setImmediate(resolve));
   assert.equal(output.messages.filter((m) => m.kind === 'text' && m.role === 'user').length, 1);
@@ -1286,6 +1289,7 @@ test('steering rejection and ambiguous acknowledgements never emit a false user 
   const unknown = assert.rejects(ambiguous, { code: 'STEER_OUTCOME_UNKNOWN' });
   harness.respondWithResult(await harness.nextRequest(), { turnId: 'unexpected' });
   await unknown;
+  await assert.rejects(runtime.steer(input), { code: 'STEER_OUTCOME_UNKNOWN' });
   assert.equal(output.messages.filter((m) => m.role === 'user').length, 0);
   harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-1', status: 'interrupted' } });
   await runPromise;

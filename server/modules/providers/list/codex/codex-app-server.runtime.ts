@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import {
   appendFilesInputTag,
@@ -39,6 +39,7 @@ type AppServerRun = {
   threadId: string;
   turnId: string | null;
   activeTurnToken: string;
+  insertions: Map<string, { fingerprint: string; result: Promise<void> }>;
   workingDirectory: string;
   writer: ProviderRuntimeWriter;
   context: ProviderRuntimeContext;
@@ -692,6 +693,26 @@ class CodexAppServerRuntime {
     if (input.activeTurnToken !== run.activeTurnToken) {
       throw new AppError('The active Codex turn changed.', { code: 'ACTIVE_TURN_CHANGED', statusCode: 409 });
     }
+    // Retried HTTP answers and duplicate clicks must not steer the same turn
+    // twice. Keep both successes and ambiguous failures until this run ends.
+    const fingerprint = createHash('sha256').update(JSON.stringify([input.content, input.attachments])).digest('hex');
+    const existing = run.insertions.get(input.messageId);
+    if (existing) {
+      if (existing.fingerprint !== fingerprint) throw new AppError('The answer changed after submission.', { code: 'ANSWER_CHANGED', statusCode: 409 });
+      return existing.result;
+    }
+    if (run.insertions.size >= 256) throw new AppError('Too many insertions in this turn.', { code: 'INSERTION_LIMIT', statusCode: 429 });
+    const result = this.insertIntoRun(run, input).catch((error: unknown) => {
+      // A native rejection is definite non-admission and can be retried. An
+      // uncertain acknowledgement must never trigger another native request.
+      if (error instanceof AppError && error.code === 'CODEX_STEER_REJECTED') run.insertions.delete(input.messageId);
+      throw error;
+    });
+    run.insertions.set(input.messageId, { fingerprint, result });
+    return result;
+  }
+
+  private async insertIntoRun(run: AppServerRun, input: ProviderSteerInput): Promise<void> {
     const expectedTurnId = run.turnId;
     const submittedAt = new Date().toISOString();
     try {
@@ -809,6 +830,7 @@ class CodexAppServerRuntime {
       threadId,
       turnId: null,
       activeTurnToken: randomUUID(),
+      insertions: new Map(),
       workingDirectory,
       writer,
       context,

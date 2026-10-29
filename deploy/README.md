@@ -50,7 +50,7 @@ CDN 配置在 `deploy/static-cdn.json`。`deploy/publish-static.mjs` 委托 NAS 
 
 ## 插件及验证
 
-本精简分支只维护 `local-plugins/cloudcli-host-dashboard`；使用 `python3 deploy/publish-plugins.py` 发布插件产物。安装后端插件时需要本机构建依赖，遵循官方插件安装流程。
+本分支维护 `local-plugins/cloudcli-host-dashboard` 和 `local-plugins/cloudcli-codex-agents`；使用 `python3 deploy/publish-plugins.py` 发布插件产物。安装后端插件时需要本机构建依赖，遵循官方插件安装流程。
 
 验证源码使用 `pnpm run test:client`、`pnpm test`、`pnpm run typecheck`、`pnpm run build`、`pnpm run lint`；不访问公网首页、不逐个检测 CDN 文件。部署只在明确要求发布时执行，界面交互由用户验收。
 

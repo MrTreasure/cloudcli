@@ -5,7 +5,9 @@ import { readResourceSnapshot } from './metrics.js';
 const server = http.createServer((request, response) => {
   response.setHeader('Content-Type', 'application/json; charset=utf-8');
   response.setHeader('Cache-Control', 'no-store');
-  if (request.method !== 'GET' || request.url !== '/metrics') {
+  // The host RPC preserves transport query parameters; route on the pathname.
+  const pathname = new URL(request.url || '/', 'http://127.0.0.1').pathname;
+  if (request.method !== 'GET' || pathname !== '/metrics') {
     response.writeHead(404);
     response.end(JSON.stringify({ error: 'Not found' }));
     return;

@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { CodexAgentsPanel } from '@/modules/codex-agents';
 import { useTheme } from '@/shared/context/ThemeContext';
 import { api } from '@/shared/api';
 import { backendWebSocketUrl } from '@/shared/utils';
 import { usePlugins } from '@/modules/plugins/context/PluginsContext';
-import type { Project, ProjectSession } from '@/shared/types';
+import type { Project, ProjectSession, PluginHostContext } from '@/shared/types';
 
 type PluginTabContentProps = {
   pluginName: string;
@@ -13,20 +14,12 @@ type PluginTabContentProps = {
   selectedSession: ProjectSession | null;
 };
 
-type PluginContext = {
-  theme: 'dark' | 'light';
-  // Plugin contract historically used `name` for the project identifier; we
-  // keep that key and populate it from the DB `projectId` so external plugins
-  // continue to receive a stable opaque id.
-  project: { name: string; path: string } | null;
-  session: { id: string; title: string } | null;
-};
 
 function buildContext(
   isDarkMode: boolean,
   selectedProject: Project | null,
   selectedSession: ProjectSession | null,
-): PluginContext {
+): PluginHostContext {
   return {
     theme: isDarkMode ? 'dark' : 'light',
     project: selectedProject
@@ -57,8 +50,8 @@ export default function PluginTabContent({
   const { plugins } = usePlugins();
 
   // Stable refs so effects don't need context values in their dep arrays
-  const contextRef = useRef<PluginContext>(buildContext(isDarkMode, selectedProject, selectedSession));
-  const contextCallbacksRef = useRef<Set<(ctx: PluginContext) => void>>(new Set());
+  const contextRef = useRef<PluginHostContext>(buildContext(isDarkMode, selectedProject, selectedSession));
+  const contextCallbacksRef = useRef<Set<(ctx: PluginHostContext) => void>>(new Set());
 
   const moduleRef = useRef<any>(null);
 
@@ -78,7 +71,7 @@ export default function PluginTabContent({
     // Drop any previous plugin's error before this load attempt starts, so a
     // stale overlay never covers a different (or successfully loaded) plugin.
     setLoadError(null);
-    if (!containerRef.current || !plugin?.enabled) return;
+    if (!containerRef.current || !plugin?.enabled || pluginName === 'codex-agents') return;
 
     let active = true;
     const container = containerRef.current;
@@ -87,14 +80,13 @@ export default function PluginTabContent({
 
     (async () => {
       try {
-        // Fetch the plugin JS with auth headers (Cloudflare Worker requires auth on all routes).
-        // Then import it via a Blob URL so the browser never makes an unauthenticated request.
+        // External plugins retain authenticated asset loading. Native subAgent
+        // renders directly in the workspace React tree below to share its state owner.
         const res = await api.plugins.asset(pluginName, entryFile);
         if (!res.ok) throw new Error(`Failed to fetch plugin (HTTP ${res.status})`);
         const jsText = await res.text();
         const blob = new Blob([jsText], { type: 'application/javascript' });
         const blobUrl = URL.createObjectURL(blob);
-        // @vite-ignore
         const mod = await import(/* @vite-ignore */ blobUrl).finally(() => URL.revokeObjectURL(blobUrl));
         if (!active || !containerRef.current) return;
 
@@ -103,9 +95,9 @@ export default function PluginTabContent({
         // The host surface handed to the plugin module, distinct from the
         // app's own `api` client that backs `rpc` below.
         const pluginHostApi = {
-          get context(): PluginContext { return contextRef.current; },
+          get context(): PluginHostContext { return contextRef.current; },
 
-          onContextChange(cb: (ctx: PluginContext) => void): () => void {
+          onContextChange(cb: (ctx: PluginHostContext) => void): () => void {
             contextCallbacks.add(cb);
             return () => contextCallbacks.delete(cb);
           },
@@ -120,7 +112,7 @@ export default function PluginTabContent({
 
           async rpc(method: string, path: string, body?: unknown): Promise<unknown> {
             const res = await api.plugins.rpc(pluginName, method, path, body);
-            if (!res.ok) throw new Error(`RPC error ${res.status}`);
+            if (!res.ok) throw Object.assign(new Error(`RPC error ${res.status}`), { status: res.status });
             return res.json();
           },
         };
@@ -145,6 +137,8 @@ export default function PluginTabContent({
       moduleRef.current = null;
     };
   }, [pluginName, plugin?.entry, plugin?.enabled]); // re-mount when plugin or enabled state changes
+
+  if (pluginName === 'codex-agents' && plugin?.enabled) return <CodexAgentsPanel theme={isDarkMode ? 'dark' : 'light'} />;
 
   return (
     <div className="relative h-full w-full overflow-auto">

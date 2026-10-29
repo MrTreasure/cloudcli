@@ -104,6 +104,20 @@ export function createProviderRuntimeService(
       await runtime.steer(input);
     },
 
+    /** Providers route uses this acknowledged insertion for native async answers, without touching durable queues. */
+    async answerAsyncQuestion(sessionId: string, content: string, requestId: string): Promise<void> {
+      const session = sessionsService.getSessionDetailsById(sessionId);
+      if (session.provider !== 'codex' || session.isArchived) {
+        throw new AppError('This session cannot accept a Codex answer.', { code: 'ANSWER_UNSUPPORTED', statusCode: 409 });
+      }
+      const runtime = dependencies.resolveProvider(session.provider).runtime;
+      const token = runtime.activeTurnToken?.(session.sessionId);
+      if (!token || !runtime.steer) {
+        throw new AppError('The active turn ended. Retry after the session settles.', { code: 'NO_ACTIVE_TURN', statusCode: 409 });
+      }
+      await runtime.steer({ sessionId: session.sessionId, activeTurnToken: token, content, attachments: [], messageId: requestId });
+    },
+
     async abort(providerName: LLMProvider, sessionId: string): Promise<boolean> {
       return Boolean(await dependencies.resolveProvider(providerName).runtime.abort(sessionId));
     },

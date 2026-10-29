@@ -4,7 +4,9 @@ import { ChatInterface } from '@/modules/chat';
 import { FileTree } from '@/modules/file-tree';
 import { StandaloneShell } from '@/modules/standalone-shell';
 import { GitPanel } from '@/modules/git-panel';
-import { PluginTabContent } from '@/modules/plugins';
+import { PluginTabContent, usePlugins } from '@/modules/plugins';
+import { useAuth } from '@/modules/auth';
+import { CodexAgentsProvider } from '@/modules/codex-agents';
 import { BrowserUsePanel, useBrowserUseEnabled } from '@/modules/browser-use';
 import { usePaletteOpsRegister } from '@/modules/command-palette';
 import { TaskMasterPanel, useTaskMasterProjectSync, useTasksSettings } from '@/modules/task-master';
@@ -59,6 +61,9 @@ function WorkspaceMain({
   onProjectsRefresh,
   onRenameSession,
 }: WorkspaceMainProps) {
+  const { plugins } = usePlugins();
+  const { user } = useAuth();
+  const agentsEnabled = plugins.some((plugin) => plugin.name === 'codex-agents' && plugin.enabled);
   const preferences = useUiPreferences();
   const { showRawParameters, showThinking, sendByCtrlEnter } = preferences;
 
@@ -142,6 +147,8 @@ function WorkspaceMain({
   }
 
   return (
+    <CodexAgentsProvider key={String(user?.id || user?.username || 'anonymous')} projectPath={selectedProject.fullPath || selectedProject.path || ''}
+      identity={String(user?.id || user?.username || '')} enabled={agentsEnabled && Boolean(user)}>
     <div className="flex h-full flex-col">
       <WorkspaceHeader
         activeTab={activeTab}
@@ -247,6 +254,7 @@ function WorkspaceMain({
         />
       </div>
     </div>
+    </CodexAgentsProvider>
   );
 }
 

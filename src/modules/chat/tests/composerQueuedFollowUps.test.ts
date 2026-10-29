@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, test, vi } from 'vitest';
 
+import { api } from '@/shared/api';
 import { i18n } from '@/modules/i18n';
 import { useChatComposerState } from '@/modules/chat/hooks/useChatComposerState';
 import { readDraftText, resetChatDrafts, writeDraftText } from '@/shared/chatDrafts';
@@ -143,17 +144,18 @@ type Props = {
   session: ProjectSession;
   isLoading: boolean;
   model: string;
+  provider?: 'claude' | 'codex';
   processingSessions?: SessionActivityMap;
 };
 
 const render = (initialProps: Partial<Props> = {}) => {
   const errors: ChatMessage[] = [];
   const view = renderHook(
-    ({ session, isLoading, model, processingSessions }: Props) => useChatComposerState({
+    ({ session, isLoading, model, processingSessions, provider = 'claude' }: Props) => useChatComposerState({
       selectedProject: PROJECT,
       selectedSession: session,
       currentSessionId: session.id ?? null,
-      provider: 'claude',
+      provider,
       permissionMode: 'default',
       cyclePermissionMode: () => undefined,
       resolvePermissionModeForProvider: () => 'default' as PermissionMode,
@@ -218,6 +220,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
   vi.unstubAllGlobals();
   resetChatDrafts();
@@ -728,4 +731,35 @@ test('a refused async answer leaves the draft intact and permits a retry', async
   await act(async () => { accepted = await view.result.current.submitQuestionAnswer('Wait'); });
   assert.equal(accepted, true);
   assert.equal(queuedOnServer()?.content, 'Wait');
+});
+
+
+test('a running Codex question inserts immediately while preserving the unrelated queue, draft and attachments', async () => {
+  const { appendQueuedMessage } = await import('@/shared/chatDrafts');
+  await appendQueuedMessage('session-1', { content: 'Do this later', options: {}, attachments: [] });
+  const originalQueue = queuedOnServer();
+  const insertion = vi.spyOn(api.providers, 'answerAsyncQuestion').mockResolvedValue(json({ success: true, data: { status: 'inserted' } }));
+  const { view } = render({ provider: 'codex', isLoading: true });
+  const file = new File(['draft'], 'draft.txt');
+  await act(async () => { view.result.current.setInput('Unfinished draft'); view.result.current.setAttachedFiles([file]); });
+  let accepted = false;
+  await act(async () => { accepted = await view.result.current.submitQuestionAnswer('Which group?\nFirst', 'answer-1'); });
+  assert.equal(accepted, true);
+  assert.deepEqual(insertion.mock.calls, [['session-1', 'Which group?\nFirst', 'answer-1']]);
+  assert.deepEqual(queuedOnServer(), originalQueue);
+  assert.equal(view.result.current.input, 'Unfinished draft');
+  assert.deepEqual(view.result.current.attachedFiles, [file]);
+});
+
+test('a refused Codex question insertion stays retryable and never silently enters the queue', async () => {
+  const insertion = vi.spyOn(api.providers, 'answerAsyncQuestion').mockResolvedValueOnce(json({ success: false, error: { code: 'NO_ACTIVE_TURN', message: 'Turn ended' } }, 409)).mockResolvedValueOnce(json({ success: true }));
+  const { view } = render({ provider: 'codex', isLoading: true });
+  let accepted = true;
+  await act(async () => { accepted = await view.result.current.submitQuestionAnswer('First', 'answer-2'); });
+  assert.equal(accepted, false);
+  assert.equal(queuedOnServer(), null);
+  await act(async () => { accepted = await view.result.current.submitQuestionAnswer('First', 'answer-2'); });
+  assert.equal(accepted, true);
+  assert.equal(insertion.mock.calls.length, 2);
+  assert.equal(appendRequestCount, 0);
 });

@@ -10,7 +10,7 @@ import { createContext, useContext } from 'react';
  * workspace. Null outside a session (an exported document, a bare render),
  * where there is nothing to fetch from.
  */
-export const TranscriptSessionContext = createContext<{ sessionId: string | null; answerQuestion?: (content: string) => Promise<boolean> }>({ sessionId: null });
+export const TranscriptSessionContext = createContext<{ sessionId: string | null; answerQuestion?: (content: string, requestId?: string) => Promise<boolean> }>({ sessionId: null });
 
 /** The app session id the transcript belongs to, or null outside a session. */
 export function useTranscriptSessionId(): string | null {

@@ -10,7 +10,7 @@ type AsyncQuestionCardProps = {
   answered?: boolean;
 };
 
-/** Chat's MessageComponent renders native asynchronous questions here; responses use the normal session composer. */
+/** Chat's MessageComponent renders native async questions; the session callback acknowledges immediate insertion for active turns. */
 export function AsyncQuestionCard({ questions, answered = false }: AsyncQuestionCardProps) {
   const { t } = useTranslation('chat');
   const { answerQuestion } = useContext(TranscriptSessionContext);
@@ -18,13 +18,15 @@ export function AsyncQuestionCard({ questions, answered = false }: AsyncQuestion
   const [selections, setSelections] = useState<Record<number, number>>({});
   // Retain custom responses while users switch between a suggested answer and their own.
   const [otherTexts, setOtherTexts] = useState<Record<number, string>>({});
-  // Prevent repeated submissions while the normal send/queue path is pending.
+  // Prevent repeated submissions while answer admission is pending.
   const [busy, setBusy] = useState(false);
   // Keep accepted cards read-only until the subsequent user turn arrives in history.
   const [submitted, setSubmitted] = useState(false);
   // Failures stay beside the question and leave the selections available for retry.
   const [failed, setFailed] = useState(false);
   const submitting = useRef(false);
+  // Reuse the same acknowledgement key when a response is lost and retried.
+  const requestId = useRef<string | null>(null);
   const disabled = answered || submitted || busy || !answerQuestion;
   const values = questions.map((question, index) => selections[index] === -1
     ? otherTexts[index]?.trim() ?? '' : question.options?.[selections[index]] ?? '');
@@ -37,7 +39,8 @@ export function AsyncQuestionCard({ questions, answered = false }: AsyncQuestion
     setFailed(false);
     try {
       const content = questions.map((question, index) => `${question.title}\n${values[index]}`).join('\n\n');
-      const accepted = await answerQuestion?.(content);
+      requestId.current ??= crypto.randomUUID();
+      const accepted = await answerQuestion?.(content, requestId.current);
       if (accepted) setSubmitted(true);
       else setFailed(true);
     } catch {

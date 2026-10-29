@@ -1208,15 +1208,26 @@ export function useChatComposerState({
     handleSubmitRef.current = handleSubmit;
   }, [handleSubmit]);
 
-  // Reuse normal auth, model options, background prompts and queue persistence;
-  // async choices never pretend to resolve a blocked native tool request.
-  const submitQuestionAnswer = useCallback(async (content: string): Promise<boolean> => {
+  // Answers to a running Codex turn are explicit steering, not queued follow-ups.
+  // The server acknowledges admission and deduplicates retries in that native run.
+  const submitQuestionAnswer = useCallback(async (content: string, requestId?: string): Promise<boolean> => {
+    if (provider === 'codex' && isLoading) {
+      if (!sessionKey) return false;
+      const target = sessionKey;
+      try {
+        await readApiJson(await api.providers.answerAsyncQuestion(target, content, requestId ?? crypto.randomUUID()));
+        recordSentMessage(content, target);
+        return true;
+      } catch {
+        return false;
+      }
+    }
     let accepted = false;
     await handleSubmit(createFakeSubmitEvent(), { content, attachments: [] }, {
       preserveDraft: true, skipCommandInterception: true, onAccepted: () => { accepted = true; },
     });
     return accepted;
-  }, [handleSubmit]);
+  }, [handleSubmit, isLoading, provider, recordSentMessage, sessionKey]);
 
   // Follow merged server messages with the retained visibility-aware polling.
   useAdaptivePolling({

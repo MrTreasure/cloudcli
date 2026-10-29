@@ -20,7 +20,7 @@ test('native choices require an explicit selection and submit only once', async 
   fireEvent.click(screen.getByRole('radio', { name: 'Wait' }));
   fireEvent.click(submit);
   fireEvent.click(submit);
-  expect(answerQuestion).toHaveBeenCalledExactlyOnceWith('When to restart?\nWait');
+  expect(answerQuestion).toHaveBeenCalledExactlyOnceWith('When to restart?\nWait', expect.any(String));
   await act(async () => finish(true));
   expect(screen.getByRole('status').textContent).toBe('Question closed');
 });
@@ -32,7 +32,8 @@ test('free-text answers remain retryable when the regular send path refuses them
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Send answer' })));
   expect(screen.getByRole('alert')).toBeTruthy();
   await act(async () => fireEvent.click(screen.getByRole('button', { name: 'Send answer' })));
-  expect(answerQuestion).toHaveBeenLastCalledWith('Details?\nMy answer');
+  expect(answerQuestion).toHaveBeenLastCalledWith('Details?\nMy answer', expect.any(String));
+  expect(answerQuestion.mock.calls[0][1]).toBe(answerQuestion.mock.calls[1][1]);
 });
 
 test('history retains structured questions and closes old cards after a user follow-up', () => {

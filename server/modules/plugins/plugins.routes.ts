@@ -42,6 +42,12 @@ export function createPluginsRouter(service: ReturnType<typeof createPluginsServ
       const headers: Record<string, string> = {
         'content-type': String(req.headers['content-type'] ?? 'application/json'),
       };
+      // The native agent plugin scopes its panel preferences to the authenticated account.
+      // Never forward caller-provided identity headers or authentication credentials.
+      if (routeParameter(req.params.name) === 'codex-agents') {
+        const user = (req as express.Request & { user?: { id?: string | number } }).user;
+        if (user?.id !== undefined) headers['x-plugin-user-id'] = String(user.id);
+      }
       for (const [key, value] of Object.entries(secrets)) {
         headers[`x-plugin-secret-${key.toLowerCase()}`] = String(value);
       }

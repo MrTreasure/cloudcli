@@ -1,0 +1,13 @@
+{
+  "name": "codex-agents",
+  "displayName": "subAgent",
+  "version": "1.0.0",
+  "description": "查看 Codex 原生子 Agent 的任务、状态、工具活动与执行结果。",
+  "author": "MrTreasure",
+  "icon": "Bot",
+  "type": "module",
+  "slot": "tab",
+  "entry": "dist/index.js",
+  "server": "dist/server.js",
+  "permissions": []
+}

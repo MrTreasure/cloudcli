@@ -30,6 +30,10 @@ function buildPluginEnv(name) {
     PLUGIN_NAME: name,
   };
 
+  // Codex's home is a non-secret location, unlike its auth/config contents.
+  // Preserve per-computer custom homes for the native agent reader.
+  if (name === 'codex-agents' && process.env.CODEX_HOME) env.CODEX_HOME = process.env.CODEX_HOME;
+
   if (process.platform === 'win32') {
     const WINDOWS_ESSENTIALS = [
       'SystemRoot', 'windir', 'SystemDrive',

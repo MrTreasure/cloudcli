@@ -470,3 +470,53 @@
 - 归属 `src/modules/chat/transcript/WorkspaceFileLink.tsx`，复用编辑器同一套 `isBinaryFile` / `getPreviewKind` 能力判断，保留行号路径解析、鉴权下载、原始字节、错误重试和并发保护。目录、外部链接、没有项目上下文的链接沿用原逻辑。
 - 来源：C137 本地交互调整；定向验证归属 `src/modules/chat/tests/fileReferenceLinks.test.tsx`。文本、Markdown、源码、PDF、图片及支持的音视频不再显示多余下载按钮。
 - 只需发布前端，无后端重启或数据迁移。回退该链接组件的条件判断并重建发布即可。
+
+
+## 2026-10-28 异步问题回答直接插入当前回合
+
+- 修复老大反馈：`AsyncQuestionCard` 原复用普通消息流程，Codex 忙碌时把回答保存到普通队列，用户必须再点“立即插入”。现提交回答一次即调用鉴权 `POST /api/providers/sessions/:sessionId/answer`，不消费、不合并现有排队消息；保留输入草稿、附件和编辑状态。
+- 后端归属：`server/modules/providers/provider.routes.ts` 仅解析 content/requestId；`services/provider-runtime.service.ts` 从会话记录确定 Codex、核实当前 native turn 并调用已有 steer；`list/codex/codex-app-server.runtime.ts` 继续使用 `turn/steer` / expectedTurnId，不 abort、不新建回合。每个回合按请求 ID 合并并发和重复回答；保留成功/不确定结果直到回合释放，明确的 native 拒绝允许重试；同 ID 改内容拒绝，最多 256 条插入记录以约束内存。
+- 前端归属：`src/shared/api.ts`、`chat/hooks/useChatComposerState.ts`、`chat/context/TranscriptSessionContext.ts`、`chat/transcript/AsyncQuestionCard.tsx`。卡片保持显式“发送回答”确认，提交到活跃 Codex 时等待服务器确认后关闭；相同卡片重试复用请求 ID。活动回合消失/不支持 steer 时显示失败并保留卡片，不悄悄排队；会话真正空闲后仍可按正常新消息发送。
+- 定向测试：provider route/runtime 与 Codex mock app-server 覆盖参数、活动回合消失、重复/并发输入、不确定响应去重与不中断运行；卡片/composer 覆盖立即插入、原队列和草稿附件保留、失败重试。无真实模型调用或浏览器自动化。
+- 来源：C137 本地交互修复。需前后端同时升级；新前端面对旧后端会保留卡片报错，不能误报已经送达。回退本节归属文件并重建/发布前端、安全重启后端即可；无数据库迁移。
+
+
+## 2026-10-29 Codex 原生子 Agent 查看插件
+
+- 来源：C137 本地实现，按老大提供的原生 Agent 列表接入；未合并上游或改变比较基线。插件名称 `codex-agents`，标签“subAgent”。只读当前机器原生 SQLite 索引及 rollout，展示任务/父会话/模型/最近工具和结果，按运行中、已结束、待确认分组，支持当前项目过滤、搜索与分页。
+- 数据端归属 `local-plugins/cloudcli-codex-agents/src/{reader,server}.ts`，manifest/package/锁文件与 README 同目录。只读 `CODEX_HOME` 或用户目录，支持 NAS 原生会话软链接；客户端只传 Agent ID，不接受文件路径读取。屏蔽内部审查线程和 fork 父历史；不展示 base instructions / 加密正文 / 原始思考，不调用模型，不对原生状态写入或取消任务。
+- 页面归属 `src/modules/codex-agents/`，跨端 DTO 和主机 API 契约在 `src/shared/types.ts`；插件宿主 `src/modules/plugins/{PluginTabContent,PluginIcon}.tsx` 为此内置插件从 Vite/Cloudflare 哈希资源加载 UI 和 Lucide 图标，保留外部插件的既有鉴权资源加载。RPC 错误保留 HTTP 状态供现有自适应同步识别身份失效。
+- `server/modules/plugins/plugin-process.service.ts` 仅增加非秘密 `CODEX_HOME` 路径透传，不传递宿主密钥环境。运行数据经现有鉴权插件 RPC 访问，worker 仅回环监听；不发布 SQLite、会话或提示词到 Cloudflare。
+- 列表40条/页，尾部最多128KiB；详情读取最多1MiB、最近80项、每项4000字符，mtime/size 缓存限制400项。单轮RPC合并列表与选中详情；revision 未变化只返回标记。运行5秒、空闲20秒、隐藏60秒，离线暂停，退出当前工作区或停用插件后停止请求，失败沿用有抖动且上限120秒退避；不新增周期业务任务。
+- 状态边界：完成/停止取原生结束事件；开始/工具事件后两分钟无活动改标待确认，不把旧记录误报为正在运行。不提供臆造的原生终止控制或发消息。展示数量是当前已加载数据，不是所有历史的统计总数。
+- 需发布前端并安装/启用插件；自定义 CODEX_HOME 的兼容需更新宿主后端并安全重启。普通默认目录可立即启用插件 worker，不必杀正在运行的会话。Mac/Windows 同步源码、安装构建插件并使用各自原生数据；Node需>=22.13。
+- 回退依赖：停用插件即可撤下入口并停止 worker；可移除安装副本并恢复上述宿主加载改动。无数据库迁移，不删除原生记录或其他插件。界面验收留给老大，不进行浏览器自动化或全量公网验收。
+
+
+## 2026-10-29 仪表盘 RPC 路由兼容与 subAgent 简称
+
+- 来源：C137 本地修复。仪表盘 worker 已正常运行，但 `authenticatedFetch` 携带的固定 `__cloudcli_transport=2` 查询参数经宿主 RPC 转发后，被插件对 `request.url` 的精确匹配误判为不存在；直接 `/metrics` 返回200，带参数返回404。`local-plugins/cloudcli-host-dashboard/src/server.ts` 改用 URL pathname 匹配，仍只允许 GET `/metrics`，不删除浏览器传输参数、不改变鉴权或 no-store，也不暴露主机端口。
+- `local-plugins/cloudcli-codex-agents/manifest.json` 与 `src/modules/codex-agents/CodexAgentsPanel.tsx` 将标签、页面标题及无障碍名称统一为 `subAgent`。内部 `codex-agents` ID、原生数据读取与同步能力保持原有契约。
+- 发布依赖：重建发布插件，并仅停用/启用仪表盘插件以重载 worker；名称需发布前端及插件 manifest 后刷新页面。无需重启主后端或中断模型会话。Mac/Windows 同样需更新插件及前端。无数据库迁移；回退上述文件后重建发布插件和前端即可。
+- 定向验证：仪表盘既有轮询单测1项与指标单测4项通过；构建后独立 worker 的普通/携带传输参数/额外查询参数 GET 均200且 no-store，POST/未知路径/子路径均404。两插件构建、主项目类型检查、lint和前端构建通过；保留既有 lint 警告及大包提示。没有浏览器自动化或真实模型调用。源码完成不表示运行实例已发布，发布结果由操作记录确认。
+
+
+## 2026-10-29 subAgent 项目活动与任务检查器
+
+- 来源：C137 本地实现，按老大要求由子 Agent 完成，使用 `finesse-ui` 的 product / AI-console 方案重设计。沿用应用背景/边框/字体 token；默认当前项目、活动优先，历史折叠，右侧展示任务检查器，命令输出按需展开；不新增图片、字体或视觉验收门槛。
+- `src/modules/codex-agents/context/CodexAgentsContext.tsx` 是当前工作区唯一查询调度者；`CodexAgentsActivity.tsx` 在外层项目头展示运行任务名和最近动作，点击进入 `subAgent`。`WorkspaceMain` 挂载 Provider 并按认证身份隔离，插件禁用、退出项目或登出停止请求；不会因切换 Claude/新会话而漏掉同项目 Codex 后台任务。`PluginTabContent` 对此原生插件直接渲染宿主 React 组件，独立插件包仍有自己的 Provider。
+- 当前项目默认 5秒活动 / 20秒空闲 / 60秒隐藏同步，离线暂停、恢复立即同步，失败有上限退避；头部与面板共用一份状态，详情仅面板打开时读取。全部项目模式仍只显示头部当前项目中已加载的任务，不将分页部分记录冒充全局统计。刷新替换已加载页，避免旧 merge 留下被清除记录；清除期间的旧在途结果通过 epoch 丢弃。
+- `local-plugins/cloudcli-codex-agents/src/history.ts` 在用户目录 `.claude-code-ui/plugin-state/codex-agents/` 持久保存账户哈希文件，仅保存原生线程 ID、项目、revision；目录0700、文件0600，同 worker 同步读改写/临时文件原子 rename 防并发覆盖。`server.ts` 的 POST `/agents/clear` 只接受最多100条已完成/停止/失败且 revision 匹配的记录；运行/待确认/变更任务拒绝409。清除只从面板移出，原生索引和 rollout 不改；活动或原生记录再次变更时自动恢复显示。
+- 身份由 `server/modules/plugins/plugins.routes.ts` 从既有鉴权中间件的 `req.user.id` 生成内部 `x-plugin-user-id`，仅传给该插件。客户端同名头不透传，不广播 token、不向 worker 发送 Authorization/Cookie；旧宿主没有此头时仍可读列表，但清除明确503，需更新宿主并安全重启。身份隔离依赖宿主鉴权，不信任客户端 body/query 指定账户。
+- 原生能力核实：本机 CLI help 有 `codex delete --force UUID`，生成协议含 `thread/delete`、`thread/archive` 和 `thread/unsubscribe`。这些并不能证明独立插件/另起 CLI 能释放既有宿主 app-server 的子线程资源，因此本轮不调用它们、不删 SQLite 行、不改 rollout、不杀进程；清除返回 `nativeHistoryDeleted:false/resourcesReleased:false`。真正资源释放由所属 Codex 管理，面板不把任务完成当成已确认释放。
+- 仪表盘上一节 pathname 修复已发布：鉴权真实带 `__cloudcli_transport=2` RPC200、无身份401，且主后端 PID 未变。此重设计、持久清除和身份头的新发布状态以本轮操作记录为准。
+- 验证：6项前端定向测试（共享查询/清除同步/禁用/头部连接/仪表盘），4项后端插件测试（含伪造身份覆盖、无身份和无凭据透传）通过；隔离 native SQLite/rollout fixture 验证列表/详情 revision一致、清除跨worker重建持久、账户隔离、私有权限、活跃及待确认拒绝、活动恢复和原始数据保留。无收费模型或浏览器自动化。
+- 回退：停用插件可撤入口与worker；恢复此模块、宿主原生插件分支/项目头与 `plugins.routes.ts` 后重建发布并安全重启。无数据库迁移；保留原始会话历史。若要恢复全部已移出面板的记录，可在停用插件后移走本插件账户状态文件再启用，不删除原始 Codex 数据。Mac/Windows 需同步源码，重建插件与前端，并更新各自宿主。
+
+
+### 2026-10-29 历史勾选批量清除
+
+- `CodexAgentsPanel.tsx` 的已结束记录增加独立复选框，提供“全选/取消全选”和“清除所选（N）”；全选仅包含当前已加载且搜索匹配的已结束记录，不隐式包含未加载、被搜索隐藏、活动或待确认任务。超过100条明确禁用清除并提示取消部分勾选，不静默截断。详情仍可单条清除。
+- 确认框显示条数，提交时从最新快照取得所选已结束记录及 revision；轮询只剔除不再匹配/不存在/非已结束的选择，不因快照对象更新清空有效勾选。项目或身份切换清理选择。`CodexAgentsContext.tsx` 清除返回成功 ID 或 null，失败保留勾选和确认，成功只移除已成功清除的选中项。
+- 本项只需更新前端；不改变后端持久标记、100条限制或原始历史与资源释放语义。回退上述两个前端文件并重建发布即可。
+- 验证：既有共享状态定向测试2项、类型检查、定向lint及前端构建通过；未新增测试、未运行浏览器自动化。小屏批量工具栏允许换行，避免按钮与数量溢出。源码完成，发布状态由本轮发布记录确认。

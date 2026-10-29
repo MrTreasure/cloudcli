@@ -1251,6 +1251,45 @@ type McpImportMode = 'form' | 'json';
 
 //----------------- PLUGINS ------------
 
+/** Context supplied by the plugin host; paths and session ids refer to the current backend computer. */
+export type PluginHostContext = {
+  theme: 'dark' | 'light';
+  project: { name: string; path: string } | null;
+  session: { id: string; title: string } | null;
+};
+
+/** Authenticated host surface used by native plugin mounts; RPC keeps the existing host-owned transport contract. */
+export type PluginHostApi = {
+  readonly context: PluginHostContext;
+  onContextChange(callback: (context: PluginHostContext) => void): () => void;
+  rpc(method: string, path: string, body?: unknown): Promise<unknown>;
+  getWebSocketUrl(): string;
+};
+
+/** Native rollout evidence determines status; missing or stale evidence is explicitly unknown. */
+export type CodexAgentStatus = 'running' | 'completed' | 'stopped' | 'failed' | 'unknown';
+
+/** Bounded, display-only activity extracted from an agent's own native rollout, excluding raw reasoning. */
+export type CodexAgentActivity = { id: string; at: string; kind: 'message' | 'command' | 'tool' | 'file'; label: string; text: string };
+
+/** Metadata for one native spawned Codex thread; no credentials or base instructions are included. */
+export type CodexAgentSummary = {
+  id: string; parentId: string | null; parentTitle: string | null;
+  name: string; nickname: string | null; model: string | null; task: string;
+  projectPath: string; createdAt: string; updatedAt: string;
+  status: CodexAgentStatus; lastActivity: string; lastActivityAt: string | null;
+  recordAvailable: boolean;
+  /** Native index/rollout version used to invalidate a cleared panel record when the task changes. */
+  revision: string;
+};
+
+/** One paginated native-agent list. Counts in the UI describe loaded rows, not an invented global total. */
+export type CodexAgentsSnapshot = { available: boolean; items: CodexAgentSummary[]; nextOffset: number | null; observedAt: string; selectedDetail?: CodexAgentDetail | { notModified: true } | null };
+
+/** Recent bounded activity for one validated native agent id, never an arbitrary client-supplied path. */
+export type CodexAgentDetail = { agent: CodexAgentSummary; activities: CodexAgentActivity[]; truncated: boolean; revision: string };
+
+
 /** An installed CloudCLI plugin's manifest and runtime status (entry point, slot, permissions, enabled and server-running flags); always import this type explicitly from `@/shared/types`, because `Plugin` is also a DOM global and an unimported reference silently resolves to that instead. */
 export type Plugin = {
   name: string;
