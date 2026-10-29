@@ -97,6 +97,7 @@ export class CodexAgentReader {
           const item = object(payload.item);
           const id = string(item.id) || `${at}:${modern.size}`;
           const type = string(item.type).toLowerCase();
+          if (payload.type === 'item_started' || ['commandexecution', 'filechange', 'mcptoolcall', 'dynamictoolcall'].includes(type)) lifecycle = 'running';
           if (type === 'commandexecution') add(modern, { id, at, kind: 'command', label: string(item.command) || '执行命令', text: string(item.aggregated_output) });
           else if (type === 'agentmessage') add(modern, { id, at, kind: 'message', label: 'Agent 回复', text: text(item.content) || string(item.text) });
           else if (type === 'filechange') {
@@ -107,12 +108,23 @@ export class CodexAgentReader {
         } else if (record.type === 'response_item') {
           const id = string(payload.call_id) || string(payload.id) || `${at}:${legacy.size}`;
           if (payload.type === 'function_call' || payload.type === 'custom_tool_call') {
+            lifecycle = 'running';
+            lastAt = at;
             const args = parse(string(payload.arguments));
             add(legacy, { id, at, kind: 'tool', label: string(payload.name) || '调用工具', text: string(args.cmd) || string(args.command) || string(payload.input) });
           } else if (payload.type === 'function_call_output' || payload.type === 'custom_tool_call_output') {
             const call = legacy.get(id);
             if (call) add(legacy, { ...call, at, text: `${call.text}\n\n${text(payload.output)}` });
-          } else if (payload.type === 'message' && payload.role === 'assistant') add(legacy, { id, at, kind: 'message', label: 'Agent 回复', text: text(payload.content) });
+          } else if (payload.type === 'message' && payload.role === 'assistant') {
+            add(legacy, { id, at, kind: 'message', label: 'Agent 回复', text: text(payload.content) });
+            // Explicit completed final messages exist in older native rollouts.
+            // Unattributed/fork-inherited final answers remain unknown.
+            if (payload.phase === 'final_answer' && payload.status === 'completed'
+              && payload.thread_id === row.id) lifecycle = 'completed';
+          } else if (payload.type === 'message' && payload.role === 'user') {
+            lifecycle = 'running';
+            lastAt = at;
+          }
         }
       }
       const activities = [...(modern.size ? modern : legacy).values()].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));

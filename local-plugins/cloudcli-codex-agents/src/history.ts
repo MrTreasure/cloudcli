@@ -6,7 +6,7 @@ import path from 'node:path';
 import type { CodexAgentSummary } from '../../../src/shared/types';
 
 type Marker = { revision: string; project: string };
-const terminal = (agent: CodexAgentSummary) => ['completed', 'stopped', 'failed'].includes(agent.status);
+const canHide = (agent: CodexAgentSummary) => ['completed', 'stopped', 'failed', 'unknown'].includes(agent.status);
 
 /** Own panel preferences only; native SQLite, rollouts and running agents are never modified. */
 export class AgentHistory {
@@ -32,7 +32,7 @@ export class AgentHistory {
 
   visible(account: string, rows: CodexAgentSummary[]): CodexAgentSummary[] {
     const markers = this.read(account);
-    return rows.filter((row) => !terminal(row) || markers[row.id]?.revision !== row.revision || markers[row.id]?.project !== row.projectPath);
+    return rows.filter((row) => !canHide(row) || markers[row.id]?.revision !== row.revision || markers[row.id]?.project !== row.projectPath);
   }
 
   clear(account: string, agents: CodexAgentSummary[]): void {
@@ -40,7 +40,7 @@ export class AgentHistory {
     // Concurrent HTTP requests cannot interleave read-modify-write or lose markers.
     const markers = this.read(account);
     for (const agent of agents) {
-      if (!terminal(agent)) throw new Error('Only ended records can be cleared');
+      if (!canHide(agent)) throw new Error('Running records cannot be cleared');
       markers[agent.id] = { revision: agent.revision, project: agent.projectPath };
     }
     const parent = path.dirname(this.directory);

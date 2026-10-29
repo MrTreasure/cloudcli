@@ -26,7 +26,7 @@ const server = http.createServer(async (request, response) => {
       const agents = [];
       for (const record of input.records) {
         const detail = reader.detail(typeof record?.id === 'string' ? record.id : '');
-        if (!detail || !['completed', 'stopped', 'failed'].includes(detail.agent.status) || detail.agent.revision !== record.revision) {
+        if (!detail || !['completed', 'stopped', 'failed', 'unknown'].includes(detail.agent.status) || detail.agent.revision !== record.revision) {
           reply(409, { error: '任务状态已变化，请刷新后重试' }); return;
         }
         agents.push(detail.agent);
