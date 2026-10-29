@@ -920,5 +920,15 @@
     "teamManagementDescription": "Multiple users, role-based access, and shared projects for your team.",
     "licensed": "Licensed under AGPL-3.0",
     "proCta": "Available with CloudCLI Pro"
+  },
+  "defaultDirectory": {
+    "label": "Default directory",
+    "description": "Folder pickers start here. Saved for your account on this server; this does not change workspace permissions. Leave empty to use the server default.",
+    "placeholder": "Server default",
+    "save": "Save",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "invalid": "Use an absolute folder path or ~.",
+    "failed": "Unable to save. Check that the folder exists, is allowed, and that you are signed in."
   }
 }

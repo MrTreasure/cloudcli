@@ -677,5 +677,15 @@
     "installAriaLabel": "插件 git 仓库 URL",
     "tab": "标签",
     "runningStatus": "运行中"
+  },
+  "defaultDirectory": {
+    "label": "默认目录",
+    "description": "后续选择文件夹时从此目录开始。按当前服务器和账号保存，不改变工作区权限；留空使用服务器默认位置。",
+    "placeholder": "使用服务器默认位置",
+    "save": "保存",
+    "saving": "正在保存…",
+    "saved": "已保存",
+    "invalid": "请输入绝对目录路径或 ~。",
+    "failed": "保存失败，请确认目录存在、允许访问，且当前登录有效。"
   }
 }

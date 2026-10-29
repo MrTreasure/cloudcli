@@ -334,7 +334,13 @@
     "noSubfolders": "No subfolders found",
     "select": "Select",
     "pathLabel": "Path:",
-    "useThisFolder": "Use this folder"
+    "useThisFolder": "Use this folder",
+    "signInAgain": "Your session expired. Sign in again.",
+    "accessDenied": "This directory is outside the allowed workspace or is a protected system directory.",
+    "notAccessible": "The directory does not exist or cannot be accessed.",
+    "alreadyExists": "A folder with this name already exists.",
+    "invalidPath": "The folder path or name is invalid.",
+    "selectSubfolder": "Choose a project subfolder."
   },
   "misc": {
     "errorTitle": "Something went wrong",

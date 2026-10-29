@@ -10,6 +10,7 @@ import SettingsCard from '@/modules/settings/SettingsCard';
 import SettingsRow from '@/modules/settings/SettingsRow';
 import SettingsSection from '@/modules/settings/SettingsSection';
 import SettingsToggle from '@/modules/settings/SettingsToggle';
+import DefaultDirectorySetting from '@/modules/settings/DefaultDirectorySetting';
 
 type AppearanceSettingsTabProps = {
   projectSortOrder: ProjectSortOrder;
@@ -39,6 +40,7 @@ export default function AppearanceSettingsTab({
 
   return (
     <div className="space-y-8">
+      <DefaultDirectorySetting />
       <SettingsSection title={t('appearanceSettings.theme.label')}>
         <SettingsCard>
           <SettingsRow

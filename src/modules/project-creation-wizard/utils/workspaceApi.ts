@@ -1,4 +1,4 @@
-import { api } from '@/shared/api';
+import { api, readApiErrorMessage } from '@/shared/api';
 import type { FolderSuggestion, GithubTokenCredential, TokenMode } from '@/shared/types';
 
 type CredentialsResponse = {
@@ -113,7 +113,7 @@ export const browseFilesystemFolders = async (pathToBrowse: string) => {
   const data = await parseJson<BrowseFilesystemResponse>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to browse filesystem');
+    throw Object.assign(new Error(readApiErrorMessage(data) || 'Failed to browse filesystem'), { status: response.status });
   }
 
   return {
@@ -127,7 +127,7 @@ export const createFolderInFilesystem = async (folderPath: string) => {
   const data = await parseJson<CreateFolderResponse>(response);
 
   if (!response.ok) {
-    throw new Error(data.error || 'Failed to create folder');
+    throw Object.assign(new Error(readApiErrorMessage(data) || 'Failed to create folder'), { status: response.status });
   }
 
   return data.path || folderPath;

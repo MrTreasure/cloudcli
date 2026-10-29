@@ -6,6 +6,7 @@ import { Button, Input } from '@/shared/ui';
 import { browseFilesystemFolders, createFolderInFilesystem } from '@/modules/project-creation-wizard/utils/workspaceApi';
 import { getParentPath, joinFolderPath } from '@/modules/project-creation-wizard/utils/pathUtils';
 import type { FolderSuggestion } from '@/shared/types';
+import { useDefaultDirectory } from '@/shared/hooks/useDefaultDirectory';
 
 type FolderBrowserModalProps = {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export default function FolderBrowserModal({
   onFolderSelected,
 }: FolderBrowserModalProps) {
   const { t } = useTranslation();
+  const defaultDirectory = useDefaultDirectory();
   const [currentPath, setCurrentPath] = useState('~');
   const [folders, setFolders] = useState<FolderSuggestion[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
@@ -36,6 +38,16 @@ export default function FolderBrowserModal({
   // user switches language.
   const loadFoldersRef = useRef<(pathToLoad: string) => Promise<void>>();
 
+  const describeError = useCallback((failure: unknown, fallback: string) => {
+    const status = (failure as { status?: number } | null)?.status;
+    if (status === 401) return t('folderBrowser.signInAgain');
+    if (status === 403) return t('folderBrowser.accessDenied');
+    if (status === 404) return t('folderBrowser.notAccessible');
+    if (status === 409) return t('folderBrowser.alreadyExists');
+    if (status === 400) return t('folderBrowser.invalidPath');
+    return t(fallback);
+  }, [t]);
+
   const loadFolders = useCallback(async (pathToLoad: string) => {
     setLoadingFolders(true);
     setError(null);
@@ -45,11 +57,11 @@ export default function FolderBrowserModal({
       setCurrentPath(result.path);
       setFolders(result.suggestions);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : t('folderBrowser.loadFailed'));
+      setError(describeError(loadError, 'folderBrowser.loadFailed'));
     } finally {
       setLoadingFolders(false);
     }
-  }, [t]);
+  }, [describeError]);
 
   useEffect(() => {
     loadFoldersRef.current = loadFolders;
@@ -59,8 +71,8 @@ export default function FolderBrowserModal({
     if (!isOpen) {
       return;
     }
-    void loadFoldersRef.current?.('~');
-  }, [isOpen]);
+    void loadFoldersRef.current?.(defaultDirectory || '~');
+  }, [isOpen, defaultDirectory]);
 
   const visibleFolders = useMemo(
     () =>
@@ -97,13 +109,14 @@ export default function FolderBrowserModal({
       resetNewFolderState();
       await loadFolders(createdPath);
     } catch (createError) {
-      setError(createError instanceof Error ? createError.message : t('folderBrowser.createFailed'));
+      setError(describeError(createError, 'folderBrowser.createFailed'));
     } finally {
       setCreatingFolder(false);
     }
-  }, [currentPath, loadFolders, newFolderName, t]);
+  }, [currentPath, describeError, loadFolders, newFolderName]);
 
   const parentPath = getParentPath(currentPath);
+  const isFilesystemRoot = currentPath === '/' || /^[a-z]:[\\/]$/i.test(currentPath);
 
   if (!isOpen) {
     return null;
@@ -145,6 +158,7 @@ export default function FolderBrowserModal({
             </button>
             <button
               onClick={handleClose}
+              aria-label={t('common:buttons.close')}
               className="rounded-md p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
             >
               <X className="h-5 w-5" />
@@ -179,7 +193,7 @@ export default function FolderBrowserModal({
                 {creatingFolder ? <Loader2 className="h-4 w-4 animate-spin" /> : t('folderBrowser.create')}
               </Button>
               <Button size="sm" variant="ghost" onClick={resetNewFolderState}>
-                {t('common:cancel')}
+                {t('common:buttons.cancel')}
               </Button>
             </div>
           </div>
@@ -208,7 +222,7 @@ export default function FolderBrowserModal({
                 </button>
               )}
 
-              {visibleFolders.length === 0 ? (
+              {visibleFolders.length === 0 && !error ? (
                 <div className="py-8 text-center text-gray-500 dark:text-gray-400">
                   {t('folderBrowser.noSubfolders')}
                 </div>
@@ -247,12 +261,14 @@ export default function FolderBrowserModal({
             </code>
           </div>
           <div className="flex items-center justify-end gap-2 p-4">
+            {isFilesystemRoot && <span className="mr-auto text-xs text-gray-500 dark:text-gray-400">{t('folderBrowser.selectSubfolder')}</span>}
             <Button variant="outline" onClick={handleClose}>
-              {t('common:cancel')}
+              {t('common:buttons.cancel')}
             </Button>
             <Button
               variant="outline"
               onClick={() => onFolderSelected(currentPath, autoAdvanceOnSelect)}
+              disabled={loadingFolders || creatingFolder || Boolean(error) || isFilesystemRoot}
             >
               {t('folderBrowser.useThisFolder')}
             </Button>

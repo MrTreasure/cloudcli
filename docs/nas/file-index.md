@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`6efc19a61f24ef871000696c822a486598888d85`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`1d65b64ccbd334b59d5dd31c22b46d1d93dc197a`。
 
-记录基线与当前暂存树之间的全部净差异，共 345 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 350 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -310,10 +310,13 @@
 | M | [src/modules/plugins/PluginTabContent.tsx](../../src/modules/plugins/PluginTabContent.tsx) | — |
 | A | [src/modules/plugins/tests/hostDashboardPolling.test.ts](../../src/modules/plugins/tests/hostDashboardPolling.test.ts) | — |
 | M | [src/modules/plugins/tests/pluginGitErrors.test.tsx](../../src/modules/plugins/tests/pluginGitErrors.test.tsx) | — |
+| M | [src/modules/project-creation-wizard/FolderBrowserModal.tsx](../../src/modules/project-creation-wizard/FolderBrowserModal.tsx) | — |
+| M | [src/modules/project-creation-wizard/utils/workspaceApi.ts](../../src/modules/project-creation-wizard/utils/workspaceApi.ts) | — |
 | M | [src/modules/project-workspace/ProjectWorkspaceRoute.tsx](../../src/modules/project-workspace/ProjectWorkspaceRoute.tsx) | — |
 | M | [src/modules/project-workspace/WorkspaceHeader.tsx](../../src/modules/project-workspace/WorkspaceHeader.tsx) | — |
 | M | [src/modules/project-workspace/WorkspaceMain.tsx](../../src/modules/project-workspace/WorkspaceMain.tsx) | — |
 | M | [src/modules/quick-settings-panel/QuickSettingsPanelView.tsx](../../src/modules/quick-settings-panel/QuickSettingsPanelView.tsx) | — |
+| A | [src/modules/settings/DefaultDirectorySetting.tsx](../../src/modules/settings/DefaultDirectorySetting.tsx) | — |
 | M | [src/modules/settings/hooks/useSettingsController.ts](../../src/modules/settings/hooks/useSettingsController.ts) | — |
 | M | [src/modules/settings/Settings.tsx](../../src/modules/settings/Settings.tsx) | — |
 | M | [src/modules/settings/tabs/agents-settings/AgentsSettingsTab.tsx](../../src/modules/settings/tabs/agents-settings/AgentsSettingsTab.tsx) | — |
@@ -335,6 +338,7 @@
 | M | [src/shared/context/UiPreferencesContext.tsx](../../src/shared/context/UiPreferencesContext.tsx) | — |
 | M | [src/shared/context/WebSocketContext.tsx](../../src/shared/context/WebSocketContext.tsx) | — |
 | A | [src/shared/hooks/useAdaptivePolling.ts](../../src/shared/hooks/useAdaptivePolling.ts) | — |
+| A | [src/shared/hooks/useDefaultDirectory.ts](../../src/shared/hooks/useDefaultDirectory.ts) | — |
 | A | [src/shared/hooks/useFontSizes.ts](../../src/shared/hooks/useFontSizes.ts) | — |
 | M | [src/shared/hooks/useSessionProtection.ts](../../src/shared/hooks/useSessionProtection.ts) | — |
 | M | [src/shared/hooks/useVersionCheck.ts](../../src/shared/hooks/useVersionCheck.ts) | — |
@@ -349,6 +353,7 @@
 | A | [src/shared/tests/useVersionCheck.test.tsx](../../src/shared/tests/useVersionCheck.test.tsx) | — |
 | A | [src/shared/tests/versionApi.test.ts](../../src/shared/tests/versionApi.test.ts) | — |
 | M | [src/shared/types.ts](../../src/shared/types.ts) | — |
+| M | [src/shared/userSettings.ts](../../src/shared/userSettings.ts) | — |
 | M | [src/shared/utils.ts](../../src/shared/utils.ts) | — |
 | M | [tsconfig.json](../../tsconfig.json) | — |
 | M | [vite.config.js](../../vite.config.js) | — |

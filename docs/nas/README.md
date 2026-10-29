@@ -530,3 +530,22 @@
 - `reader.ts` 本机旧原生文件可见 assistant message 的 completed/final_answer，但无ID消息可能继承父历史；仅在明确同child thread_id时补充该终态证据，child session_meta+task_started仍不足以确认无ID消息归属，不据此推断。旧用户消息、旧工具调用或现代 item_started/工具活动出现在终态后，会恢复running，再沿用两分钟无活动降待确认规则。当前Mac截图不是此兼容分支的实测。
 - 来源：C137 本地修复，无上游合并。需发布前端与重建插件并仅重载 codex-agents worker；宿主身份头已在上轮生效，本次无 server/ 修改或主后端重启。回退这四个插件/前端源文件后重建发布即可；无数据库迁移，历史标记与原生数据保留。
 - 验证：既有共享状态2项通过；隔离SQLite/rollout与持久标记15项、编译worker真实HTTP7项通过，覆盖无ID父继承不推断、明确同child ID完成、新user/tool恢复running、unknown持久移出/账户隔离/新活动恢复、stale及running409。类型检查、lint、插件构建及主项目client/server构建通过（保留既有规则警告与大包提示）。未执行浏览器自动化、收费调用或Mac远程验证；此处仅记录源码和本地检查完成，发布由父Agent操作记录确认。
+
+
+## 2026-10-29 新建项目目录浏览与中文补齐
+
+- 来源：C137 本地修复。显式配置 WORKSPACES_ROOT 为文件系统根目录时，目录选择器的默认 ~ 被展开到该根，但浏览调用误用工作区创建校验而报 system-critical 错误。`server/modules/file-tree/file-tree.service.ts` 仅允许将已配置的文件系统根作为目录导航容器；其他路径继续走原有只读根与工作区策略，创建目录、项目注册、编辑权限不变，系统目录仍受限制。
+- `src/modules/project-creation-wizard/FolderBrowserModal.tsx` 根目录只允许浏览下级，禁用“使用此文件夹”；加载中或失败时不允许提交当前路径，失败不再同时显示空列表提示。取消/关闭按钮改用已有中文键；常见目录错误按 HTTP 状态本地化。`utils/workspaceApi.ts` 保留错误状态并复用统一错误解析器。
+- `src/modules/i18n/locales/{en,zh-CN,zh-TW}/common.json` 补齐目录选择器全部键及简繁浏览入口，保留默认同源及各机器工作区配置，无 NAS 路径硬编码。
+- 验证：22项后端定向检查、133文件/995项前端既有测试通过；编译服务模拟验证根导航2项及根创建/系统目录/越界拒绝3项；简繁翻译键与中文内容检查通过。类型检查、lint、前后端构建通过，无浏览器自动化或收费模型调用。
+- 发布需前端更新及后端服务文件重建、安全重启；Mac/Windows 需同步源码并各自构建重启。回退以上源文件后重建前后端即可，无数据迁移；部署状态见本轮操作收据。
+
+
+## 2026-10-29 默认目录设置
+
+- 来源：C137 本地功能。设置→外观增加“默认目录”，允许绝对路径或~，保存前调用既有鉴权目录浏览接口确认存在、可访问并规范化；留空恢复服务器默认起点，不改变工作区读写边界。
+- 归属：`src/modules/settings/DefaultDirectorySetting.tsx`、`tabs/AppearanceSettingsTab.tsx`、`src/shared/hooks/useDefaultDirectory.ts`、`src/shared/userSettings.ts`、`src/modules/project-creation-wizard/FolderBrowserModal.tsx`，简繁与英文文案位于各语言 settings.json。账户偏好 defaultDirectory 复用现有 user/preferences merge-patch 与镜像/订阅机制，每次打开目录选择器从该位置开始，不添加轮询或独立调度。
+- 机器边界：路径保存在连接服务器的账户偏好库，不随源码同步；NAS 本地已将当前账号 defaultDirectory 保存为 /vol1/1000 并读回验证其他偏好保留。公共默认值为空，普通电脑仍使用自身服务器的默认工作区，不硬编码 NAS 路径。
+- 只需发布前端，现有后端接口无需升级或重启；Mac/Windows 同步前端后可在各自服务器设置目录。回退上述前端文件并重建发布，或将该账号 defaultDirectory 置空即可恢复旧起点，无数据库结构迁移。
+- 验证：133文件/995项既有前端测试、前后端类型检查、lint及前端构建通过；NAS使用现有API验证目录浏览、偏好保存与读回，并核实未修改其他偏好。未进行浏览器自动化；界面由老大手动验收。
+- 最终保存采用服务端成功回执后仅更新该键的镜像，避免整体重新hydrate覆盖其他待提交偏好；追加14项既有偏好/设置定向检查通过。前端已发布，NAS账号设置已读回；未执行浏览器交互验收。

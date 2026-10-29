@@ -269,5 +269,28 @@
       "closeSidebar": "关闭侧边栏",
       "resizeSidebar": "调整侧边栏宽度"
     }
+  },
+  "folderBrowser": {
+    "title": "选择文件夹",
+    "hideHidden": "隐藏隐藏文件夹",
+    "showHidden": "显示隐藏文件夹",
+    "createNew": "新建文件夹",
+    "newFolderPlaceholder": "新文件夹名称",
+    "create": "创建",
+    "loadFailed": "无法加载文件夹，请重试",
+    "createFailed": "无法创建文件夹，请重试",
+    "noSubfolders": "没有子文件夹",
+    "select": "选择",
+    "pathLabel": "路径：",
+    "useThisFolder": "使用此文件夹",
+    "signInAgain": "登录已失效，请重新登录。",
+    "accessDenied": "该目录超出允许的工作区范围，或属于受保护的系统目录。",
+    "notAccessible": "目录不存在或无法访问。",
+    "alreadyExists": "同名文件夹已存在。",
+    "invalidPath": "文件夹路径或名称无效。",
+    "selectSubfolder": "请选择项目所在的子文件夹。"
+  },
+  "misc": {
+    "browseFolders": "浏览文件夹"
   }
 }

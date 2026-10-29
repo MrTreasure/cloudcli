@@ -346,6 +346,12 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
    * them read-only.
    */
   async function resolveBrowsablePath(targetPath: string): Promise<string> {
+    // An explicitly configured filesystem root is a navigation container only.
+    // Workspace registration and folder creation still run the write validator.
+    if (targetPath === path.resolve(dependencies.workspace.rootPath)
+      && targetPath === path.parse(targetPath).root) {
+      return fileSystem.realpath(targetPath);
+    }
     const readOnlyPath = await dependencies.workspace.resolveReadOnlyRootPath(targetPath);
     if (readOnlyPath) {
       return readOnlyPath;

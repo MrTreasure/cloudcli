@@ -28,6 +28,8 @@ export type UserPreferences = {
   codeEditorSettings: unknown;
   uiPreferences: unknown;
   selectedProvider: string;
+  /** Folder picker start location for this account on the connected server. */
+  defaultDirectory: string;
 };
 
 export type UserPreferenceKey = keyof UserPreferences;
@@ -67,6 +69,7 @@ const LEGACY_STORAGE_KEYS: Record<UserPreferenceKey, string> = {
   codeEditorSettings: '',
   uiPreferences: 'uiPreferences',
   selectedProvider: 'selected-provider',
+  defaultDirectory: '',
 };
 
 const PREFERENCE_KEYS = Object.keys(LEGACY_STORAGE_KEYS) as UserPreferenceKey[];
@@ -157,15 +160,16 @@ export function readUserPreference<T>(key: UserPreferenceKey, fallback: T): T {
   return value === undefined || value === null ? fallback : (value as T);
 }
 
-/** Writes one preference through to the mirror, the listeners and the server. */
-export function writeUserPreference(key: UserPreferenceKey, value: unknown): void {
+/** Writes one preference; persisted is only for values already acknowledged by the server. */
+export function writeUserPreference(key: UserPreferenceKey, value: unknown, { persisted = false }: { persisted?: boolean } = {}): void {
+  if (persisted) delete pendingServerWrites[key];
   if (JSON.stringify(preferences[key]) === JSON.stringify(value)) {
     return;
   }
 
   preferences = { ...preferences, [key]: value };
   writeMirror();
-  queueServerWrite({ [key]: value });
+  if (!persisted) queueServerWrite({ [key]: value });
   notifyListeners();
 }
 
@@ -203,6 +207,7 @@ export function subscribeToUserPreferences(listener: () => void): () => void {
  * `claudePermissions` are pulled out of it separately.
  */
 function readLegacyPreference(key: UserPreferenceKey): unknown {
+  if (!LEGACY_STORAGE_KEYS[key]) return undefined;
   let raw: string | null = null;
   try {
     raw = localStorage.getItem(LEGACY_STORAGE_KEYS[key]);

@@ -269,5 +269,28 @@
       "closeSidebar": "關閉側邊欄",
       "resizeSidebar": "調整側邊欄寬度"
     }
+  },
+  "folderBrowser": {
+    "title": "選擇資料夾",
+    "hideHidden": "隱藏隱藏資料夾",
+    "showHidden": "顯示隱藏資料夾",
+    "createNew": "新增資料夾",
+    "newFolderPlaceholder": "新資料夾名稱",
+    "create": "建立",
+    "loadFailed": "無法載入資料夾，請重試",
+    "createFailed": "無法建立資料夾，請重試",
+    "noSubfolders": "沒有子資料夾",
+    "select": "選擇",
+    "pathLabel": "路徑：",
+    "useThisFolder": "使用此資料夾",
+    "signInAgain": "登入已失效，請重新登入。",
+    "accessDenied": "此目錄超出允許的工作區範圍，或屬於受保護的系統目錄。",
+    "notAccessible": "目錄不存在或無法存取。",
+    "alreadyExists": "同名資料夾已存在。",
+    "invalidPath": "資料夾路徑或名稱無效。",
+    "selectSubfolder": "請選擇專案所在的子資料夾。"
+  },
+  "misc": {
+    "browseFolders": "瀏覽資料夾"
   }
 }

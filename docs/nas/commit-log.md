@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`6efc19a61f24ef871000696c822a486598888d85`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`1d65b64ccbd334b59d5dd31c22b46d1d93dc197a`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,11 +11,19 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
-| M | [local-plugins/cloudcli-codex-agents/src/history.ts](../../local-plugins/cloudcli-codex-agents/src/history.ts) | — |
-| M | [local-plugins/cloudcli-codex-agents/src/reader.ts](../../local-plugins/cloudcli-codex-agents/src/reader.ts) | — |
-| M | [local-plugins/cloudcli-codex-agents/src/server.ts](../../local-plugins/cloudcli-codex-agents/src/server.ts) | — |
-| M | [src/modules/codex-agents/CodexAgentsPanel.tsx](../../src/modules/codex-agents/CodexAgentsPanel.tsx) | — |
+| M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
+| M | [src/modules/i18n/locales/en/common.json](../../src/modules/i18n/locales/en/common.json) | — |
+| M | [src/modules/i18n/locales/en/settings.json](../../src/modules/i18n/locales/en/settings.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/common.json](../../src/modules/i18n/locales/zh-CN/common.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/settings.json](../../src/modules/i18n/locales/zh-CN/settings.json) | — |
+| M | [src/modules/i18n/locales/zh-TW/common.json](../../src/modules/i18n/locales/zh-TW/common.json) | — |
+| M | [src/modules/i18n/locales/zh-TW/settings.json](../../src/modules/i18n/locales/zh-TW/settings.json) | — |
+| M | [src/modules/project-creation-wizard/FolderBrowserModal.tsx](../../src/modules/project-creation-wizard/FolderBrowserModal.tsx) | — |
+| M | [src/modules/project-creation-wizard/utils/workspaceApi.ts](../../src/modules/project-creation-wizard/utils/workspaceApi.ts) | — |
+| A | [src/modules/settings/DefaultDirectorySetting.tsx](../../src/modules/settings/DefaultDirectorySetting.tsx) | — |
+| M | [src/modules/settings/tabs/AppearanceSettingsTab.tsx](../../src/modules/settings/tabs/AppearanceSettingsTab.tsx) | — |
+| A | [src/shared/hooks/useDefaultDirectory.ts](../../src/shared/hooks/useDefaultDirectory.ts) | — |
+| M | [src/shared/userSettings.ts](../../src/shared/userSettings.ts) | — |
 
 ## NAS 主线提交
 
@@ -1085,6 +1093,20 @@
   - `src/modules/project-workspace/WorkspaceMain.tsx`
   - `src/shared/api.ts`
   - `src/shared/types.ts`
+
+### 1d65b64c · 2026-10-29 · fix(codex): allow clearing unconfirmed subagent records
+
+- 完整提交：`1d65b64ccbd334b59d5dd31c22b46d1d93dc197a`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `local-plugins/cloudcli-codex-agents/README.md`
+  - `local-plugins/cloudcli-codex-agents/src/history.ts`
+  - `local-plugins/cloudcli-codex-agents/src/reader.ts`
+  - `local-plugins/cloudcli-codex-agents/src/server.ts`
+  - `src/modules/codex-agents/CodexAgentsPanel.tsx`
 
 ## 从 PR / 其他分支合入的提交
 
