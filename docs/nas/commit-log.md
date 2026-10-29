@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`1d65b64ccbd334b59d5dd31c22b46d1d93dc197a`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`8d2bea1c37ced473d6b1a29b7863151d276fe5b8`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,19 +11,8 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
-| M | [src/modules/i18n/locales/en/common.json](../../src/modules/i18n/locales/en/common.json) | — |
-| M | [src/modules/i18n/locales/en/settings.json](../../src/modules/i18n/locales/en/settings.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/common.json](../../src/modules/i18n/locales/zh-CN/common.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/settings.json](../../src/modules/i18n/locales/zh-CN/settings.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/common.json](../../src/modules/i18n/locales/zh-TW/common.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/settings.json](../../src/modules/i18n/locales/zh-TW/settings.json) | — |
-| M | [src/modules/project-creation-wizard/FolderBrowserModal.tsx](../../src/modules/project-creation-wizard/FolderBrowserModal.tsx) | — |
-| M | [src/modules/project-creation-wizard/utils/workspaceApi.ts](../../src/modules/project-creation-wizard/utils/workspaceApi.ts) | — |
-| A | [src/modules/settings/DefaultDirectorySetting.tsx](../../src/modules/settings/DefaultDirectorySetting.tsx) | — |
-| M | [src/modules/settings/tabs/AppearanceSettingsTab.tsx](../../src/modules/settings/tabs/AppearanceSettingsTab.tsx) | — |
-| A | [src/shared/hooks/useDefaultDirectory.ts](../../src/shared/hooks/useDefaultDirectory.ts) | — |
-| M | [src/shared/userSettings.ts](../../src/shared/userSettings.ts) | — |
+| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
+| M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
 
 ## NAS 主线提交
 
@@ -1107,6 +1096,28 @@
   - `local-plugins/cloudcli-codex-agents/src/reader.ts`
   - `local-plugins/cloudcli-codex-agents/src/server.ts`
   - `src/modules/codex-agents/CodexAgentsPanel.tsx`
+
+### 8d2bea1c · 2026-10-29 · feat(settings): add default directory and fix localized folder browsing
+
+- 完整提交：`8d2bea1c37ced473d6b1a29b7863151d276fe5b8`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `server/modules/file-tree/file-tree.service.ts`
+  - `src/modules/i18n/locales/en/common.json`
+  - `src/modules/i18n/locales/en/settings.json`
+  - `src/modules/i18n/locales/zh-CN/common.json`
+  - `src/modules/i18n/locales/zh-CN/settings.json`
+  - `src/modules/i18n/locales/zh-TW/common.json`
+  - `src/modules/i18n/locales/zh-TW/settings.json`
+  - `src/modules/project-creation-wizard/FolderBrowserModal.tsx`
+  - `src/modules/project-creation-wizard/utils/workspaceApi.ts`
+  - `src/modules/settings/DefaultDirectorySetting.tsx`
+  - `src/modules/settings/tabs/AppearanceSettingsTab.tsx`
+  - `src/shared/hooks/useDefaultDirectory.ts`
+  - `src/shared/userSettings.ts`
 
 ## 从 PR / 其他分支合入的提交
 

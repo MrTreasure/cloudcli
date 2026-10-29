@@ -50,6 +50,8 @@ function createHarness(options: {
   failThreadStart?: boolean;
   sandbox?: AnyRecord;
   pauseAt?: 'initialize' | 'thread/start' | 'thread/resume' | 'turn/start';
+  nativeThreadStatus?: string;
+  latestNativeTurn?: AnyRecord;
 } = {}): RuntimeHarness {
   const process = new FakeAppServerProcess();
   const requests: Record<string, unknown>[] = [];
@@ -108,6 +110,12 @@ function createHarness(options: {
         }) + '\n');
       } else if (request.method === 'turn/interrupt') {
         process.stdout.write(JSON.stringify({ id: request.id, result: {} }) + '\n');
+      } else if (request.method === 'thread/compact/start') {
+        process.stdout.write(JSON.stringify({ id: request.id, result: {} }) + '\n');
+      } else if (request.method === 'thread/read') {
+        process.stdout.write(JSON.stringify({ id: request.id, result: { thread: { id: (request.params as AnyRecord).threadId, status: { type: options.nativeThreadStatus ?? 'active' } } } }) + '\n');
+      } else if (request.method === 'thread/turns/list') {
+        process.stdout.write(JSON.stringify({ id: request.id, result: { data: options.latestNativeTurn ? [options.latestNativeTurn] : [] } }) + '\n');
       }
 
       newlineIndex = inputBuffer.indexOf('\n');
@@ -1303,4 +1311,77 @@ test('native async question metadata survives the live item adapter', () => {
   assert.equal(message.id, 'async-1');
   assert.deepEqual(message.asyncQuestions, questions);
   assert.equal(message.kind, 'text');
+});
+
+async function startCompactionRun(harness: RuntimeHarness, runtime: ReturnType<typeof createRuntime>) {
+  const output = createWriter();
+  const runPromise = runtime.run('/compact', { sessionId: 'compact-app' }, output.writer, context);
+  while ((await harness.nextRequest()).method !== 'thread/compact/start') { /* wait for admission */ }
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  return { output, runPromise };
+}
+
+test('compaction ignores replayed usage turn ids and releases the session after its own completion', async (t) => {
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise } = await startCompactionRun(harness, runtime);
+  harness.notify('thread/tokenUsage/updated', { threadId: 'thread-new', turnId: 'old-turn' });
+  harness.notify('turn/started', { threadId: 'thread-new', turn: { id: 'compact-turn' } });
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'compact-turn', status: 'completed' } });
+  assert.deepEqual(await runPromise, { status: 'completed' });
+  assert.equal(output.messages.filter((message) => message.kind === 'complete').length, 1);
+  const next = runtime.run('Continue', { sessionId: 'compact-app' }, createWriter().writer, context);
+  while ((await harness.nextRequest()).method !== 'turn/start') { /* skip prior control messages */ }
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-1', status: 'completed' } });
+  assert.deepEqual(await next, { status: 'completed' });
+});
+
+test('automatic compaction does not finish the surrounding model turn', async (t) => {
+  const harness = createHarness();
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise } = await startPlanRun(harness, runtime);
+  harness.notify('item/completed', { threadId: 'thread-new', turnId: 'turn-1', item: { id: 'compact-item', type: 'contextCompaction' } });
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(output.messages.some((message) => message.kind === 'complete'), false);
+  harness.notify('item/completed', { threadId: 'thread-new', turnId: 'turn-1', item: { id: 'answer-after-compact', type: 'agentMessage', text: 'Continued after compaction' } });
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'turn-1', status: 'completed' } });
+  await runPromise;
+  assert.ok(output.messages.some((message) => message.content === 'Continued after compaction'));
+});
+
+test('idle reconciliation requires native terminal evidence and uses a single metadata-only turn', async (t) => {
+  const harness = createHarness({ nativeThreadStatus: 'idle', latestNativeTurn: { id: 'compact-turn', status: 'completed', startedAt: Math.floor(Date.now() / 1000) } });
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise } = await startCompactionRun(harness, runtime);
+  harness.notify('turn/started', { threadId: 'thread-new', turn: { id: 'compact-turn' } });
+  harness.notify('thread/status/changed', { threadId: 'unrelated', status: { type: 'idle' } });
+  harness.notify('thread/status/changed', { threadId: 'thread-new', status: { type: 'idle' } });
+  harness.notify('thread/status/changed', { threadId: 'thread-new', status: { type: 'idle' } });
+  assert.deepEqual(await runPromise, { status: 'completed' });
+  const read = await harness.nextRequest();
+  assert.equal(read.method, 'thread/read');
+  assert.deepEqual(read.params, { threadId: 'thread-new', includeTurns: false });
+  const turns = await harness.nextRequest();
+  assert.equal(turns.method, 'thread/turns/list');
+  assert.deepEqual(turns.params, { threadId: 'thread-new', limit: 1, sortDirection: 'desc', itemsView: 'notLoaded' });
+  assert.equal(harness.requests.length, 0, 'concurrent idle notices share the same reconciliation');
+  assert.equal(output.messages.filter((message) => message.kind === 'complete').length, 1);
+});
+
+test('an idle snapshot of an older turn cannot complete a newly admitted compaction', async (t) => {
+  const harness = createHarness({ nativeThreadStatus: 'idle', latestNativeTurn: { id: 'old-turn', status: 'completed', startedAt: 0 } });
+  const runtime = createRuntime(harness.process);
+  t.after(() => harness.process.kill());
+  const { output, runPromise } = await startCompactionRun(harness, runtime);
+  harness.notify('thread/status/changed', { threadId: 'thread-new', status: { type: 'idle' } });
+  while ((await harness.nextRequest()).method !== 'thread/turns/list') { /* wait for both reads */ }
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  assert.equal(output.messages.some((message) => message.kind === 'complete'), false);
+  harness.notify('turn/started', { threadId: 'thread-new', turn: { id: 'compact-turn' } });
+  harness.notify('turn/completed', { threadId: 'thread-new', turn: { id: 'compact-turn', status: 'completed' } });
+  await runPromise;
 });

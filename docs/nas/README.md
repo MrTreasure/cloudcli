@@ -549,3 +549,14 @@
 - 只需发布前端，现有后端接口无需升级或重启；Mac/Windows 同步前端后可在各自服务器设置目录。回退上述前端文件并重建发布，或将该账号 defaultDirectory 置空即可恢复旧起点，无数据库结构迁移。
 - 验证：133文件/995项既有前端测试、前后端类型检查、lint及前端构建通过；NAS使用现有API验证目录浏览、偏好保存与读回，并核实未修改其他偏好。未进行浏览器自动化；界面由老大手动验收。
 - 最终保存采用服务端成功回执后仅更新该键的镜像，避免整体重新hydrate覆盖其他待提交偏好；追加14项既有偏好/设置定向检查通过。前端已发布，NAS账号设置已读回；未执行浏览器交互验收。
+
+
+## 2026-10-29 Codex 压缩后运行锁与回合恢复
+
+- 来源：C137 本地修复。NAS“日常对话”原生记录显示2026-10-29北京时间15:39:39开始压缩回合，15:41:21写入compacted与task_complete；15:49:28新发送仍被CloudCLI已有active run拒绝。截图ID中bee2与be12易混淆，已通过原生会话映射确认同一对话；没有把该现象误报为Mac实例问题。
+- `server/modules/providers/list/codex/codex-app-server.runtime.ts` 原通用通知处理在尚未收到回合ID时允许任何通知绑定turnId，恢复后的旧tokenUsage等通知会污染压缩回合身份，真正turn/completed随后被过滤。现在只允许turn/started或turn/start响应绑定；保留完成通知早于RPC响应的既有终态与新回合接续行为，不将自动压缩item当成整个任务完成。
+- 增加原生权威校准：收到精确thread的idle状态，或同会话新请求遇到本地占用时，合并一次thread/read(includeTurns:false)与最近1回合thread/turns/list(itemsView:notLoaded)；仅确认原生idle及属于本次运行的completed/failed/interrupted终态后释放本地运行。旧回合或active/未知/接口失败均不解锁；不按超时清空、不调用模型、不传整段历史，不创建周期任务。
+- 验证归属 `server/modules/providers/tests/codex-app-server.runtime.test.ts`：模拟旧usage先到、压缩后继续发送、自动压缩后继续输出、遗漏结束通知的idle校准、并发idle通知合并和旧回合拒绝。既有早终态/下一回合清理、取消/重连注册及协议回归一并检查；没有收费模型或浏览器自动化。
+- 官方网页检索工具不可用且OpenAI文档页面返回403，本轮协议以本机codex-cli0.163.0生成的JSON schema核实；未变更CLI、模型或CPA配置。较旧CLI若不支持元数据校准接口则保守保留占用，生命周期绑定修复仍生效。
+- 无前端或数据库迁移；需重建并更新后端runtime.js及map，在活动任务结束后安全重启CloudCLI。保留原始会话，不自动重发此前报错的用户输入。Mac/Windows需同步并各自构建重启。回退本节runtime及测试文件后重建后端并安全重启即可。
+- 本轮结果：112项后端定向回归、前后端类型检查、lint及后端构建通过。NAS已在零活动窗口切换2个后端文件并重启，服务健康、运行状态接口与仪表盘200、未鉴权401；部署收据位于NAS operations/compaction-recovery-20261029，未重放业务输入。

@@ -41,6 +41,7 @@ type AppServerRun = {
   activeTurnToken: string;
   insertions: Map<string, { fingerprint: string; result: Promise<void> }>;
   workingDirectory: string;
+  startedAt: number;
   writer: ProviderRuntimeWriter;
   context: ProviderRuntimeContext;
   turnAccepted: boolean;
@@ -478,6 +479,7 @@ class CodexAppServerRuntime {
   private readonly pendingRunSetups = new Map<string, { abortRequested: boolean }>();
   private readonly pendingApprovals = new Map<string, PendingCodexApproval>();
   private readonly pendingQuestions = new Map<string, PendingCodexQuestion>();
+  private readonly reconciliations = new Map<AppServerRun, Promise<void>>();
   private inFlightRuns = 0;
 
   constructor(options: CodexAppServerRuntimeOptions = {}) {
@@ -502,6 +504,8 @@ class CodexAppServerRuntime {
   ): Promise<unknown> {
     const sessionId = readString(options.sessionId);
     const sessionSummary = readString(options.sessionSummary);
+    const existingRun = sessionId ? this.runsBySession.get(sessionId) : undefined;
+    if (existingRun && !existingRun.terminal) await this.reconcileRun(existingRun);
     if (sessionId && (
       this.pendingRunSetups.has(sessionId)
       || this.runsBySession.get(sessionId)?.terminal === false
@@ -832,6 +836,7 @@ class CodexAppServerRuntime {
       activeTurnToken: randomUUID(),
       insertions: new Map(),
       workingDirectory,
+      startedAt: Date.now(),
       writer,
       context,
       turnAccepted: false,
@@ -883,6 +888,14 @@ class CodexAppServerRuntime {
 
   private handleNotification(notification: JsonRpcNotification): void {
     const params = readRecord(notification.params) ?? {};
+    if (notification.method === 'thread/status/changed') {
+      const threadId = readString(params.threadId);
+      const run = threadId ? this.runsByThread.get(threadId) : undefined;
+      if (run && !run.terminal && readNestedRecord(params, 'status')?.type === 'idle') {
+        void this.reconcileRun(run);
+      }
+      return;
+    }
     if (notification.method === 'turn/plan/updated') {
       this.handlePlanUpdate(params);
       return;
@@ -896,7 +909,9 @@ class CodexAppServerRuntime {
     if (notificationTurnId && run.turnId && notificationTurnId !== run.turnId) {
       return;
     }
-    if (notificationTurnId && !run.turnId) {
+    // Token usage and replayed items can still describe a previous turn after
+    // resume. Only a lifecycle start (or turn/start's response) may bind us.
+    if (notification.method === 'turn/started' && notificationTurnId && !run.turnId) {
       run.turnId = notificationTurnId;
     }
 
@@ -946,6 +961,35 @@ class CodexAppServerRuntime {
       default:
         return;
     }
+  }
+
+  private reconcileRun(run: AppServerRun): Promise<void> {
+    if (run.terminal || !run.turnAccepted) return Promise.resolve();
+    const existing = this.reconciliations.get(run);
+    if (existing) return existing;
+    const result = (async () => {
+      try {
+        const response = readRecord(await this.manager.request('thread/read', { threadId: run.threadId, includeTurns: false }));
+        const thread = readNestedRecord(response ?? {}, 'thread');
+        if (readNestedRecord(thread ?? {}, 'status')?.type !== 'idle' || run.terminal) return;
+        // A metadata-only, single-turn page avoids loading the conversation.
+        // Idle alone is not proof of a successful completion.
+        const page = readRecord(await this.manager.request('thread/turns/list', {
+          threadId: run.threadId, limit: 1, sortDirection: 'desc', itemsView: 'notLoaded',
+        }));
+        const turn = Array.isArray(page?.data) ? readRecord(page.data[0]) : null;
+        if (!turn || run.terminal) return;
+        const belongsToRun = readString(turn.id) === run.turnId
+          || (typeof turn.startedAt === 'number' && turn.startedAt * 1000 >= run.startedAt - 1000);
+        if (!belongsToRun || !['completed', 'failed', 'interrupted'].includes(turn.status)) return;
+        this.completeRun(run, turn.status, turn.status === 'failed' ? readErrorMessage({ turn }) : undefined);
+      } catch {
+        // An unavailable/older control plane is never permission to release a
+        // potentially live run. A later lifecycle event or explicit retry can reconcile.
+      }
+    })().finally(() => { this.reconciliations.delete(run); });
+    this.reconciliations.set(run, result);
+    return result;
   }
 
   private handlePlanUpdate(params: AnyRecord): void {
