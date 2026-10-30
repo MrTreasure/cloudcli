@@ -402,6 +402,8 @@ Custom commands can be created in:
           rssMb: Math.round(memoryUsage.rss / 1024 / 1024),
           heapUsedMb: Math.round(memoryUsage.heapUsed / 1024 / 1024),
           heapTotalMb: Math.round(memoryUsage.heapTotal / 1024 / 1024),
+          externalMb: Math.round(memoryUsage.external / 1024 / 1024),
+          arrayBuffersMb: Math.round(memoryUsage.arrayBuffers / 1024 / 1024),
         },
       },
     };

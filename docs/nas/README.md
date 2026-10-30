@@ -1,5 +1,17 @@
 # NAS / C137 分支维护指南
 
+## 2026-10-30 内存排查与元数据读取优化
+
+- 已区分三种口径：Node 的 RSS/堆/原生缓冲区、Codex 和插件等子进程，以及 cgroup 归属的文件与内核缓存。排查时服务组约 4.45 GiB，其中匿名内存约 1.06 GiB、文件缓存约 2.66 GiB、可回收 slab 约 0.59 GiB；所有进程 PSS 合计约 1.10 GiB。Node 的 `/status` 报告堆已用约 82 MiB，不能把整组占用认作历史缓存或内存泄漏。系统当时仍可用约 9.4 GiB，PSI 接近零。
+- 代码归属：`server/shared/utils.ts` 的 `readLinesBackwards` 为 Claude 标题同步与所有原生 JSONL 额度查询共用分块倒序读取；`claude-session-synchronizer.provider.ts` 保持最新值及 `custom-title > ai-title > last-prompt` 优先级；`provider-token-usage.service.ts` 保留普通 4 MiB 尾部快路径，找不到真实用量时逐行倒查，不再用整份 `readFile` 回退。忽略 sidechain 和零用量合成行后继续找主会话用量。内存仍与最长一行相关，并非任意巨型单行的固定内存保证。
+- 来源：参考官方仓库 **尚未合并** 的 [PR #1178](https://github.com/siteboon/claudecodeui/pull/1178)，按本分支实现适配，未合并整条 PR，也未推进官方基线。倒序读取按字节保存跨块 UTF-8 片段，每行只拼接一次，避免长 Base64 行反复复制；I/O 错误交由调用方处理。[#1214](https://github.com/siteboon/claudecodeui/issues/1214) 记录额度整文件读取的问题；旧 [#262](https://github.com/siteboon/claudecodeui/issues/262) 与仍开放的 [#1099](https://github.com/siteboon/claudecodeui/issues/1099) 分别记录大历史和图片 Base64 问题，不代表这些旧版本问题都仍存在于本分支。
+- 回放生命周期：`chat-run-registry.service.ts` 在连续回合替换时取消旧回合保留定时器并立即清空旧事件，避免旧闭包再持有最多 5000 条工具结果五分钟。正在运行的回放、最近完成且尚未替换的回合、后台任务保留门控和连接继承不变；没有缩小回放窗口或修改前端协议。
+- 诊断：`commands.routes.ts` 的受鉴权 `/status` 增加 `externalMb` 和 `arrayBuffersMb`，后续无需向生产进程注入调试器即可读取原生缓冲区指标。`arrayBuffers` 包含于 `external`，不能重复相加。此次临时 inspector 脚本使用不兼容的动态导入造成未处理异常，systemd 自动重启一次；已关闭调试端口，后续只用隔离实例和现有鉴权接口验证。
+- 主机异常：多个诊断进程在读同一个孤立 `runc` 的 `/proc/<pid>/cmdline` 时等待 `__access_remote_vm`；runc 自身在 `do_exit/acct_collect`，不是 CloudCLI 缓存。内存盘点使用 `/proc/*/status`、cgroup 和指定进程 `smaps_rollup`；不要全机扫描 cmdline、调用宽泛 `ps/pgrep/pkill` 或把读取包装进 Promise 超时后任其挂住。不为处理它重启 Docker/NAS，也不把发送 SIGKILL 当作确认回收。
+- 运维动作：只对已有大型原生历史执行一次 `POSIX_FADV_DONTNEED`，保留文件字节和 inode；回收 227.5 MiB 驻留干净页，没有删除/改写历史、全局 drop_caches、周期清缓存或新定时业务。文件缓存会随实际读取重新建立，本次不以清零 Linux 缓存作为目标。
+- 检查与发布证据位于 NAS 私有 `operations/memory-20261030/`：已有定向测试、上游边界用例的适配验证、类型/lint/后端构建、隔离 HOME/数据库的健康与鉴权验证、64 MiB 合成历史的旧新峰值 RSS 对比，以及带文件哈希守卫的空闲发布计划与 `restart-result.json`。**生产生效状态以该结果文件为准**，不能把候选构建当作已经加载。无真实模型请求、原生历史迁移或数据库 schema 变化。老大已确认提交并推送本次代码；架构审查结论为服务调用、接口协议、依赖和部署位置均不变，因此不重画拓扑；真实提交 SHA 在提交完成后记录到本次私有发布报告。
+- 回退：成组恢复倒序工具、标题/用量消费者、回放定时器生命周期及诊断字段后重新构建；发布失败按记录的精确文件恢复并确认原服务健康。没有删除历史、关闭功能、改变模型或扩大权限的回退前置要求。
+
 
 
 ## 2026-10-27 用户授权部署 1.37.6 与缓存修复

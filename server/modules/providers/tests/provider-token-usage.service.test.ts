@@ -313,7 +313,7 @@ test('Claude token usage reads only the tail of a large transcript', async () =>
       getSessionById: () => createSessionRow({ jsonl_path: sessionFilePath }),
       getClaudeContextWindow: () => '180000',
       // Reading the whole file here would defeat the tail read; fail loudly.
-      readTextFile: () => { throw new Error('full read must not happen when the tail has usage'); },
+      readTranscriptLinesBackwards: () => { throw new Error('fallback scan must not happen when the tail has usage'); },
     });
 
     const usage = await service.getSessionTokenUsage('app-session');
@@ -324,7 +324,7 @@ test('Claude token usage reads only the tail of a large transcript', async () =>
   }
 });
 
-test('Claude token usage falls back to the whole file when the tail has no usage row', async () => {
+test('Claude token usage scans backwards when the tail has no usage row', async () => {
   const tempDirectory = await mkdtemp(path.join(tmpdir(), 'provider-token-usage-claude-fallback-'));
   const sessionFilePath = path.join(tempDirectory, 'provider-session.jsonl');
 
@@ -332,6 +332,8 @@ test('Claude token usage falls back to the whole file when the tail has no usage
     await writeFile(sessionFilePath, [
       JSON.stringify({ type: 'assistant', message: { usage: { input_tokens: 11, output_tokens: 3 } } }),
       paddingLines(5 * 1024 * 1024),
+      JSON.stringify({ type: 'assistant', isSidechain: true, message: { usage: { input_tokens: 90, output_tokens: 20 } } }),
+      JSON.stringify({ type: 'assistant', message: { usage: { input_tokens: 0, output_tokens: 0 } } }),
     ].join('\n'));
 
     const service = createProviderTokenUsageService({
@@ -368,7 +370,7 @@ test('Codex token usage reads only the tail of a large rollout', async () => {
 
     const service = createProviderTokenUsageService({
       getSessionById: () => createSessionRow({ provider: 'codex', jsonl_path: sessionFilePath }),
-      readTextFile: () => { throw new Error('full read must not happen when the tail has usage'); },
+      readTranscriptLinesBackwards: () => { throw new Error('fallback scan must not happen when the tail has usage'); },
       getCodexContextLimits: () => null,
     });
 
@@ -384,7 +386,7 @@ test('Codex token usage reads only the tail of a large rollout', async () => {
   }
 });
 
-test('Codex token usage falls back to the whole file when the tail has no token_count row', async () => {
+test('Codex token usage scans backwards when the tail has no token_count row', async () => {
   const tempDirectory = await mkdtemp(path.join(tmpdir(), 'provider-token-usage-codex-fallback-'));
   const sessionFilePath = path.join(tempDirectory, 'rollout-provider-session.jsonl');
 

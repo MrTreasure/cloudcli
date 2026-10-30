@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`8d2bea1c37ced473d6b1a29b7863151d276fe5b8`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`867f5fa179fb59c729eefe82ea143012d496ee06`。
 
-记录基线与当前暂存树之间的全部净差异，共 350 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 353 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -11,6 +11,7 @@
 | A | [.dockerignore](../../.dockerignore) | — |
 | M | [.env.example](../../.env.example) | — |
 | A | [.finesse/log.json](../../.finesse/log.json) | — |
+| M | [.gitignore](../../.gitignore) | — |
 | M | [.husky/pre-commit](../../.husky/pre-commit) | — |
 | M | [.oxlintrc.json](../../.oxlintrc.json) | — |
 | M | [AGENTS.md](../../AGENTS.md) | — |
@@ -106,6 +107,7 @@
 | M | [server/modules/auth/index.ts](../../server/modules/auth/index.ts) | — |
 | A | [server/modules/auth/response-cache.middleware.ts](../../server/modules/auth/response-cache.middleware.ts) | — |
 | A | [server/modules/auth/tests/cors-policy.test.ts](../../server/modules/auth/tests/cors-policy.test.ts) | — |
+| M | [server/modules/commands/commands.routes.ts](../../server/modules/commands/commands.routes.ts) | — |
 | M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
 | M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
 | A | [server/modules/database/repositories/codex-context.db.ts](../../server/modules/database/repositories/codex-context.db.ts) | — |
@@ -119,6 +121,7 @@
 | M | [server/modules/plugins/plugins.routes.ts](../../server/modules/plugins/plugins.routes.ts) | — |
 | M | [server/modules/plugins/tests/plugins.service.test.ts](../../server/modules/plugins/tests/plugins.service.test.ts) | — |
 | M | [server/modules/projects/project-clone.routes.ts](../../server/modules/projects/project-clone.routes.ts) | — |
+| M | [server/modules/providers/list/claude/claude-session-synchronizer.provider.ts](../../server/modules/providers/list/claude/claude-session-synchronizer.provider.ts) | — |
 | M | [server/modules/providers/list/codex/codex-app-server.client.ts](../../server/modules/providers/list/codex/codex-app-server.client.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.config.ts](../../server/modules/providers/list/codex/codex-app-server.config.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.process.ts](../../server/modules/providers/list/codex/codex-app-server.process.ts) | — |

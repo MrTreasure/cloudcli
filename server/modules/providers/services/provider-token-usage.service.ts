@@ -1,4 +1,3 @@
-import type { CodexContextLimits } from '@/shared/index.js';
 import fsSync, { type Dirent } from 'node:fs';
 import fsp from 'node:fs/promises';
 import os from 'node:os';
@@ -8,8 +7,9 @@ import Database from 'better-sqlite3';
 
 import { sessionsDb } from '@/modules/database/index.js';
 import { readCodexContextLimits } from '@/modules/providers/services/codex-context-limits.service.js';
+import type { CodexContextLimits } from '@/shared/index.js';
 import type { AnyRecord } from '@/shared/types.js';
-import { AppError, getOpenCodeDatabasePath } from '@/shared/utils.js';
+import { AppError, getOpenCodeDatabasePath, readLinesBackwards } from '@/shared/utils.js';
 
 type SessionRow = NonNullable<ReturnType<typeof sessionsDb.getSessionById>>;
 
@@ -25,7 +25,7 @@ type ProviderTokenUsageServiceDependencies = {
   getOpenCodeDatabasePath: () => string;
   fileExists: (filePath: string) => boolean;
   readDirectory: (directoryPath: string) => Promise<Dirent[]>;
-  readTextFile: (filePath: string) => Promise<string>;
+  readTranscriptLinesBackwards: (filePath: string) => AsyncIterable<string>;
   readTextFileTail: (filePath: string, maxBytes: number) => Promise<FileTail>;
   getClaudeContextWindow: () => string | undefined;
   getCodexContextLimits: (model?: string | null) => CodexContextLimits | null;
@@ -64,7 +64,7 @@ type OpenCodeTokenRow = {
  * Both JSONL usage readers below only need the newest usage row, which sits at
  * or near the end of the transcript. Reading just this much of the tail keeps
  * a session-open usage lookup O(1) in the transcript's size; the rare tail
- * with no usage row at all falls back to the full read.
+ * with no usable usage row falls back to a bounded backwards line scan.
  */
 const TOKEN_USAGE_TAIL_BYTES = 4 * 1024 * 1024;
 
@@ -74,7 +74,7 @@ const defaultDependencies: ProviderTokenUsageServiceDependencies = {
   getOpenCodeDatabasePath,
   fileExists: (filePath) => fsSync.existsSync(filePath),
   readDirectory: (directoryPath) => fsp.readdir(directoryPath, { withFileTypes: true }),
-  readTextFile: (filePath) => fsp.readFile(filePath, 'utf8'),
+  readTranscriptLinesBackwards: readLinesBackwards,
   readTextFileTail: async (filePath, maxBytes) => {
     const handle = await fsp.open(filePath, 'r');
     try {
@@ -336,7 +336,11 @@ function parseClaudeUsageEntries(fileContent: string): AnyRecord[] {
 }
 
 function claudeEntriesHaveUsage(entries: AnyRecord[]): boolean {
-  return entries.some((entry) => entry?.type === 'assistant' && entry.message?.usage);
+  // Match summarizeClaudeTokenUsage: sidechain and zero-usage synthetic rows
+  // cannot authorize stopping before an earlier real main-session usage row.
+  return entries.some((entry) => entry?.type === 'assistant'
+    && entry.isSidechain !== true && entry.message?.usage
+    && summarizeClaudeTokenUsage([entry]).used !== 0);
 }
 
 function readOpenCodeTokenUsage(databasePath: string, providerSessionId: string): TokenUsageResult {
@@ -501,12 +505,11 @@ export function createProviderTokenUsageService(
           return withCurrentLimits(tailUsage ?? emptyCodexTokenUsage());
         }
 
-        // A tail this large with no token_count row is pathological, but the
-        // whole file is still authoritative when it happens.
-        return withCurrentLimits(
-          findCodexTokenUsage(await dependencies.readTextFile(sessionFilePath))
-            ?? emptyCodexTokenUsage(),
-        );
+        for await (const line of dependencies.readTranscriptLinesBackwards(sessionFilePath)) {
+          const usage = findCodexTokenUsage(line);
+          if (usage) return withCurrentLimits(usage);
+        }
+        return withCurrentLimits(emptyCodexTokenUsage());
       }
 
       let sessionFilePath = session.jsonl_path;
@@ -546,7 +549,13 @@ export function createProviderTokenUsageService(
       const tail = await dependencies.readTextFileTail(sessionFilePath, TOKEN_USAGE_TAIL_BYTES);
       let entries = parseClaudeUsageEntries(tail.content);
       if (!claudeEntriesHaveUsage(entries) && !tail.isComplete) {
-        entries = parseClaudeUsageEntries(await dependencies.readTextFile(sessionFilePath));
+        for await (const line of dependencies.readTranscriptLinesBackwards(sessionFilePath)) {
+          const candidate = parseClaudeUsageEntries(line);
+          if (claudeEntriesHaveUsage(candidate)) {
+            entries = candidate;
+            break;
+          }
+        }
       }
       return summarizeClaudeTokenUsage(
         entries,

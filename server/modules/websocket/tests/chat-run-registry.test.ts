@@ -163,6 +163,8 @@ test('a finished run\'s safety net cannot complete the session\'s next run', asy
     chatRunRegistry.completeRunIfCurrent(firstRun, { exitCode: 1 });
     assert.equal(chatRunRegistry.isProcessing('app-run-9'), true);
     assert.equal(connection.frames.filter((frame) => frame.kind === 'complete').length, 1);
+    assert.equal(firstRun.events.length, 0, 'replaced replay data is released immediately');
+    assert.equal(firstRun.evictionTimer, null, 'replaced retention timer is cancelled');
 
     // The second run's own safety net still works while it is current.
     chatRunRegistry.completeRunIfCurrent(secondRun, { exitCode: 1 });

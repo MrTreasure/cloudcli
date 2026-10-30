@@ -4,6 +4,7 @@ import {
   access,
   lstat,
   mkdir,
+  open,
   readFile,
   readdir,
   readlink,
@@ -1309,6 +1310,65 @@ export async function readFileTimestamps(
 
 // ---------------------------
 //----------------- SESSION SYNCHRONIZER JSONL PARSING HELPERS ------------
+/**
+ * Yields LF-separated lines from EOF to BOF for the Claude title synchronizer
+ * and provider token-usage service. A consumer may stop at its newest matching
+ * record; the handle closes even on early return. UTF-8 is decoded only after
+ * a whole line has been assembled, including lines spanning chunk boundaries.
+ *
+ * Memory is proportional to one chunk plus the longest line. Fragments are
+ * joined once per line, avoiding quadratic copying of long Base64 records.
+ * Empty files yield nothing; trailing LF yields an initial empty line. I/O
+ * errors propagate so callers can preserve their own missing-file behavior.
+ */
+export async function* readLinesBackwards(
+  filePath: string,
+  chunkBytes = 64 * 1024,
+): AsyncGenerator<string> {
+  if (!Number.isSafeInteger(chunkBytes) || chunkBytes < 1) {
+    throw new RangeError('chunkBytes must be a positive safe integer');
+  }
+  const handle = await open(filePath, 'r');
+  try {
+    let end = (await handle.stat()).size;
+    if (!end) return;
+    let fragments: Buffer[] = [];
+    let fragmentBytes = 0;
+    while (end > 0) {
+      const start = Math.max(0, end - chunkBytes);
+      const chunk = Buffer.allocUnsafe(end - start);
+      let filled = 0;
+      while (filled < chunk.length) {
+        const { bytesRead } = await handle.read(chunk, filled, chunk.length - filled, start + filled);
+        if (!bytesRead) break;
+        filled += bytesRead;
+      }
+      // Do not combine disjoint ranges if a live file was truncated beneath us.
+      if (filled !== chunk.length) return;
+      let lineEnd = filled;
+      for (let index = chunk.lastIndexOf(10, filled - 1); index >= 0;
+        index = index > 0 ? chunk.lastIndexOf(10, index - 1) : -1) {
+        const prefix = chunk.subarray(index + 1, lineEnd);
+        const line = fragments.length
+          ? Buffer.concat([prefix, ...fragments.reverse()], prefix.length + fragmentBytes).toString('utf8')
+          : prefix.toString('utf8');
+        fragments = [];
+        fragmentBytes = 0;
+        yield line;
+        lineEnd = index;
+      }
+      if (lineEnd) {
+        fragments.push(chunk.subarray(0, lineEnd));
+        fragmentBytes += lineEnd;
+      }
+      end = start;
+    }
+    yield Buffer.concat(fragments.reverse(), fragmentBytes).toString('utf8');
+  } finally {
+    await handle.close();
+  }
+}
+
 /**
  * Builds a first-seen key/value lookup map from a JSONL file.
  *

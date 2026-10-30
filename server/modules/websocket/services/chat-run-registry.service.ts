@@ -33,6 +33,7 @@ type ChatRun = {
   writer: ChatSessionWriter;
   startedAt: number;
   completedAt: number | null;
+  evictionTimer: ReturnType<typeof setTimeout> | null;
 };
 
 /**
@@ -75,7 +76,8 @@ let retainCompletedRun: (appSessionId: string) => boolean = () => false;
  * the slot alone would evict that newer run early.
  */
 function evictRunLater(run: ChatRun): void {
-  const timer = setTimeout(() => {
+  run.evictionTimer = setTimeout(() => {
+    run.evictionTimer = null;
     if (runs.get(run.appSessionId) !== run || run.status !== 'completed') {
       return;
     }
@@ -87,7 +89,7 @@ function evictRunLater(run: ChatRun): void {
   }, COMPLETED_RUN_RETENTION_MS);
 
   // Never keep the process alive just to evict a buffered run.
-  timer.unref?.();
+  run.evictionTimer.unref?.();
 }
 
 /**
@@ -216,6 +218,7 @@ export const chatRunRegistry = {
       writer: null as unknown as ChatSessionWriter,
       startedAt: Date.now(),
       completedAt: null,
+      evictionTimer: null,
     };
 
     run.writer = new ChatSessionWriter({
@@ -229,7 +232,15 @@ export const chatRunRegistry = {
       decorateOutboundEvent: (message) => runs.get(run.appSessionId) === run ? decorateAndRecordEvent(run, message) : null,
     });
 
-    if (existing) run.writer.inheritConnections(existing.writer);
+    if (existing) {
+      run.writer.inheritConnections(existing.writer);
+      // The old run cannot be replayed after replacement. Cancel its timer
+      // and release events immediately instead of retaining up to 5000 large
+      // tool results for another five minutes after every consecutive turn.
+      if (existing.evictionTimer) clearTimeout(existing.evictionTimer);
+      existing.evictionTimer = null;
+      existing.events.length = 0;
+    }
     runs.set(input.appSessionId, run);
     return run;
   },
@@ -330,6 +341,11 @@ export const chatRunRegistry = {
    * Test-only escape hatch: clears every tracked run.
    */
   clearAll(): void {
+    for (const run of runs.values()) {
+      if (run.evictionTimer) clearTimeout(run.evictionTimer);
+      run.evictionTimer = null;
+      run.events.length = 0;
+    }
     runs.clear();
   },
 };

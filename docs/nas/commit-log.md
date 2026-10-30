@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`8d2bea1c37ced473d6b1a29b7863151d276fe5b8`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`867f5fa179fb59c729eefe82ea143012d496ee06`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,8 +11,13 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [server/modules/providers/list/codex/codex-app-server.runtime.ts](../../server/modules/providers/list/codex/codex-app-server.runtime.ts) | — |
-| M | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
+| M | [server/modules/commands/commands.routes.ts](../../server/modules/commands/commands.routes.ts) | — |
+| M | [server/modules/providers/list/claude/claude-session-synchronizer.provider.ts](../../server/modules/providers/list/claude/claude-session-synchronizer.provider.ts) | — |
+| M | [server/modules/providers/services/provider-token-usage.service.ts](../../server/modules/providers/services/provider-token-usage.service.ts) | — |
+| M | [server/modules/providers/tests/provider-token-usage.service.test.ts](../../server/modules/providers/tests/provider-token-usage.service.test.ts) | — |
+| M | [server/modules/websocket/services/chat-run-registry.service.ts](../../server/modules/websocket/services/chat-run-registry.service.ts) | — |
+| M | [server/modules/websocket/tests/chat-run-registry.test.ts](../../server/modules/websocket/tests/chat-run-registry.test.ts) | — |
+| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
 
 ## NAS 主线提交
 
@@ -1118,6 +1123,24 @@
   - `src/modules/settings/tabs/AppearanceSettingsTab.tsx`
   - `src/shared/hooks/useDefaultDirectory.ts`
   - `src/shared/userSettings.ts`
+
+### 6ffdbe88 · 2026-10-30 · fix(codex): reconcile stale runs after context compaction
+
+- 完整提交：`6ffdbe8809bca4eb571d9d6ababc6ae560e70b95`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `server/modules/providers/list/codex/codex-app-server.runtime.ts`
+  - `server/modules/providers/tests/codex-app-server.runtime.test.ts`
+
+### 867f5fa1 · 2026-10-30 · chore: establish user-confirmed current source baseline
+
+- 完整提交：`867f5fa179fb59c729eefe82ea143012d496ee06`
+- 相对第一父提交涉及文件：
+
+  - `.gitignore`
 
 ## 从 PR / 其他分支合入的提交
 
