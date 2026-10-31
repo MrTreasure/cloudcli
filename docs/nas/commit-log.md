@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`eddf004e1a2f43a990dbc672926595d8f91dd49a`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`07f91432a809fffb4f29001e58c193eab65e0925`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,7 +11,8 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [public/sw.js](../../public/sw.js) | — |
+| M | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
+| M | [src/modules/codex-agents/context/CodexAgentsContext.tsx](../../src/modules/codex-agents/context/CodexAgentsContext.tsx) | — |
 
 ## NAS 主线提交
 
@@ -1162,6 +1163,16 @@
   - `docs/nas/file-index.md`
   - `local-plugins/cloudcli-codex-agents/README.md`
   - `local-plugins/cloudcli-codex-agents/src/reader.ts`
+
+### 07f91432 · 2026-10-31 · fix(pwa): reject opaque responses in asset cache
+
+- 完整提交：`07f91432a809fffb4f29001e58c193eab65e0925`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `public/sw.js`
 
 ## 从 PR / 其他分支合入的提交
 

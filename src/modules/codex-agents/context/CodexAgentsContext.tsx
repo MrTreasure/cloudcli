@@ -86,7 +86,9 @@ export function CodexAgentsProvider({ children, projectPath, enabled = true, ide
   }, [key, rpc, scope, selectedId, inspecting]);
   const wake = useAdaptivePolling({ refresh, active: snapshot?.items.some((row) => row.status === 'running') || false,
     enabled: enabled && Boolean(projectPath), identity: key, activeMs: 5000, idleMs: 20_000, hiddenMs: 60_000 });
-  useEffect(() => { if (inspecting && selectedId) wake(); }, [inspecting, selectedId, wake]);
+  // Opening the inspector must reconcile the list even before a row is selected.
+  // Reuse the polling owner's wake so an in-flight read is never duplicated.
+  useEffect(() => { if (inspecting) wake(); }, [inspecting, selectedId, wake]);
   const choose = useCallback((id: string | null) => { setSelectedId(id); setDetail(null); }, []);
   const loadMore = async () => {
     if (mutation.current || paging.current || snapshot?.nextOffset == null) return;

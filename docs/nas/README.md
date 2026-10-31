@@ -1,5 +1,12 @@
 # NAS / C137 分支维护指南
 
+## 2026-10-31 subAgent 面板进入时校准列表
+
+- 老大反馈地图攻略新任务在插件里未显示，整页刷新后恢复。本机及 NAS 公网鉴权接口均已返回 `route_coverage_review`、`karelia_route_trace` 的原生记录；两者原生完成时间为 23:43:38，后续 `iberian_registration` 返回运行中。接口为 `Cache-Control: no-store`；日志显示当时插件请求成功，但没有保存历史响应正文，不能据此证明当时浏览器渲染状态或把聊天旧卡片的 running 视为原生任务仍在执行。
+- 查明的刷新缺口：原先只有“面板打开且已选中任务”才唤醒同步，直接进入未选中任务的面板仍等待原有轮询。所属路径 `src/modules/codex-agents/context/CodexAgentsContext.tsx`，调整为进入面板即校准，继续使用现有单请求调度、失败退避及 5/20/60 秒节奏；没有新增定时器、跨标签数据广播或模型调用。
+- 来源：本地修复，无上游合并，官方 1.37.7 升级按用户要求暂停，版本及官方基线保持 1.37.6。只需更新前端/standalone 插件 UI，不需重启后端或正在执行的 Codex。完整历史仍默认折叠，原生已结束任务在已结束分组；聊天卡片状态与插件状态不是同一条同步链路，此次未改聊天卡片。
+- 回退：恢复上述 effect 的已选中任务条件并重新发布前端；不回退原生会话、插件清除标记或 Service Worker 修复。源码提交、测试和发布状态以本次交付记录为准。
+
 ## 2026-10-31 Service Worker 的 opaque CSS 缓存修复
 
 - 老大在普通 Chrome 确认 `index-CllGA6Hw.css` 的 FetchEvent 报错：旧缓存的 opaque 响应不能满足当前 CORS 请求。公网 CSS 实测 200、`text/css`、允许 `https://agent.mrtreasure.cc` 的 CORS，且 SHA-256 与已发布文件一致，不是缺文件或应关闭 CORS。
