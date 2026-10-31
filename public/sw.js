@@ -2,6 +2,10 @@
 // Cache only manifest (needed for PWA install). HTML and JS are never pre-cached
 // so a rebuild + refresh always picks up the latest assets.
 const CACHE_NAME = 'c137-ui-a6353f89';
+// Keep the resource-cache policy separate from the icon generator's brand key.
+// A no-cors response cached by an older worker cannot satisfy a later CORS
+// stylesheet/module request, even when the resource URL itself is unchanged.
+const RESOURCE_CACHE_NAME = `${CACHE_NAME}-readable-assets-v2`;
 const urlsToCache = [
   '/manifest.json'
 ];
@@ -9,14 +13,45 @@ const urlsToCache = [
 // Install event
 self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
+    caches.open(RESOURCE_CACHE_NAME)
       .then(cache => cache.addAll(urlsToCache))
+      .catch(() => {})
   );
   self.skipWaiting();
 });
 
+function usableAssetResponse(response, request) {
+  if (!response || response.status !== 200 || !response.ok
+    || !['basic', 'cors', 'default'].includes(response.type)) return false;
+  if (request.mode === 'same-origin' && response.type === 'cors') return false;
+  const pathname = new URL(request.url).pathname;
+  const mime = (response.headers.get('Content-Type') || '').split(';')[0].trim().toLowerCase();
+  if (pathname.endsWith('.css')) return mime === 'text/css';
+  if (/\.m?js$/.test(pathname)) {
+    return ['text/javascript', 'application/javascript', 'application/x-javascript',
+      'text/ecmascript', 'application/ecmascript'].includes(mime);
+  }
+  return true;
+}
+
+async function loadAsset(event) {
+  const request = event.request;
+  // Storage restrictions or quota failures must not prevent a healthy network
+  // response from loading. Only inspect this worker's current resource cache.
+  const cache = await caches.open(RESOURCE_CACHE_NAME).catch(() => null);
+  const cached = cache ? await cache.match(request).catch(() => undefined) : undefined;
+  if (usableAssetResponse(cached, request)) return cached;
+  if (cached) await cache.delete(request).catch(() => {});
+  const response = await fetch(request, cached ? { cache: 'reload' } : undefined);
+  if (cache && usableAssetResponse(response, request)) {
+    event.waitUntil(cache.put(request, response.clone()).catch(() => {}));
+  }
+  return response;
+}
+
 // Fetch event — network-first for everything except hashed assets
 self.addEventListener('fetch', event => {
+  if (event.request.method !== 'GET') return;
   const url = event.request.url;
 
   // Never intercept API requests or WebSocket upgrades
@@ -38,16 +73,7 @@ self.addEventListener('fetch', event => {
 
   // Hashed assets (JS/CSS in /assets/) — cache-first since filenames change per build
   if (url.includes('/assets/')) {
-    event.respondWith(
-      caches.match(event.request).then(cached => {
-        if (cached) return cached;
-        return fetch(event.request).then(response => {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-          return response;
-        });
-      })
-    );
+    event.respondWith(loadAsset(event));
     return;
   }
 
@@ -59,16 +85,13 @@ self.addEventListener('fetch', event => {
 
 // Activate event — purge old caches
 self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames =>
-      Promise.all(
-        cacheNames
-          .filter(name => name !== CACHE_NAME)
-          .map(name => caches.delete(name))
-      )
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const cacheNames = await caches.keys().catch(() => []);
+    await Promise.all(cacheNames
+      .filter(name => name.startsWith('c137-ui-') && name !== RESOURCE_CACHE_NAME)
+      .map(name => caches.delete(name).catch(() => {})));
+    await self.clients.claim();
+  })());
 });
 
 // Push notification event

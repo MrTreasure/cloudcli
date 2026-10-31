@@ -1,5 +1,14 @@
 # NAS / C137 分支维护指南
 
+## 2026-10-31 Service Worker 的 opaque CSS 缓存修复
+
+- 老大在普通 Chrome 确认 `index-CllGA6Hw.css` 的 FetchEvent 报错：旧缓存的 opaque 响应不能满足当前 CORS 请求。公网 CSS 实测 200、`text/css`、允许 `https://agent.mrtreasure.cc` 的 CORS，且 SHA-256 与已发布文件一致，不是缺文件或应关闭 CORS。
+- 所属路径：`public/sw.js`。资源缓存版本独立于品牌图标版本升级为 `readable-assets-v2`；只从当前缓存查找资源，激活后移除本应用旧缓存。缓存读取时验证可读响应类型、200 状态及 CSS/JS MIME；opaque、HTTP 错误和伪装成资源的 HTML 不入缓存，已有无效项删除后保留原请求权限和模式联网重取。缓存不可用/额度不足不阻断正常网络加载。
+- 保留：PWA 安装、离线提示、推送通知、GET 资源缓存和 API/非 GET 绕过规则；不清 localStorage、会话、账户或其他应用缓存。品牌生成器继续更新原有 `CACHE_NAME`，不会抹掉独立的资源缓存策略版本。
+- 验证：语法和差异检查，以及私有操作目录内九项无浏览器回归，覆盖 opaque→CORS、有效 CSS 命中、HTML MIME、HTTP 错误、no-cors 图片、CacheStorage/写入失败、旧缓存升级和 API/非 GET 边界。未运行浏览器自动化或截图。只发布当前前端的 Service Worker，保留正在使用的 HTML 与 JS/CSS 哈希，不重建其他未确认页面、不重启后端。
+- 已发布：`c137-agent-static` 版本 `9a7d9f55-7884-402d-b5f7-9361f53a78c9`，只上传变更的 `/sw.js`。原发布器入口/PWA/鉴权检查通过；公网 `/sw.js` 返回 200 且 SHA-256 与新源码一致，原入口 HTML 哈希不变。浏览器由老大强制刷新后手动验收。
+- 来源：本地修复，无上游 PR 合并。发布前后哈希、边缘检查和实际部署状态见 NAS 私有 `cloudflare-sites/operations/cloudcli-css-20261031/`。回退需整体恢复 worker 策略并使用一个新的缓存版本发布；不要重新启用已知受污染的旧缓存，也不删除登录数据。没有后端协议、服务依赖或部署关系变化。
+
 ## 2026-10-30 内存排查与元数据读取优化
 
 - 已区分三种口径：Node 的 RSS/堆/原生缓冲区、Codex 和插件等子进程，以及 cgroup 归属的文件与内核缓存。排查时服务组约 4.45 GiB，其中匿名内存约 1.06 GiB、文件缓存约 2.66 GiB、可回收 slab 约 0.59 GiB；所有进程 PSS 合计约 1.10 GiB。Node 的 `/status` 报告堆已用约 82 MiB，不能把整组占用认作历史缓存或内存泄漏。系统当时仍可用约 9.4 GiB，PSI 接近零。
