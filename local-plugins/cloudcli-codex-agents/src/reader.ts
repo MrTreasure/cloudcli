@@ -24,10 +24,52 @@ const safeText = (value: string, max = 4000): string => value
   .replace(/data:image\/[^;\s]+;base64,[A-Za-z0-9+/=]+/g, '[图片数据]')
   .slice(0, max);
 
+// Scan across large image/output lines without allocating or parsing them.
+// Typical polls stop after a few blocks; cold reads have a fixed 8 MiB I/O cap.
+function readRecentRecords(filename: string, size: number, limit: number): { records: RecordValue[]; truncated: boolean } {
+  const records: RecordValue[] = [];
+  const descriptor = fs.openSync(filename, 'r');
+  const block = Buffer.alloc(64 * 1024);
+  let position = size;
+  const lowerBound = Math.max(0, size - 8 * 1024 * 1024);
+  let pieces: Buffer[] = [];
+  let lineBytes = 0;
+  let oversized = false;
+  let skipped = false;
+  const append = (piece: Buffer) => {
+    lineBytes += piece.length;
+    if (lineBytes > 64 * 1024) { oversized = true; pieces = []; skipped = true; }
+    else if (!oversized && piece.length) pieces.push(Buffer.from(piece));
+  };
+  const finish = () => {
+    if (!oversized && pieces.length) {
+      const value = parse(Buffer.concat(pieces.reverse()).toString('utf8'));
+      if (typeof value.timestamp === 'string') records.push(value);
+    }
+    pieces = []; lineBytes = 0; oversized = false;
+  };
+  try {
+    while (position > lowerBound && records.length < limit) {
+      const length = Math.min(block.length, position - lowerBound);
+      position -= length;
+      const bytes = fs.readSync(descriptor, block, 0, length, position);
+      let end = bytes;
+      for (let index = bytes - 1; index >= 0; index--) {
+        if (block[index] !== 10) continue;
+        append(block.subarray(index + 1, end)); finish(); end = index;
+        if (records.length >= limit) break;
+      }
+      if (records.length < limit) append(block.subarray(0, end));
+    }
+    if (position === 0 && records.length < limit) finish();
+    return { records: records.reverse(), truncated: position > 0 || skipped };
+  } finally { fs.closeSync(descriptor); }
+}
+
 /** Plugin RPC server reads only Codex's native index and bounded rollout tails. Tests supply an isolated home. */
 export class CodexAgentReader {
   private readonly home: string;
-  private readonly cache = new Map<string, { signature: string; value: Timeline }>();
+  private readonly cache = new Map<string, { signature: string; identity: string; size: number; value: Timeline }>();
 
   constructor(home = process.env.CODEX_HOME || path.join(os.homedir(), '.codex')) { this.home = home; }
 
@@ -62,30 +104,30 @@ export class CodexAgentReader {
       const stat = fs.statSync(filename);
       if (!stat.isFile()) return fallback;
       const key = `${row.id}:${detail}`;
+      const identity = `${stat.dev}:${stat.ino}`;
+      // Keep public revisions compatible with already-cleared panel records.
       const signature = `${stat.mtimeMs}:${stat.size}`;
       const cached = this.cache.get(key);
-      if (cached?.signature === signature) return cached.value;
-      const length = Math.min(stat.size, detail ? 1024 * 1024 : 128 * 1024);
-      const buffer = Buffer.alloc(length);
-      const descriptor = fs.openSync(filename, 'r');
-      try { fs.readSync(descriptor, buffer, 0, length, stat.size - length); } finally { fs.closeSync(descriptor); }
-      const lines = buffer.toString('utf8').split('\n');
-      if (stat.size > length) lines.shift();
+      if (cached?.signature === signature && cached.identity === identity) return cached.value;
+      const recent = readRecentRecords(filename, stat.size, detail ? 256 : 128);
+      const previous = cached?.identity === identity && cached.size < stat.size ? cached.value : undefined;
       const modern = new Map<string, CodexAgentActivity>();
       const legacy = new Map<string, CodexAgentActivity>();
       let lifecycle: CodexAgentStatus = 'unknown';
       let lastAt: string | null = null;
+      let heartbeatAt: string | null = null;
       const cutoff = row.created_at * 1000 - 1000;
       const add = (target: Map<string, CodexAgentActivity>, activity: CodexAgentActivity) => {
         target.set(activity.id, { ...activity, label: safeText(activity.label, 220), text: safeText(activity.text) });
       };
-      for (const line of lines) {
-        const record = parse(line);
+      for (const record of recent.records) {
         const payload = object(record.payload);
         const at = string(record.timestamp);
         if (!at || !Number.isFinite(Date.parse(at)) || Date.parse(at) < cutoff) continue;
         // Forks can retain parent history; only native events belonging to this child are admissible.
         if (payload.thread_id && payload.thread_id !== row.id) continue;
+        if ((record.type === 'token_usage_record' && payload.thread_id === row.id)
+          || (record.type === 'event_msg' && payload.type === 'token_count')) heartbeatAt = at;
         if (record.type === 'event_msg') {
           if (payload.type === 'task_started') lifecycle = 'running';
           if (payload.type === 'task_complete') lifecycle = 'completed';
@@ -127,12 +169,16 @@ export class CodexAgentReader {
           }
         }
       }
-      const activities = [...(modern.size ? modern : legacy).values()].sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+      const current = [...(modern.size ? modern : legacy).values()];
+      const activities = [...new Map([...(previous?.activities || []), ...current].map((activity) => [activity.id, activity])).values()]
+        .sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+      if (lifecycle === 'unknown' && previous) { lifecycle = previous.lifecycle; lastAt = previous.at; }
       const latestActivity = activities.at(-1)?.at;
       if (latestActivity && lifecycle === 'unknown') lifecycle = 'running';
       if (latestActivity && (!lastAt || Date.parse(latestActivity) > Date.parse(lastAt))) lastAt = latestActivity;
-      const value: Timeline = { available: true, revision: signature, activities: activities.slice(detail ? -80 : -3), lifecycle, at: lastAt, truncated: stat.size > length || activities.length > (detail ? 80 : 3) };
-      this.cache.set(key, { signature, value });
+      if (lifecycle === 'running' && heartbeatAt && (!lastAt || Date.parse(heartbeatAt) > Date.parse(lastAt))) lastAt = heartbeatAt;
+      const value: Timeline = { available: true, revision: signature, activities: activities.slice(detail ? -80 : -3), lifecycle, at: lastAt, truncated: recent.truncated || activities.length > (detail ? 80 : 3) };
+      this.cache.set(key, { signature, identity, size: stat.size, value });
       if (this.cache.size > 400) this.cache.delete(this.cache.keys().next().value!);
       return value;
     } catch { return fallback; }

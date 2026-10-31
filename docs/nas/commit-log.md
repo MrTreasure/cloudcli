@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`867f5fa179fb59c729eefe82ea143012d496ee06`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`096f70d46917cc3f4ced1f9f1c66961a1bf342bf`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,13 +11,8 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [server/modules/commands/commands.routes.ts](../../server/modules/commands/commands.routes.ts) | — |
-| M | [server/modules/providers/list/claude/claude-session-synchronizer.provider.ts](../../server/modules/providers/list/claude/claude-session-synchronizer.provider.ts) | — |
-| M | [server/modules/providers/services/provider-token-usage.service.ts](../../server/modules/providers/services/provider-token-usage.service.ts) | — |
-| M | [server/modules/providers/tests/provider-token-usage.service.test.ts](../../server/modules/providers/tests/provider-token-usage.service.test.ts) | — |
-| M | [server/modules/websocket/services/chat-run-registry.service.ts](../../server/modules/websocket/services/chat-run-registry.service.ts) | — |
-| M | [server/modules/websocket/tests/chat-run-registry.test.ts](../../server/modules/websocket/tests/chat-run-registry.test.ts) | — |
-| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
+| M | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
+| M | [local-plugins/cloudcli-codex-agents/src/reader.ts](../../local-plugins/cloudcli-codex-agents/src/reader.ts) | — |
 
 ## NAS 主线提交
 
@@ -1141,6 +1136,22 @@
 - 相对第一父提交涉及文件：
 
   - `.gitignore`
+
+### 096f70d4 · 2026-10-30 · fix(memory): bound transcript metadata reads and release replaced runs
+
+- 完整提交：`096f70d46917cc3f4ced1f9f1c66961a1bf342bf`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `server/modules/commands/commands.routes.ts`
+  - `server/modules/providers/list/claude/claude-session-synchronizer.provider.ts`
+  - `server/modules/providers/services/provider-token-usage.service.ts`
+  - `server/modules/providers/tests/provider-token-usage.service.test.ts`
+  - `server/modules/websocket/services/chat-run-registry.service.ts`
+  - `server/modules/websocket/tests/chat-run-registry.test.ts`
+  - `server/shared/utils.ts`
 
 ## 从 PR / 其他分支合入的提交
 
