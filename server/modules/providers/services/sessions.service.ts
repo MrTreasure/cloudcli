@@ -1,4 +1,3 @@
-import { readCodexContextLimits } from '@/modules/providers/services/codex-context-limits.service.js';
 import { randomUUID } from 'node:crypto';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
@@ -6,8 +5,10 @@ import path from 'node:path';
 import { projectsDb, sessionsDb } from '@/modules/database/index.js';
 import { broadcastSessionUpserted, chatRunRegistry } from '@/modules/websocket/index.js';
 import { providerRegistry } from '@/modules/providers/provider.registry.js';
+import { readCodexContextLimits } from '@/modules/providers/services/codex-context-limits.service.js';
 import { listBusyClaudeCliSessions } from '@/modules/providers/services/claude-cli-liveness.service.js';
 import { sessionHistoryCache } from '@/modules/providers/services/session-history-cache.service.js';
+import { withCodexImageArchiveCleanup } from '@/modules/providers/services/codex-image-context.service.js';
 import type {
   BackgroundTaskSummary,
   FetchHistoryOptions,
@@ -711,44 +712,49 @@ export const sessionsService = {
       };
     }
 
-    let removedFromDisk = false;
-    if (options.deletedFromDisk) {
-      const provider = providerRegistry.resolveProvider(session.provider);
-      if (provider.sessions.deleteFromStorage && session.provider_session_id) {
-        if (chatRunRegistry.listRunningRuns().some((run) => run.sessionId === sessionId)) {
-          throw new AppError('Stop the session before deleting it.', { code: 'SESSION_BUSY', statusCode: 409 });
+    const permanentlyDelete = async () => {
+      let removedFromDisk = false;
+      if (options.deletedFromDisk) {
+        const provider = providerRegistry.resolveProvider(session.provider);
+        if (provider.sessions.deleteFromStorage && session.provider_session_id) {
+          if (chatRunRegistry.listRunningRuns().some((run) => run.sessionId === sessionId)) {
+            throw new AppError('Stop the session before deleting it.', { code: 'SESSION_BUSY', statusCode: 409 });
+          }
+          removedFromDisk = await provider.sessions.deleteFromStorage(session.provider_session_id);
         }
-        removedFromDisk = await provider.sessions.deleteFromStorage(session.provider_session_id);
+        // Every file the conversation has lived in, not just the one the row
+        // points at now: editing a message on a provider that rewinds by
+        // branching moves the session onto a copy and leaves the earlier
+        // transcript behind. Deleting only the current one would leave the
+        // replaced turns on disk, and unreachable through the app.
+        const transcripts = [
+          ...(session.jsonl_path ? [session.jsonl_path] : []),
+          ...sessionsDb.getSupersededTranscriptPaths(sessionId),
+        ];
+        for (const transcript of transcripts) {
+          removedFromDisk = (await removeFileIfExists(transcript)) || removedFromDisk;
+        }
       }
-      // Every file the conversation has lived in, not just the one the row
-      // points at now: editing a message on a provider that rewinds by
-      // branching moves the session onto a copy and leaves the earlier
-      // transcript behind. Deleting only the current one would leave the
-      // replaced turns on disk, and unreachable through the app.
-      const transcripts = [
-        ...(session.jsonl_path ? [session.jsonl_path] : []),
-        ...sessionsDb.getSupersededTranscriptPaths(sessionId),
-      ];
-      for (const transcript of transcripts) {
-        removedFromDisk = (await removeFileIfExists(transcript)) || removedFromDisk;
+
+      sessionsDb.clearSupersededProviderSessions(sessionId);
+      const deleted = sessionsDb.deleteSessionById(sessionId);
+      if (!deleted) {
+        throw new AppError(`Session "${sessionId}" was not found.`, {
+          code: 'SESSION_NOT_FOUND',
+          statusCode: 404,
+        });
       }
-    }
 
-    sessionsDb.clearSupersededProviderSessions(sessionId);
-    const deleted = sessionsDb.deleteSessionById(sessionId);
-    if (!deleted) {
-      throw new AppError(`Session "${sessionId}" was not found.`, {
-        code: 'SESSION_NOT_FOUND',
-        statusCode: 404,
-      });
-    }
-
-    sessionHistoryCache.invalidate(sessionId);
-    return {
-      sessionId,
-      action: 'deleted',
-      deletedFromDisk: removedFromDisk,
+      sessionHistoryCache.invalidate(sessionId);
+      return {
+        sessionId,
+        action: 'deleted' as const,
+        deletedFromDisk: removedFromDisk,
+      };
     };
+    return session.provider === 'codex'
+      ? withCodexImageArchiveCleanup([sessionId], permanentlyDelete)
+      : permanentlyDelete();
   },
 
   /**

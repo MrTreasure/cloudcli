@@ -184,19 +184,78 @@ export class CodexAgentReader {
     } catch { return fallback; }
   }
 
-  private summary(db: DatabaseSync, row: Row, timeline: Timeline): CodexAgentSummary {
+  private readonly tasks = new Map<string, { signature: string; task: string; availability: 'available' | 'encrypted' | 'unavailable' }>();
+
+  private parentTitles(): Map<string, string> {
+    const titles = new Map<string, string>();
+    let db: DatabaseSync | undefined;
+    try {
+      const filename = process.env.DATABASE_PATH || path.join(os.homedir(), '.cloudcli', 'auth.db');
+      if (!fs.existsSync(filename)) return titles;
+      db = new DatabaseSync(filename, { readOnly: true });
+      db.exec('PRAGMA query_only = ON; PRAGMA busy_timeout = 1000;');
+      const rows = db.prepare("SELECT provider_session_id, custom_name FROM sessions WHERE provider = 'codex' AND custom_name IS NOT NULL").all();
+      for (const row of rows) if (string(row.custom_name).trim()) titles.set(string(row.provider_session_id), safeText(string(row.custom_name), 160));
+    } catch { /* A missing or older app index must not expose native first-message titles. */ }
+    finally { db?.close(); }
+    return titles;
+  }
+
+  private dispatchedTask(row: Row): { task: string; availability: 'available' | 'encrypted' | 'unavailable' } {
+    const unavailable = { task: '', availability: 'unavailable' as const };
+    try {
+      const filename = fs.realpathSync(row.rollout_path);
+      if (!['sessions', 'archived_sessions'].some((folder) => {
+        try { return filename.startsWith(fs.realpathSync(path.join(this.home, folder)) + path.sep); } catch { return false; }
+      })) return unavailable;
+      const stat = fs.statSync(filename);
+      if (!stat.isFile()) return unavailable;
+      const identity = `${stat.dev}:${stat.ino}:`;
+      const signature = `${identity}${Math.min(stat.size, 8 * 1024 * 1024)}`;
+      const cached = this.tasks.get(row.id);
+      if (cached && (cached.signature === signature || (cached.signature.startsWith(identity) && cached.availability !== 'unavailable'))) return cached;
+      // Incoming NEW_TASK records are at the start of the child rollout. Never use
+      // inherited user messages, native titles, or another child's dispatch.
+      const recent = readRecentRecords(filename, Math.min(stat.size, 8 * 1024 * 1024), 100_000);
+      let result = unavailable as { task: string; availability: 'available' | 'encrypted' | 'unavailable' };
+      for (const record of recent.records) {
+        const payload = object(record.payload);
+        if (record.type !== 'response_item' || payload.type !== 'agent_message'
+          || !row.agent_path || payload.recipient !== row.agent_path
+          || Date.parse(string(record.timestamp)) < row.created_at * 1000 - 1000) continue;
+        const content = Array.isArray(payload.content) ? payload.content : [];
+        const plaintext = content.map((part) => {
+          const value = object(part);
+          // Native collaboration can retain the encrypted_content discriminator
+          // even when the schema requested a plaintext task argument.
+          const wrapped = string(value.encrypted_content);
+          return value.type === 'encrypted_content' ? (!wrapped.startsWith('gAAAAA') ? wrapped : '') : string(value.text);
+        }).join('\n');
+        if (!plaintext.startsWith('Message Type: NEW_TASK\n')) continue;
+        const task = plaintext.split(/\nPayload:\s*\n/).slice(1).join('\nPayload:\n').trim();
+        if (task && !/^gAAAAA/.test(task)) result = { task: safeText(task, 8000), availability: 'available' };
+        else if (content.some((part) => object(part).type === 'encrypted_content')) result = { task: '', availability: 'encrypted' };
+        break;
+      }
+      this.tasks.set(row.id, { signature, ...result });
+      if (this.tasks.size > 400) this.tasks.delete(this.tasks.keys().next().value!);
+      return result;
+    } catch { return unavailable; }
+  }
+
+  private summary(row: Row, timeline: Timeline, titles: Map<string, string>): CodexAgentSummary {
     const spawn = object(object(parse(row.source).subagent).thread_spawn);
     const parentId = string(spawn.parent_thread_id) || null;
-    const parent = parentId ? db.prepare('SELECT title FROM threads WHERE id = ?').get(parentId) as { title: string } | undefined : undefined;
+    const task = this.dispatchedTask(row);
     let status = timeline.lifecycle;
     // Lack of a completion marker alone is not proof of a live process after a restart.
     if (status === 'running' && (!timeline.at || Date.now() - Date.parse(timeline.at) > 120_000)) status = 'unknown';
-    const name = row.name || row.agent_path?.split('/').filter(Boolean).at(-1) || row.agent_nickname || row.title || row.id;
+    const name = row.name || row.agent_path?.split('/').filter(Boolean).at(-1) || row.agent_nickname || row.id;
     const latest = timeline.activities.at(-1);
     return {
-      id: row.id, parentId, parentTitle: parent ? safeText(parent.title, 160) : null,
+      id: row.id, parentId, parentTitle: parentId ? titles.get(parentId) || null : null,
       name: safeText(name, 160), nickname: row.agent_nickname, model: row.model,
-      task: safeText(row.title, 320), projectPath: row.cwd,
+      task: task.task, taskAvailability: task.availability, projectPath: row.cwd,
       createdAt: iso(row.created_at), updatedAt: iso(row.updated_at), status,
       lastActivity: latest ? safeText(latest.kind === 'message' ? latest.text : latest.label, 180) : '',
       lastActivityAt: timeline.at, recordAvailable: timeline.available,
@@ -214,7 +273,8 @@ export class CodexAgentReader {
       const escaped = prefix.replace(/[!%_]/g, (value) => `!${value}`);
       const rows = db.prepare(`${select} WHERE ${where}${projectWhere} ORDER BY updated_at DESC,id DESC LIMIT ? OFFSET ?`)
         .all(...(prefix ? [prefix, `${escaped}${path.sep}%`] : []), limit + 1, offset) as unknown as Row[];
-      return { available: true, items: rows.slice(0, limit).map((row) => this.summary(db, row, this.readTimeline(row, false))), nextOffset: rows.length > limit ? offset + limit : null, observedAt: new Date().toISOString() };
+      const titles = this.parentTitles();
+      return { available: true, items: rows.slice(0, limit).map((row) => this.summary(row, this.readTimeline(row, false), titles)), nextOffset: rows.length > limit ? offset + limit : null, observedAt: new Date().toISOString() };
     } finally { db.close(); }
   }
 
@@ -227,8 +287,8 @@ export class CodexAgentReader {
       const row = db.prepare(`${select} WHERE ${where} AND id = ?`).get(id) as unknown as Row | undefined;
       if (!row) return null;
       const timeline = this.readTimeline(row, true);
-      const agent = this.summary(db, row, timeline);
-      return { agent, activities: timeline.activities, truncated: timeline.truncated, revision: `${row.updated_at}:${timeline.revision}:${agent.status}` };
+      const agent = this.summary(row, timeline, this.parentTitles());
+      return { agent, activities: timeline.activities, truncated: timeline.truncated, revision: JSON.stringify([agent.revision, agent.parentTitle, agent.task, agent.taskAvailability]) };
     } finally { db.close(); }
   }
 }

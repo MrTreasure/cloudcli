@@ -1,5 +1,14 @@
 # NAS / C137 分支维护指南
 
+## 2026-11-02 永久删除对话时清理图片归档副本
+
+- 老大要求删除对话时同时删除此前新增的归档副本。NAS 实际目录为 `/vol1/1000/appdata/cloudcli/cloudcli/codex-context-images/`，`~/.cloudcli/codex-context-images` 是同一位置；`catalogs/<SHA256-session-id>.json` 为会话目录，图片文件按内容哈希命名。共享源码仍从本机数据库路径推导目录，不硬编码 NAS 路径。
+- 所属路径：`server/modules/providers/services/codex-image-context.service.ts` 增加 `withCodexImageArchiveCleanup`，由 `sessions.service.ts` 永久删除流程及 Projects 的 `project-delete.service.ts` 批量永久删除流程使用，跨模块仅通过 Providers 公共入口。清理读取目标的数据库及旧目录引用，仅删除受管目录中严格匹配的文件，保留其他会话/归档会话及其他目录仍引用的哈希；目录中超出数据库快照的旧条目也纳入清理。`database/repositories/codex-context.db.ts` 提供其他会话的图片引用集合；会话索引删除后的既有外键级联移除图片元数据。
+- 写入与整段永久删除串行，解决多选并发删除共享图时最后一份副本残留的问题；正在写入的其他会话引用及新提交的索引受保护。目标会话运行中拒绝永久删除，已有设置扫描先完成，新扫描在删除期间拒绝；清理后重算容量计数。读取其他目录失败或文件清理失败返回错误，不继续删除目标的原始历史或索引，支持重试；不把失败冒充成功。没有新增接口、外部服务调用或周期任务。
+- 语义：可恢复归档保留关联文件；永久删除对话或项目时执行关联清理。共享附件原图、Codex 原生历史及 WebP 全局缓存不因本清理器被全盘删除；原生历史仍由原来的永久删除流程按用户选项处理。不自动批量清理过去已经删除的会话所遗留的未知孤儿目录。
+- 验证及发布：私有 `cloudcli/operations/image-cleanup-20261102/` 保留模拟测试、类型检查、lint、构建和精确候选收据；无真实模型调用或浏览器自动化。源码及候选准备完成不等于 NAS 已生效，维护操作等待活动会话结束后才切换并重启本服务，状态读 `restart-result.json`。源码不自动提交或推送。
+- 回退：空闲时恢复本次记录的旧后端产物并重启 CloudCLI。已经按永久删除请求移除的独占副本不会因代码回退重建；仍有原生历史时可按哈希恢复指定图片，永久删除过原始历史则遵循原有不可恢复语义。不得通过恢复整库覆盖新增聊天，其他电脑需要同步、构建并重启各自后端。
+
 ## 2026-11-02 问题截图只保留本轮，避免图片归档阻断对话
 
 - 根因已由原生记录核实：“地图攻略”12:59:37 及 13:10:35、13:11:34 的轮次均以 `CODEX_IMAGE_CACHE_FULL / 507` 失败。全局原图归档 1161 个文件、约 511.4 MiB，触及 512 MiB 程序限额，并非数据盘空间不足。此前 WebP 只压缩发送副本，原图先归档；默认保留 3 张历史图并注入目录，归档未回收会持续增长。旧历史读取还遗漏 `task_complete.error`，刷新后像没有回复。
@@ -609,3 +618,21 @@
 - 验证：私有隔离SQLite/rollout检查11项（跨大行、冷读、追加保留、超上限保守状态、完成后心跳、响应大小、inode替换）；既有8项原生读取fixture及4项插件宿主测试通过。类型、lint、插件构建与真实原生只读查询通过，karelia_sample 当前识别为running且详情可读。没有收费模型、浏览器自动化或真实记录删除。
 - 只重建发布 codex-agents 插件并重载其只读worker；前端和主后端无需重建或重启，不影响原生执行或其他插件。Mac/Windows需更新本插件源码、构建并重载worker。回退reader后重建并重载插件即可；无数据迁移，不更改已有清理标记。其他Agent正在修改的public/sw.js及既有NAS文档内容保留。
 - 已发布并只重载codex-agents worker；真实鉴权列表/详情200、未登录401，主后端PID未变。检查期间该Agent持续运行，22:28:23原生完成后列表与详情均显示completed，详情28项活动。界面请刷新并展开已结束；部署收据保存在NAS operations/subagent-reader-20261031，未提交或推送。
+
+### 2026-11-02 subAgent 标题、任务说明与状态入口纠正
+
+- 来源：C137 用户反馈；不涉及官方升级。父会话使用本机 CloudCLI 的自定义会话标题，不使用原生索引中继承的首条用户内容。任务说明只接受归属于该子线程的 NEW_TASK 指令；加密或缺失时明确提示，不拿父提示词或子线程名称代替。
+- 路径：`local-plugins/cloudcli-codex-agents/src/reader.ts`、`src/modules/codex-agents/`、`src/shared/types.ts`、`src/modules/chat/transcript/BackgroundTasksStrip.tsx`、`ChatMessagesPane.tsx`。
+- 交互：Codex Agent 状态保留工作区顶部入口，使用状态 badge；移除聊天正文上方重复的 Agent 状态项，命令和工作流后台任务入口保留。
+- 发布依赖：前端与本机 subAgent 插件 worker 共同更新；仅重载插件，不中断原生任务。回滚需恢复这两处产物；原生历史、任务执行和面板清除标记不改写。
+
+### 2026-11-02 后续 subAgent 派发任务使用可读指令
+
+- 根因：原生 collaboration 工具的 `parameters.properties.message.encrypted=true` 要求上游将派发/追发正文作为密文返回，本机执行与保存会话不意味着持有解密密钥。已核对原生日志、state/history 数据库和只读 app-server 接口；现有两个历史任务没有找到明文。
+- 修复：仅 CloudCLI 的 Codex 回环代理在发送前删除 `collaboration` / `collaboration-optimize` 下 `spawn_agent`、`send_message`、`followup_task` 的该声明，覆盖顶层工具及 `input[].additional_tools`。其他工具、参数约束、工具命名、模型目录、历史密文、推理数据、TLS、鉴权与压缩配置均保持。原生处理器仍可能把明文放进 `encrypted_content` 分支，发送前仅将非 Fernet 明文改为 `input_text`；旧 `gAAAAA` 密文保持不变，插件同样识别该明文包装。由插件读取后续原生 NEW_TASK 明文；不凭空还原旧密文。
+- 来源：C137 需求；参照本机 CPA 已有 multi-agent-v2 优化中的只读源码证据，未启用其全局选项、未修改或重启 CPA。
+- 路径：`server/modules/providers/services/codex-image-proxy.service.ts`、`server/modules/plugins/plugin-process.service.ts`（仅向内置 codex-agents 插件透传非敏感 DATABASE_PATH，兼容本机自定义数据库位置）、现有定向测试 `codex-request-compression.test.ts`、`.env.example`；依赖此前插件任务说明读取修复。
+- 回滚：机器本地设置 `CLOUDCLI_CODEX_READABLE_AGENT_TASKS=false` 并在空闲后重启 CloudCLI，恢复原生工具声明；已写入本机原生历史的明文指令仍按原生会话保留规则存在。旧密文任务需继续明确标注不可读，不拿推测内容替代。
+- 部署与验证：后端定向 53 项（52 通过、1 项既有跳过）、类型检查、lint、后端构建及插件构建通过；插件读取端已更新。后端与图片归档清理共 7 个精确编译文件，已交由 `cloudcli-image-cleanup-release-20261102.service` 等待全部活动会话为空后安装并重启；收据 `/vol1/1000/appdata/cloudcli/operations/image-cleanup-20261102/restart-result.json` 尚为 waiting_for_idle。未调用收费模型，真实新派发是否返回明文仍待重启后的实际运行确认。
+
+- 本次提交前架构关系审查：未新增或迁移服务、RPC、外部接收方及部署依赖；仍为浏览器 → CloudCLI → 本机 Codex/原配置上游，插件仍为宿主启动的本机只读子进程。任务参数可读声明与本机数据库路径透传不改变现有服务拓扑，不调整 NAS 架构基线。

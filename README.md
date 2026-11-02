@@ -318,6 +318,8 @@ Codex app-server 会把历史 `input_image`（包括压缩后的 `replacement_hi
 
 新会话策略默认值可通过 `CLOUDCLI_CODEX_HISTORY_IMAGES=0`、`CLOUDCLI_CODEX_HISTORY_IMAGE_BYTES=1048576` 配置；会话已保存的值优先。原图按内容哈希归档在数据库目录旁的 `codex-context-images/`，默认总容量 **512 MiB**（`CLOUDCLI_CODEX_IMAGE_CACHE_BYTES`）；启用历史保留或显式归档时，满额仍明确报错，不自动删除已有引用或悄悄转发大请求。默认的本轮图片模式不依赖该归档的剩余额度，当前图片仍经过公共 WebP 转换；没有提高归档容量。单个压缩前后 HTTP 请求体均限制为 **64 MiB**（`CLOUDCLI_CODEX_PROXY_BODY_BYTES`），可按需要调整。缓存及数据库属于每台电脑自己的运行数据，不随 Git 同步。
 
+永久删除 Codex 对话或整个项目时，同时清理相应图片目录及独占的归档副本；其他会话（包括已归档会话）的数据库或图片目录仍引用的图片继续保留。可恢复的归档操作保留这些文件。清理与归档写入共用队列，并保护其他会话正在建立的图片引用；清理失败返回错误，不继续删除会话索引及原生历史，可修复后重试。容量计数在清理后重新核算。此流程不清空共享的附件目录或整个 WebP 缓存，不新增周期任务。
+
 转发地址仅通过线程参数临时覆盖，不写 `config.toml`、`auth.json` 或模型库。自定义 provider 保留原 ID、认证和请求头；内置 OpenAI 使用官方 `openai_base_url` 临时覆盖，并由本地 426 响应触发原生 HTTP 回退，保留 provider ID 和原生 AuthManager。此路径使用 HTTP/SSE，原先支持 WebSocket 的 provider 在线程内切换为 HTTP；浏览器 WebSocket、消息插入和工具权限交互不变。支持 gzip/deflate/br/zstd 输入，默认沿用原编码（小请求或无压缩收益时在发送前改用 identity），也可主动选择 zstd/gzip，见下一节。使用宿主机 HTTP_PROXY/HTTPS_PROXY/ALL_PROXY/NO_PROXY 环境，只有 Codex 子进程增加本机回环绕过规则。
 
 可观测性记录实际 HTTP 请求体序列化字节（过滤前后和选定编码）、解压后的 JSON 字节、图数和累计净减少字节。它们是 Codex→CloudCLI→配置上游这一段的请求体测量，不含 TLS/协议头，也不是 CPA→模型的后续网络流量。日志只包含统计元数据，不记录 Base64、完整提示词、Cookie 或密钥。

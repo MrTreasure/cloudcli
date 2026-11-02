@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`ddcbdfa3b781d469b0ec9c54102fdafd77c65d97`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`0ee0855e2493ad454b0851facebbbd85d3a1d3b2`。
 
-记录基线与当前暂存树之间的全部净差异，共 353 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 358 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -121,6 +121,8 @@
 | M | [server/modules/plugins/plugins.routes.ts](../../server/modules/plugins/plugins.routes.ts) | — |
 | M | [server/modules/plugins/tests/plugins.service.test.ts](../../server/modules/plugins/tests/plugins.service.test.ts) | — |
 | M | [server/modules/projects/project-clone.routes.ts](../../server/modules/projects/project-clone.routes.ts) | — |
+| M | [server/modules/projects/services/project-delete.service.ts](../../server/modules/projects/services/project-delete.service.ts) | — |
+| M | [server/modules/providers/index.ts](../../server/modules/providers/index.ts) | — |
 | M | [server/modules/providers/list/claude/claude-session-synchronizer.provider.ts](../../server/modules/providers/list/claude/claude-session-synchronizer.provider.ts) | — |
 | M | [server/modules/providers/list/codex/codex-app-server.client.ts](../../server/modules/providers/list/codex/codex-app-server.client.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.config.ts](../../server/modules/providers/list/codex/codex-app-server.config.ts) | — |
@@ -154,6 +156,7 @@
 | A | [server/modules/providers/tests/codex-app-server.transport.test.ts](../../server/modules/providers/tests/codex-app-server.transport.test.ts) | — |
 | A | [server/modules/providers/tests/codex-context-limits.service.test.ts](../../server/modules/providers/tests/codex-context-limits.service.test.ts) | — |
 | A | [server/modules/providers/tests/codex-history-memory.test.ts](../../server/modules/providers/tests/codex-history-memory.test.ts) | — |
+| A | [server/modules/providers/tests/codex-image-cleanup.test.ts](../../server/modules/providers/tests/codex-image-cleanup.test.ts) | — |
 | M | [server/modules/providers/tests/codex-models.test.ts](../../server/modules/providers/tests/codex-models.test.ts) | — |
 | A | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
 | M | [server/modules/providers/tests/codex-runtime.test.ts](../../server/modules/providers/tests/codex-runtime.test.ts) | — |
@@ -227,6 +230,8 @@
 | M | [src/modules/chat/tests/sessionStoreTruncate.test.tsx](../../src/modules/chat/tests/sessionStoreTruncate.test.tsx) | — |
 | M | [src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx](../../src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx) | — |
 | A | [src/modules/chat/transcript/AsyncQuestionCard.tsx](../../src/modules/chat/transcript/AsyncQuestionCard.tsx) | — |
+| M | [src/modules/chat/transcript/BackgroundTasksStrip.tsx](../../src/modules/chat/transcript/BackgroundTasksStrip.tsx) | — |
+| M | [src/modules/chat/transcript/ChatMessagesPane.tsx](../../src/modules/chat/transcript/ChatMessagesPane.tsx) | — |
 | M | [src/modules/chat/transcript/Markdown.tsx](../../src/modules/chat/transcript/Markdown.tsx) | — |
 | M | [src/modules/chat/transcript/MessageComponent.tsx](../../src/modules/chat/transcript/MessageComponent.tsx) | — |
 | A | [src/modules/chat/transcript/WorkspaceFileLink.tsx](../../src/modules/chat/transcript/WorkspaceFileLink.tsx) | — |

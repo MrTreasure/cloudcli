@@ -5,6 +5,7 @@ import path from 'node:path';
 import readline from 'node:readline';
 
 import { codexContextDb, sessionsDb, getConnection, getDatabasePath } from '@/modules/database/index.js';
+import { chatRunRegistry } from '@/modules/websocket/index.js';
 import { optimizeImageBuffer } from '@/shared/index.js';
 import type { AnyRecord, CodexContextState, CodexHttpMeasurement, CodexImageContextPolicy, CodexImageFilterLease, ProviderRuntimeContext } from '@/shared/types.js';
 import { readCodexHistoryRecords } from '@/modules/providers/services/codex-history-reader.service.js';
@@ -24,7 +25,8 @@ const emptyState = (): CodexContextState => ({
     requests: 0, requestBytesBefore: 0, requestBytesAfter: 0, jsonBytesBefore: 0, jsonBytesAfter: 0,
     savedBytes: 0, uploadedBytes: 0, prunedImageCount: 0 },
 });
-function sessionState(sessionId: string) {
+function sessionState(sessionId: string, finishingScan = false) {
+  if (!finishingScan && deletingSessions.has(sessionId)) throw new AppError('Session images are being deleted.', { code: 'SESSION_BUSY', statusCode: 409 });
   const session = sessionsDb.getSessionById(sessionId);
   if (!session || session.provider !== 'codex') throw new AppError('A Codex session is required.', { code: 'CODEX_CONTEXT_SESSION', statusCode: 404 });
   return { session, state: codexContextDb.get(sessionId) ?? emptyState() };
@@ -43,11 +45,23 @@ function visitImages(value: unknown, visit: (item: AnyRecord, replace: (value: A
   }
 }
 const cacheUsage = new Map<string, { bytes: number; initialized: boolean; tail: Promise<void> }>();
+const deletingSessions = new Set<string>();
+const imageReferencesInFlight = new Set<Set<string>>();
+let imageReferenceRevision = 0;
+async function withImageReferences<T>(operation: (references: Set<string>) => Promise<T>): Promise<T> {
+  const references = new Set<string>();
+  imageReferencesInFlight.add(references);
+  try { return await operation(references); }
+  finally { imageReferencesInFlight.delete(references); }
+}
+function imageCacheUsage(root: string) {
+  let usage = cacheUsage.get(root);
+  if (!usage) { usage = { bytes: 0, initialized: false, tail: Promise.resolve() }; cacheUsage.set(root, usage); }
+  return usage;
+}
 async function saveImage(file: string, bytes: Buffer) {
   const root = imageRoot();
-  let usage = cacheUsage.get(root);
-  if (!usage) { usage = { bytes: 0, initialized: false, tail: Promise.resolve() }; cacheUsage.set(root,usage); }
-  const counter = usage;
+  const counter = imageCacheUsage(root);
   const write = counter.tail.then(async () => {
     await mkdir(root, { recursive: true, mode: 0o700 });
     if (!counter.initialized) {
@@ -69,12 +83,13 @@ async function saveImage(file: string, bytes: Buffer) {
   counter.tail = write.catch(() => {});
   return write;
 }
-async function archive(item: AnyRecord, state: CodexContextState, persist = true) {
+async function archive(item: AnyRecord, state: CodexContextState, persist = true, references?: Set<string>) {
   const match = typeof item.image_url === 'string' ? /^data:(image\/[\w.+-]+);base64,([A-Za-z0-9+/=\r\n]+)$/.exec(item.image_url) : null;
   if (!match) return null;
   const bytes = Buffer.from(match[2], 'base64');
   if (bytes.length === 0) return null;
   const id = createHash('sha256').update(bytes).digest('hex');
+  references?.add(id);
   let image = state.images.find(image => image.id === id);
   if (!image) {
     const extension = ({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'image/gif': '.gif' } as Record<string,string>)[match[1]] ?? '.image';
@@ -124,6 +139,86 @@ async function readSelectedOriginal(sessionId: string, image: CodexContextState[
 // Bounded metadata-only scan cache: image bytes remain on disk, never in this map.
 const describedTranscripts = new Map<string, string>();
 const descriptionsInFlight = new Map<string, Promise<CodexContextState>>();
+
+/** Providers' permanent session deletion and Projects' permanent batch deletion remove only their unshared archive copies. */
+export async function withCodexImageArchiveCleanup<T>(sessionIds: readonly string[], deleteSessions: () => Promise<T>): Promise<T> {
+  const ids = new Set(sessionIds);
+  const ensureIdle = () => {
+    if (chatRunRegistry.listRunningRuns().some(run => ids.has(run.sessionId))) {
+      throw new AppError('Stop the session before deleting it.', { code: 'SESSION_BUSY', statusCode: 409 });
+    }
+  };
+  ensureIdle();
+  if ([...ids].some(id => deletingSessions.has(id))) throw new AppError('Session deletion is already in progress.', { code: 'SESSION_BUSY', statusCode: 409 });
+  ids.forEach(id => deletingSessions.add(id));
+  try {
+    // A settings scan admitted before deletion must settle before we capture its
+    // references. New scans/filters for these sessions are rejected meanwhile.
+    await Promise.allSettled([...descriptionsInFlight].filter(([key]) => [...ids].some(id => key.startsWith(`${id}:`))).map(([, scan]) => scan));
+    const root = imageRoot();
+    const counter = imageCacheUsage(root);
+    const cleanup = counter.tail.then(async () => {
+      ensureIdle();
+      const candidates = new Set<string>();
+      const catalogueNames = new Set([...ids].map(id => createHash('sha256').update(id).digest('hex') + '.json'));
+      const collect = (images: CodexContextState['images']) => {
+        for (const image of images) {
+          const name = path.basename(image.path);
+          // Index/catalogue data never authorizes deleting arbitrary paths.
+          if (/^[a-f0-9]{64}\.(?:png|jpg|webp|gif|image)$/.test(name)
+            && name.startsWith(`${image.id}.`) && path.resolve(image.path) === path.join(root, name)) candidates.add(name);
+        }
+      };
+      for (const id of ids) collect(codexContextDb.get(id)?.images ?? []);
+      const protectedIds = codexContextDb.imageIdsOutside(ids);
+      let referenceRevision = imageReferenceRevision;
+      const directory = path.join(root, 'catalogs');
+      let names: string[];
+      try { names = await readdir(directory); }
+      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; names = []; }
+      // Older catalogues can contain references not present in the DB snapshot.
+      // Verify every managed catalogue before removing any image.
+      for (const name of names.filter(name => /^[a-f0-9]{64}\.json$/.test(name))) {
+        const value = JSON.parse(await readFile(path.join(directory, name), 'utf8')) as { images: CodexContextState['images'] };
+        if (!Array.isArray(value.images)) throw new AppError('Cannot verify image archive references.', { code: 'CODEX_IMAGE_CLEANUP_REFERENCES', statusCode: 503 });
+        if (catalogueNames.has(name)) collect(value.images);
+        else for (const image of value.images) protectedIds.add(image.id);
+      }
+      try {
+        for (const name of candidates) {
+          // A different session can archive/persist a shared image while this
+          // deletion reads catalogues. Preserve both in-flight and newly saved
+          // references without blocking its model stream.
+          if (referenceRevision !== imageReferenceRevision) {
+            for (const id of codexContextDb.imageIdsOutside(ids)) protectedIds.add(id);
+            referenceRevision = imageReferenceRevision;
+          }
+          const id = name.slice(0, 64);
+          if (protectedIds.has(id) || [...imageReferencesInFlight].some(references => references.has(id))) continue;
+          ensureIdle();
+          const file = path.join(root, name);
+          try {
+            await unlink(file);
+          } catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+        }
+        for (const name of catalogueNames) {
+          try { await unlink(path.join(directory, name)); }
+          catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+        }
+        // Keep permanent deletion inside the same write queue. A second
+        // deletion must observe the first one's DB cascade before checking
+        // shared references, including parallel checkbox/batch requests.
+        return await deleteSessions();
+      } finally {
+        // Recount on the next admission, including after a partial I/O failure.
+        counter.bytes = 0; counter.initialized = false;
+        ids.forEach(id => describedTranscripts.delete(id));
+      }
+    });
+    counter.tail = cleanup.then(() => {}, () => {});
+    return await cleanup;
+  } finally { ids.forEach(id => deletingSessions.delete(id)); }
+}
 function fileIdentity(file: string, info: Awaited<ReturnType<typeof stat>>) {
   return `${file}:${info.dev}:${info.ino}:${info.size}:${info.mtimeMs}:${info.ctimeMs}`;
 }
@@ -149,12 +244,14 @@ export const codexImageContextService = {
     let before: Awaited<ReturnType<typeof stat>>;
     try { before = await stat(file); }
     catch (error) { if ((error as NodeJS.ErrnoException).code === 'ENOENT') return state; throw error; }
+    // stat() yielded before the scan was registered; deletion may have started.
+    sessionState(sessionId);
     const identity = fileIdentity(file, before);
     if (describedTranscripts.get(sessionId) === identity) return state;
     const key = `${sessionId}:${identity}`;
     const existing = descriptionsInFlight.get(key);
     if (existing) return existing;
-    const scan = (async () => {
+    const scan = withImageReferences(async references => {
       let compactions = 0;
       const seen = new Set<string>();
       // Initial inspection still sees images present only in legacy compaction
@@ -171,14 +268,15 @@ export const codexImageContextService = {
           const hash = createHash('sha256').update(item.image_url).digest('hex');
           if (seen.has(hash)) continue;
           seen.add(hash);
-          const image = await archive(item, state, state.policy.recentImages > 0);
+          const image = await archive(item, state, state.policy.recentImages > 0, references);
           if (image && !state.images.some(existing => existing.id === image.id)) state.images.push(image);
         }
       }
-      const latest = sessionState(sessionId).state;
+      const latest = sessionState(sessionId, true).state;
       latest.images = [...new Map([...latest.images, ...state.images].map(image => [image.id, image])).values()];
       latest.metrics.compactions = latest.segments.reduce((sum, segment) => sum + (segment.compactions ?? 0), 0) + compactions;
       codexContextDb.save(sessionId, latest);
+      imageReferenceRevision++;
       const after = await stat(file);
       if (fileIdentity(file, after) === identity) {
         describedTranscripts.delete(sessionId);
@@ -186,7 +284,7 @@ export const codexImageContextService = {
         while (describedTranscripts.size > 32) describedTranscripts.delete(describedTranscripts.keys().next().value!);
       }
       return latest;
-    })();
+    });
     descriptionsInFlight.set(key, scan);
     try { return await scan; }
     finally { if (descriptionsInFlight.get(key) === scan) descriptionsInFlight.delete(key); }
@@ -207,105 +305,108 @@ export const codexImageContextService = {
     return state;
   },
   async filter(sessionId: string, body: AnyRecord, lease: CodexImageFilterLease, signal?: AbortSignal) {
-    signal?.throwIfAborted();
-    if (!Array.isArray(body.input)) return { prunedImageCount: 0 };
-    const { state } = sessionState(sessionId);
-    const input = body.input as AnyRecord[];
-    const pins = new Set(lease.policy.pinnedImageIds);
-    const retainArchive = lease.policy.recentImages > 0;
-    const entries: Array<{ image: NonNullable<Awaited<ReturnType<typeof archive>>>; item: AnyRecord; index: number; bytes: number; replace: (value: AnyRecord) => void; required: boolean; currentUser: boolean }> = [];
-    let newestUser = -1;
-    input.forEach((item, index) => { if (item.type === 'message' && item.role === 'user') newestUser = index; });
-    let lastResponse = -1;
-    input.forEach((item, index) => { if (item.role === 'assistant' || ['function_call', 'custom_tool_call', 'reasoning', 'compaction', 'context_compaction'].includes(item.type)) lastResponse = index; });
-    for (let index = 0; index < input.length; index += 1) {
+    return withImageReferences(async references => {
       signal?.throwIfAborted();
-      const images: Array<{ item: AnyRecord; replace: (value: AnyRecord) => void }> = [];
-      visitImages({ item: input[index] }, (item, replace) => images.push({ item, replace }));
-      for (const { item, replace } of images) {
-        // Turn-only images already live in native history/attachments. Hash for
-        // filtering without creating another permanent copy or consuming quota.
-        let image = await archive(item, state, retainArchive);
-        if (!image) continue; // Unsupported representations are kept intact.
-        const fresh = lease.initialized && !lease.knownIds.has(image.id);
-        const currentUserImage = newestUser >= 0 && index === newestUser;
-        const required = newestUser < 0 || currentUserImage || index >= lastResponse || fresh || lease.protectedIds.has(image.id);
-        // User/steer images remain protected for the admitted turn. Tool images
-        // may expire after a later model response has consumed them.
-        if (currentUserImage) lease.protectedIds.add(image.id);
-        entries.push({ image, item, index, bytes: jsonBytes(item), replace, required, currentUser: currentUserImage });
-      }
-    }
-    entries.forEach(entry => lease.knownIds.add(entry.image.id));
-    lease.initialized = true;
-    const requiredIds = new Set(entries.filter(entry => entry.required).map(entry => entry.image.id));
-    const historicalEntries = entries.filter(entry => !entry.required);
-    const historicalImageBytes = historicalEntries.reduce((sum, entry) => sum + entry.bytes, 0);
-    const historical = historicalEntries.filter(entry => !requiredIds.has(entry.image.id));
-    const keep = new Set<string>(pins);
-    let retainedBytes = state.images.filter(image => pins.has(image.id)).reduce((sum,image) => sum + image.encodedBytes, 0);
-    let count = 0;
-    for (const entry of [...historical].reverse()) {
-      const { image } = entry;
-      if (keep.has(image.id)) continue;
-      // At least the newest historical image is usable even when oversized.
-      if (count < lease.policy.recentImages && (count === 0 || retainedBytes + entry.bytes <= lease.policy.imageBytes)) {
-        keep.add(image.id); retainedBytes += entry.bytes; count += 1;
-      }
-    }
-    let prunedImageCount = 0;
-    const seen = new Set<string>();
-    const wireBytes = new Map<string, number>();
-    for (const entry of [...entries].reverse()) {
-      signal?.throwIfAborted();
-      const id = entry.image.id;
-      const retain = entry.currentUser || (entry.required ? !seen.has(id) : !requiredIds.has(id) && keep.has(id) && !seen.has(id));
-      if (retain) {
-        seen.add(id);
-        // Archive the original first, then compress only images that will
-        // actually be sent. Retention admission keeps its original byte budget.
-        const original = Buffer.from(entry.item.image_url.slice(entry.item.image_url.indexOf(',') + 1), 'base64');
-        const optimized = await optimizeImageBuffer(original);
-        if (optimized) entry.item.image_url = `data:${optimized.mimeType};base64,${optimized.bytes.toString('base64')}`;
-        entry.bytes = jsonBytes(entry.item);
-        wireBytes.set(id, entry.bytes);
-      }
-      else {
-        entry.replace({ type: 'input_text', text: retainArchive || pins.has(id)
-          ? `[Archived image ${id.slice(0,12)}; original: ${entry.image.path}. Use view_image on explicit need.]`
-          : '[Earlier image omitted from model context. The original remains in chat history.]' });
-        prunedImageCount += 1;
-      }
-    }
-    const user = input[newestUser];
-    if (user && Array.isArray(user.content) && state.images.length > 0 && (retainArchive || pins.size > 0)) {
-      if (retainArchive) {
-        const file = await catalogue(sessionId, state);
-        user.content.push({ type: 'input_text', text: `[CloudCLI image archive: ${file}. Contains this conversation's image numbers, hashes and local paths. Read the catalogue and use view_image only when an earlier image is needed.]` });
-      }
-      const present = new Set(entries.map(entry => entry.image.id));
-      for (const image of state.images.filter(image => pins.has(image.id) && !present.has(image.id))) {
+      if (!Array.isArray(body.input)) return { prunedImageCount: 0 };
+      const { state } = sessionState(sessionId);
+      const input = body.input as AnyRecord[];
+      const pins = new Set(lease.policy.pinnedImageIds);
+      const retainArchive = lease.policy.recentImages > 0;
+      const entries: Array<{ image: NonNullable<Awaited<ReturnType<typeof archive>>>; item: AnyRecord; index: number; bytes: number; replace: (value: AnyRecord) => void; required: boolean; currentUser: boolean }> = [];
+      let newestUser = -1;
+      input.forEach((item, index) => { if (item.type === 'message' && item.role === 'user') newestUser = index; });
+      let lastResponse = -1;
+      input.forEach((item, index) => { if (item.role === 'assistant' || ['function_call', 'custom_tool_call', 'reasoning', 'compaction', 'context_compaction'].includes(item.type)) lastResponse = index; });
+      for (let index = 0; index < input.length; index += 1) {
         signal?.throwIfAborted();
-        const original = await readSelectedOriginal(sessionId, image, signal);
-        const optimized = await optimizeImageBuffer(original);
-        const item = { type: 'input_image', image_url: `data:${optimized?.mimeType ?? image.mime};base64,${(optimized?.bytes ?? original).toString('base64')}` };
-        user.content.push({ type: 'input_text', text: `Explicit comparison image ${image.id.slice(0,12)}` }, item);
-        wireBytes.set(image.id, jsonBytes(item));
+        const images: Array<{ item: AnyRecord; replace: (value: AnyRecord) => void }> = [];
+        visitImages({ item: input[index] }, (item, replace) => images.push({ item, replace }));
+        for (const { item, replace } of images) {
+          // Turn-only images already live in native history/attachments. Hash for
+          // filtering without creating another permanent copy or consuming quota.
+          const image = await archive(item, state, retainArchive, references);
+          if (!image) continue; // Unsupported representations are kept intact.
+          const fresh = lease.initialized && !lease.knownIds.has(image.id);
+          const currentUserImage = newestUser >= 0 && index === newestUser;
+          const required = newestUser < 0 || currentUserImage || index >= lastResponse || fresh || lease.protectedIds.has(image.id);
+          // User/steer images remain protected for the admitted turn. Tool images
+          // may expire after a later model response has consumed them.
+          if (currentUserImage) lease.protectedIds.add(image.id);
+          entries.push({ image, item, index, bytes: jsonBytes(item), replace, required, currentUser: currentUserImage });
+        }
       }
-    }
-    retainedBytes = [...keep].reduce((sum, id) => sum + (wireBytes.get(id) ?? 0), 0);
-    const latest = sessionState(sessionId).state;
-    latest.images = [...new Map([...latest.images, ...state.images].map(image => [image.id,image])).values()];
-    latest.activeImageIds = [...seen];
-    const required = entries.filter(entry => entry.required);
-    Object.assign(latest.metrics, { historicalImageCount: historicalEntries.length,
-      historicalImageBytes,
-      retainedImageCount: keep.size, retainedImageBytes: retainedBytes,
-      currentImageCount: required.length, currentImageBytes: required.reduce((sum,entry) => sum + entry.bytes,0),
-      budgetExceeded: retainedBytes > lease.policy.imageBytes || required.reduce((sum,entry) => sum + entry.bytes,0) > lease.policy.imageBytes,
-      prunedImageCount });
-    codexContextDb.save(sessionId, latest);
-    return { prunedImageCount };
+      entries.forEach(entry => lease.knownIds.add(entry.image.id));
+      lease.initialized = true;
+      const requiredIds = new Set(entries.filter(entry => entry.required).map(entry => entry.image.id));
+      const historicalEntries = entries.filter(entry => !entry.required);
+      const historicalImageBytes = historicalEntries.reduce((sum, entry) => sum + entry.bytes, 0);
+      const historical = historicalEntries.filter(entry => !requiredIds.has(entry.image.id));
+      const keep = new Set<string>(pins);
+      let retainedBytes = state.images.filter(image => pins.has(image.id)).reduce((sum,image) => sum + image.encodedBytes, 0);
+      let count = 0;
+      for (const entry of [...historical].reverse()) {
+        const { image } = entry;
+        if (keep.has(image.id)) continue;
+        // At least the newest historical image is usable even when oversized.
+        if (count < lease.policy.recentImages && (count === 0 || retainedBytes + entry.bytes <= lease.policy.imageBytes)) {
+          keep.add(image.id); retainedBytes += entry.bytes; count += 1;
+        }
+      }
+      let prunedImageCount = 0;
+      const seen = new Set<string>();
+      const wireBytes = new Map<string, number>();
+      for (const entry of [...entries].reverse()) {
+        signal?.throwIfAborted();
+        const id = entry.image.id;
+        const retain = entry.currentUser || (entry.required ? !seen.has(id) : !requiredIds.has(id) && keep.has(id) && !seen.has(id));
+        if (retain) {
+          seen.add(id);
+          // Archive the original first, then compress only images that will
+          // actually be sent. Retention admission keeps its original byte budget.
+          const original = Buffer.from(entry.item.image_url.slice(entry.item.image_url.indexOf(',') + 1), 'base64');
+          const optimized = await optimizeImageBuffer(original);
+          if (optimized) entry.item.image_url = `data:${optimized.mimeType};base64,${optimized.bytes.toString('base64')}`;
+          entry.bytes = jsonBytes(entry.item);
+          wireBytes.set(id, entry.bytes);
+        }
+        else {
+          entry.replace({ type: 'input_text', text: retainArchive || pins.has(id)
+            ? `[Archived image ${id.slice(0,12)}; original: ${entry.image.path}. Use view_image on explicit need.]`
+            : '[Earlier image omitted from model context. The original remains in chat history.]' });
+          prunedImageCount += 1;
+        }
+      }
+      const user = input[newestUser];
+      if (user && Array.isArray(user.content) && state.images.length > 0 && (retainArchive || pins.size > 0)) {
+        if (retainArchive) {
+          const file = await catalogue(sessionId, state);
+          user.content.push({ type: 'input_text', text: `[CloudCLI image archive: ${file}. Contains this conversation's image numbers, hashes and local paths. Read the catalogue and use view_image only when an earlier image is needed.]` });
+        }
+        const present = new Set(entries.map(entry => entry.image.id));
+        for (const image of state.images.filter(image => pins.has(image.id) && !present.has(image.id))) {
+          signal?.throwIfAborted();
+          const original = await readSelectedOriginal(sessionId, image, signal);
+          const optimized = await optimizeImageBuffer(original);
+          const item = { type: 'input_image', image_url: `data:${optimized?.mimeType ?? image.mime};base64,${(optimized?.bytes ?? original).toString('base64')}` };
+          user.content.push({ type: 'input_text', text: `Explicit comparison image ${image.id.slice(0,12)}` }, item);
+          wireBytes.set(image.id, jsonBytes(item));
+        }
+      }
+      retainedBytes = [...keep].reduce((sum, id) => sum + (wireBytes.get(id) ?? 0), 0);
+      const latest = sessionState(sessionId).state;
+      latest.images = [...new Map([...latest.images, ...state.images].map(image => [image.id,image])).values()];
+      latest.activeImageIds = [...seen];
+      const required = entries.filter(entry => entry.required);
+      Object.assign(latest.metrics, { historicalImageCount: historicalEntries.length,
+        historicalImageBytes,
+        retainedImageCount: keep.size, retainedImageBytes: retainedBytes,
+        currentImageCount: required.length, currentImageBytes: required.reduce((sum,entry) => sum + entry.bytes,0),
+        budgetExceeded: retainedBytes > lease.policy.imageBytes || required.reduce((sum,entry) => sum + entry.bytes,0) > lease.policy.imageBytes,
+        prunedImageCount });
+      codexContextDb.save(sessionId, latest);
+      imageReferenceRevision++;
+      return { prunedImageCount };
+    });
   },
   recordHttp(sessionId: string, measurement: CodexHttpMeasurement) {
     const { state } = sessionState(sessionId);

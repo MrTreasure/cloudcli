@@ -32,7 +32,11 @@ function buildPluginEnv(name) {
 
   // Codex's home is a non-secret location, unlike its auth/config contents.
   // Preserve per-computer custom homes for the native agent reader.
-  if (name === 'codex-agents' && process.env.CODEX_HOME) env.CODEX_HOME = process.env.CODEX_HOME;
+  if (name === 'codex-agents') {
+    if (process.env.CODEX_HOME) env.CODEX_HOME = process.env.CODEX_HOME;
+    // Only this built-in reader needs the non-secret app-index location for session names.
+    if (process.env.DATABASE_PATH) env.DATABASE_PATH = process.env.DATABASE_PATH;
+  }
 
   if (process.platform === 'win32') {
     const WINDOWS_ESSENTIALS = [

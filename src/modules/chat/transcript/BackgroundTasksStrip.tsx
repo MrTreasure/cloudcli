@@ -25,6 +25,8 @@ type BackgroundTasksStripProps = {
    * row to draw from and is listed from here, so it can still be stopped.
    */
   tasks?: BackgroundTaskSummary[];
+  /** Codex child status is already displayed by the workspace header. */
+  hideAgents?: boolean;
   /** The session the tasks belong to, which `chat.stop-task` names; null before one exists. */
   sessionId: string | null;
   /** The chat websocket's send, for stopping a task. */
@@ -101,9 +103,9 @@ function describeTask(message: ChatMessage, t: TFunction) {
  * scrolling to its card when clicked and stoppable from its ✕. Renders
  * nothing while nothing runs, which is most of the time.
  */
-export const BackgroundTasksStrip = memo(({ messages, tasks, sessionId, sendMessage, onReveal, onLoadAll }: BackgroundTasksStripProps) => {
+export const BackgroundTasksStrip = memo(({ messages, tasks, sessionId, sendMessage, onReveal, onLoadAll, hideAgents = false }: BackgroundTasksStripProps) => {
   const { t } = useTranslation();
-  const running = listRunningBackgroundLaunches(messages);
+  const running = listRunningBackgroundLaunches(messages).filter((message) => !hideAgents || message.toolName === 'Workflow' || message.toolName === 'Bash');
   // A loaded row that has a word on its task — settled or not — is the word;
   // a task whose row is not loaded, or is loaded without one (a backgrounded
   // command's launch row from history says nothing until the poll does), is
@@ -111,7 +113,7 @@ export const BackgroundTasksStrip = memo(({ messages, tasks, sessionId, sendMess
   const settledToolIds = new Set(
     messages.filter((message) => readBackgroundTaskStatus(message) !== undefined).map((message) => message.toolId),
   );
-  const fromMap = ownBackgroundTasks(tasks ?? []).filter((task) => !settledToolIds.has(task.toolUseId));
+  const fromMap = ownBackgroundTasks(tasks ?? []).filter((task) => !settledToolIds.has(task.toolUseId) && (!hideAgents || task.taskType !== 'local_agent'));
 
   if (running.length === 0 && fromMap.length === 0) {
     return null;

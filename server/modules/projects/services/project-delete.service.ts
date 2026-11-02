@@ -2,6 +2,7 @@ import { promises as fs } from 'node:fs';
 import path from 'node:path';
 
 import { projectsDb, sessionsDb } from '@/modules/database/index.js';
+import { withCodexImageArchiveCleanup } from '@/modules/providers/index.js';
 import { AppError } from '@/shared/utils.js';
 
 function uniqueJsonlPathsFromSessions(
@@ -81,9 +82,15 @@ export async function deleteOrArchiveProject(projectId: string, force: boolean):
     return;
   }
 
-  await deleteSessionJsonlFilesForProjectPath(row.project_path);
-  sessionsDb.deleteSessionsByProjectPath(row.project_path);
-  projectsDb.deleteProjectById(projectId);
+  const codexSessions = sessionsDb.getSessionsByProjectPathIncludingArchived(row.project_path)
+    .filter(session => session.provider === 'codex').map(session => session.session_id);
+  const permanentlyDelete = async () => {
+    await deleteSessionJsonlFilesForProjectPath(row.project_path);
+    sessionsDb.deleteSessionsByProjectPath(row.project_path);
+    projectsDb.deleteProjectById(projectId);
+  };
+  if (codexSessions.length) await withCodexImageArchiveCleanup(codexSessions, permanentlyDelete);
+  else await permanentlyDelete();
 }
 
 /**

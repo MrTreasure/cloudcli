@@ -37,3 +37,9 @@ C137 前端内置同一 UI 的动态入口，由 Vite 随主程序发布到 Clou
 缺少可验证的原生终态时仍标为“待确认”，不会因为记录很旧就认定已完成。旧 response_item 中 `message` 的 `role=assistant/status=completed/phase=final_answer` 只有携带与子线程一致的 `thread_id` 时才作为完成证据；无ID的 final_answer 可能来自fork继承历史，不推断完成。之后的新用户消息或工具活动会恢复运行状态。
 
 “待确认”保持独立分组并可显式勾选移出面板；仅移出面板，不停止任务，有新活动会恢复显示。运行中记录仍不允许移出。标记仍按账户、项目和revision隔离，拒绝过期revision，失败保留选择。
+
+### 父会话与实际派发任务
+
+父会话名称读取宿主本机应用索引中的自定义标题，不使用原生线程继承的首条提问。任务正文仅接受归属于该子线程的 NEW_TASK 指令，不把父提问、线程名称或最近执行命令当成任务。
+
+新版 CloudCLI 后端默认请求可读的原生 collaboration 任务参数，插件支持普通 input_text 和原生处理器误用 encrypted_content 包装的明文。机器本地设置 `CLOUDCLI_CODEX_READABLE_AGENT_TASKS=false` 并重启 CloudCLI，可恢复原生加密声明。已存在的 Fernet 密文无法靠该开关解密；仍明确提示不可读。该功能只作用于 CloudCLI 的本机 Codex 代理，不改变单独启动的 Codex 客户端或 CPA 全局设置。

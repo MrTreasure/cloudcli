@@ -1276,6 +1276,8 @@ export type CodexAgentActivity = { id: string; at: string; kind: 'message' | 'co
 export type CodexAgentSummary = {
   id: string; parentId: string | null; parentTitle: string | null;
   name: string; nickname: string | null; model: string | null; task: string;
+  /** Explains why the native dispatch instruction cannot be displayed. */
+  taskAvailability?: 'available' | 'encrypted' | 'unavailable';
   projectPath: string; createdAt: string; updatedAt: string;
   status: CodexAgentStatus; lastActivity: string; lastActivityAt: string | null;
   recordAvailable: boolean;

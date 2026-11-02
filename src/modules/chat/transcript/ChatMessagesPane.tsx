@@ -199,6 +199,7 @@ function ChatMessagesPane({
           {/* Running background work stays in view while the transcript scrolls under it. */}
           <div className="pointer-events-auto min-w-0 pl-4 sm:pl-0">
             <BackgroundTasksStrip
+              hideAgents={provider === 'codex'}
               messages={chatMessages}
               tasks={backgroundTasks}
               sessionId={selectedSession?.id || currentSessionId}

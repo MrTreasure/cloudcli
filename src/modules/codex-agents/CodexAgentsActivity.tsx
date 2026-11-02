@@ -20,8 +20,8 @@ export function CodexAgentsActivity({ onOpen }: { onOpen: () => void }) {
       <span>subAgent</span><span className="tabular-nums text-muted-foreground">{running.length} 活动{unknown.length ? ` · ${unknown.length} 待确认` : ''}</span><ArrowUpRight className="h-3 w-3" />
     </button>
     {running.slice(0, 3).map((row) => <button key={row.id} type="button" onClick={() => { if (state.onlyProject) state.choose(row.id); state.setOnlyProject(true); onOpen(); }}
-      title={row.lastActivity || row.task} className="flex min-h-9 min-w-0 max-w-64 items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring">
-      <span className="max-w-28 truncate font-medium">{row.name}</span><span className="truncate text-muted-foreground">{row.lastActivity || '执行中'}</span>
+      title={row.task || row.lastActivity} className="flex min-h-9 min-w-0 max-w-64 items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring">
+      <span className="max-w-28 truncate font-medium">{row.name}</span><span className="shrink-0 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:text-emerald-400">运行中</span>
     </button>)}
     {state.error && <span className="flex items-center gap-1 text-muted-foreground"><CircleHelp className="h-3 w-3" />状态待更新</span>}
   </div>;

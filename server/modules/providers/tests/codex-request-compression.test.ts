@@ -30,8 +30,9 @@ const example = (): AnyRecord => ({
 
 test('Codex final HTTP body encoding, streaming, cancellation and accounting', { concurrency: false, timeout: 30000 }, async t => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'cloudcli-wire-'));
-  const keys = ['DATABASE_PATH', 'CLOUDCLI_IMAGE_WEBP_CACHE_DIR', 'CLOUDCLI_CODEX_HISTORY_IMAGES', 'CLOUDCLI_CODEX_IMAGE_CACHE_BYTES', 'CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED', 'CLOUDCLI_CODEX_REQUEST_COMPRESSION', 'CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS', 'CLOUDCLI_CODEX_PROXY_COMPRESSED_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES', 'NO_PROXY', 'no_proxy', 'HTTP_PROXY', 'http_proxy'];
+  const keys = ['CLOUDCLI_CODEX_READABLE_AGENT_TASKS', 'DATABASE_PATH', 'CLOUDCLI_IMAGE_WEBP_CACHE_DIR', 'CLOUDCLI_CODEX_HISTORY_IMAGES', 'CLOUDCLI_CODEX_IMAGE_CACHE_BYTES', 'CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED', 'CLOUDCLI_CODEX_REQUEST_COMPRESSION', 'CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS', 'CLOUDCLI_CODEX_PROXY_COMPRESSED_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES', 'NO_PROXY', 'no_proxy', 'HTTP_PROXY', 'http_proxy'];
   const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  process.env.CLOUDCLI_CODEX_READABLE_AGENT_TASKS = 'true';
   process.env.DATABASE_PATH = path.join(directory, 'auth.db');
   process.env.CLOUDCLI_IMAGE_WEBP_CACHE_DIR = path.join(directory, 'webp');
   // Legacy-retention cases below explicitly exercise the opt-in archive mode.
@@ -90,6 +91,48 @@ test('Codex final HTTP body encoding, streaming, cancellation and accounting', {
     request.on('error', reject); if (chunked) request.write(bytes); request.end(chunked ? undefined : bytes);
   });
   try {
+    await t.test('delegation task schemas request plaintext without touching history, auth, model or other tools', async () => {
+      const { route, url } = await open('preserve');
+      try {
+        const body = example();
+        const functionTool = (name: string) => ({ type: 'function', name,
+          parameters: { type: 'object', required: ['message'], properties: {
+            message: { type: 'string', encrypted: true, description: 'Keep description' },
+            other: { type: 'string', encrypted: true },
+          } } });
+        body.tools = [functionTool('spawn_agent'), { type: 'namespace', name: 'unrelated', tools: [functionTool('spawn_agent')] },
+          { type: 'namespace', name: 'collaboration', tools: ['spawn_agent', 'send_message', 'followup_task', 'ordinary_tool'].map(functionTool) }];
+        body.input.push({ type: 'additional_tools', role: 'developer', tools: [
+          { type: 'namespace', name: 'collaboration', tools: [functionTool('spawn_agent')] },
+        ] }, { type: 'agent_message', author: '/root', recipient: '/root/old', content: [
+          { type: 'encrypted_content', encrypted_content: 'gAAAAA-PAST-TASK-DO-NOT-CHANGE' },
+        ] });
+        body.input.push({ type: 'agent_message', author: '/root', recipient: '/root/new', content: [
+          { type: 'encrypted_content', encrypted_content: 'Verify only the task evidence; do not modify files.' },
+        ] });
+        const expected = structuredClone(body);
+        for (const tool of expected.tools[2].tools.slice(0, 3)) delete tool.parameters.properties.message.encrypted;
+        delete expected.input.at(-3).tools[0].tools[0].parameters.properties.message.encrypted;
+        expected.input.at(-1).content[0] = { type: 'input_text', text: 'Verify only the task evidence; do not modify files.' };
+        // A child inherits the route but must not inherit its parent's image policy.
+        route.bindThread('different-parent');
+        assert.equal((await send(url, canonical(body))).status, 200);
+        assert.deepEqual(calls.at(-1)!.body, expected);
+        assert.equal(calls.at(-1)!.headers.authorization, 'Bearer MOCK-AUTH-DO-NOT-LOG');
+        route.close();
+        assert.equal((await send(url, canonical(body))).status, 200);
+        assert.deepEqual(calls.at(-1)!.body, expected);
+      } finally { route.close(); }
+      process.env.CLOUDCLI_CODEX_READABLE_AGENT_TASKS = 'false';
+      const disabled = await open('identity');
+      try {
+        const body = example();
+        body.tools = [{ type: 'namespace', name: 'collaboration', tools: [{ type: 'function', name: 'spawn_agent',
+          parameters: { properties: { message: { type: 'string', encrypted: true } } } }] }];
+        assert.equal((await send(disabled.url, canonical(body))).status, 200);
+        assert.deepEqual(calls.at(-1)!.decoded, canonical(body));
+      } finally { disabled.route.close(); process.env.CLOUDCLI_CODEX_READABLE_AGENT_TASKS = 'true'; }
+    });
     await t.test('identity, zstd and confirmed gzip preserve every JSON byte and required header', async () => {
       for (const mode of ['identity', 'zstd', 'gzip']) {
         const { route, url, sessionId } = await open(mode);
