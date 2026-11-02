@@ -16,7 +16,7 @@ const limit = (value: unknown, fallback: number, maximum: number) => {
 };
 const jsonBytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
 const emptyState = (): CodexContextState => ({
-  policy: { recentImages: limit(process.env.CLOUDCLI_CODEX_HISTORY_IMAGES, 3, 100),
+  policy: { recentImages: limit(process.env.CLOUDCLI_CODEX_HISTORY_IMAGES, 0, 100),
     imageBytes: limit(process.env.CLOUDCLI_CODEX_HISTORY_IMAGE_BYTES, 1048576, 64 * 1048576), pinnedImageIds: [] },
   segments: [], images: [], activeImageIds: [],
   metrics: { historicalImageCount: 0, historicalImageBytes: 0, retainedImageCount: 0, retainedImageBytes: 0,
@@ -69,7 +69,7 @@ async function saveImage(file: string, bytes: Buffer) {
   counter.tail = write.catch(() => {});
   return write;
 }
-async function archive(item: AnyRecord, state: CodexContextState) {
+async function archive(item: AnyRecord, state: CodexContextState, persist = true) {
   const match = typeof item.image_url === 'string' ? /^data:(image\/[\w.+-]+);base64,([A-Za-z0-9+/=\r\n]+)$/.exec(item.image_url) : null;
   if (!match) return null;
   const bytes = Buffer.from(match[2], 'base64');
@@ -79,10 +79,12 @@ async function archive(item: AnyRecord, state: CodexContextState) {
   if (!image) {
     const extension = ({ 'image/png': '.png', 'image/jpeg': '.jpg', 'image/webp': '.webp', 'image/gif': '.gif' } as Record<string,string>)[match[1]] ?? '.image';
     const file = path.join(imageRoot(), id + extension);
-    await saveImage(file, bytes);
     image = { id, path: file, mime: match[1], bytes: bytes.length, encodedBytes: jsonBytes(item), timestamp: new Date().toISOString() };
-    state.images.push(image);
-  } else await saveImage(image.path,bytes);
+    if (persist) {
+      await saveImage(file, bytes);
+      state.images.push(image);
+    }
+  } else if (persist) await saveImage(image.path,bytes);
   return image;
 }
 async function catalogue(sessionId: string, state: CodexContextState) {
@@ -93,6 +95,30 @@ async function catalogue(sessionId: string, state: CodexContextState) {
   await writeFile(temporary, JSON.stringify({ images: state.images.map((image, index) => ({ number: index + 1, ...image })) }), { flag: 'wx', mode: 0o600 });
   await rename(temporary, file);
   return file;
+}
+
+// Turn-only mode indexes image metadata without duplicating native history.
+// An explicitly selected old image is recovered by hash only when requested.
+async function readSelectedOriginal(sessionId: string, image: CodexContextState['images'][number], signal?: AbortSignal): Promise<Buffer> {
+  try { return await readFile(image.path); }
+  catch (error) { if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error; }
+  const { session, state } = sessionState(sessionId);
+  const files = new Set([session.jsonl_path, ...state.segments.map(segment => segment.path)].filter((file): file is string => Boolean(file)));
+  for (const file of files) {
+    for await (const { line } of readCodexHistoryRecords(file, { compactSnapshots: false })) {
+      signal?.throwIfAborted();
+      let row: AnyRecord; try { row = JSON.parse(line); } catch { continue; }
+      const items: AnyRecord[] = [];
+      visitImages(row, item => items.push(item));
+      for (const item of items) {
+        const match = typeof item.image_url === 'string' ? /^data:image\/[\w.+-]+;base64,([A-Za-z0-9+/=\r\n]+)$/.exec(item.image_url) : null;
+        if (!match) continue;
+        const bytes = Buffer.from(match[1], 'base64');
+        if (createHash('sha256').update(bytes).digest('hex') === image.id) return bytes;
+      }
+    }
+  }
+  throw new AppError('The selected image is unavailable in the original chat history.', { code: 'CODEX_CONTEXT_IMAGE_MISSING', statusCode: 409 });
 }
 
 // Bounded metadata-only scan cache: image bytes remain on disk, never in this map.
@@ -145,7 +171,8 @@ export const codexImageContextService = {
           const hash = createHash('sha256').update(item.image_url).digest('hex');
           if (seen.has(hash)) continue;
           seen.add(hash);
-          await archive(item, state);
+          const image = await archive(item, state, state.policy.recentImages > 0);
+          if (image && !state.images.some(existing => existing.id === image.id)) state.images.push(image);
         }
       }
       const latest = sessionState(sessionId).state;
@@ -184,6 +211,8 @@ export const codexImageContextService = {
     if (!Array.isArray(body.input)) return { prunedImageCount: 0 };
     const { state } = sessionState(sessionId);
     const input = body.input as AnyRecord[];
+    const pins = new Set(lease.policy.pinnedImageIds);
+    const retainArchive = lease.policy.recentImages > 0;
     const entries: Array<{ image: NonNullable<Awaited<ReturnType<typeof archive>>>; item: AnyRecord; index: number; bytes: number; replace: (value: AnyRecord) => void; required: boolean; currentUser: boolean }> = [];
     let newestUser = -1;
     input.forEach((item, index) => { if (item.type === 'message' && item.role === 'user') newestUser = index; });
@@ -194,7 +223,9 @@ export const codexImageContextService = {
       const images: Array<{ item: AnyRecord; replace: (value: AnyRecord) => void }> = [];
       visitImages({ item: input[index] }, (item, replace) => images.push({ item, replace }));
       for (const { item, replace } of images) {
-        const image = await archive(item, state);
+        // Turn-only images already live in native history/attachments. Hash for
+        // filtering without creating another permanent copy or consuming quota.
+        let image = await archive(item, state, retainArchive);
         if (!image) continue; // Unsupported representations are kept intact.
         const fresh = lease.initialized && !lease.knownIds.has(image.id);
         const currentUserImage = newestUser >= 0 && index === newestUser;
@@ -207,7 +238,6 @@ export const codexImageContextService = {
     }
     entries.forEach(entry => lease.knownIds.add(entry.image.id));
     lease.initialized = true;
-    const pins = new Set(lease.policy.pinnedImageIds);
     const requiredIds = new Set(entries.filter(entry => entry.required).map(entry => entry.image.id));
     const historicalEntries = entries.filter(entry => !entry.required);
     const historicalImageBytes = historicalEntries.reduce((sum, entry) => sum + entry.bytes, 0);
@@ -241,18 +271,22 @@ export const codexImageContextService = {
         wireBytes.set(id, entry.bytes);
       }
       else {
-        entry.replace({ type: 'input_text', text: `[Archived image ${id.slice(0,12)}; original: ${entry.image.path}. Use view_image on explicit need.]` });
+        entry.replace({ type: 'input_text', text: retainArchive || pins.has(id)
+          ? `[Archived image ${id.slice(0,12)}; original: ${entry.image.path}. Use view_image on explicit need.]`
+          : '[Earlier image omitted from model context. The original remains in chat history.]' });
         prunedImageCount += 1;
       }
     }
     const user = input[newestUser];
-    if (user && Array.isArray(user.content) && state.images.length > 0) {
-      const file = await catalogue(sessionId, state);
-      user.content.push({ type: 'input_text', text: `[CloudCLI image archive: ${file}. Contains this conversation's image numbers, hashes and local paths. Read the catalogue and use view_image only when an earlier image is needed.]` });
+    if (user && Array.isArray(user.content) && state.images.length > 0 && (retainArchive || pins.size > 0)) {
+      if (retainArchive) {
+        const file = await catalogue(sessionId, state);
+        user.content.push({ type: 'input_text', text: `[CloudCLI image archive: ${file}. Contains this conversation's image numbers, hashes and local paths. Read the catalogue and use view_image only when an earlier image is needed.]` });
+      }
       const present = new Set(entries.map(entry => entry.image.id));
       for (const image of state.images.filter(image => pins.has(image.id) && !present.has(image.id))) {
         signal?.throwIfAborted();
-        const original = await readFile(image.path);
+        const original = await readSelectedOriginal(sessionId, image, signal);
         const optimized = await optimizeImageBuffer(original);
         const item = { type: 'input_image', image_url: `data:${optimized?.mimeType ?? image.mime};base64,${(optimized?.bytes ?? original).toString('base64')}` };
         user.content.push({ type: 'input_text', text: `Explicit comparison image ${image.id.slice(0,12)}` }, item);

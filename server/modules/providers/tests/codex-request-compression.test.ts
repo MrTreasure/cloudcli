@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
-import { randomBytes, randomUUID } from 'node:crypto';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import http from 'node:http';
 import { syncBuiltinESMExports } from 'node:module';
 import os from 'node:os';
@@ -30,10 +30,12 @@ const example = (): AnyRecord => ({
 
 test('Codex final HTTP body encoding, streaming, cancellation and accounting', { concurrency: false, timeout: 30000 }, async t => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'cloudcli-wire-'));
-  const keys = ['DATABASE_PATH', 'CLOUDCLI_IMAGE_WEBP_CACHE_DIR', 'CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED', 'CLOUDCLI_CODEX_REQUEST_COMPRESSION', 'CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS', 'CLOUDCLI_CODEX_PROXY_COMPRESSED_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES', 'NO_PROXY', 'no_proxy', 'HTTP_PROXY', 'http_proxy'];
+  const keys = ['DATABASE_PATH', 'CLOUDCLI_IMAGE_WEBP_CACHE_DIR', 'CLOUDCLI_CODEX_HISTORY_IMAGES', 'CLOUDCLI_CODEX_IMAGE_CACHE_BYTES', 'CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED', 'CLOUDCLI_CODEX_REQUEST_COMPRESSION', 'CLOUDCLI_CODEX_REQUEST_GZIP_ORIGINS', 'CLOUDCLI_CODEX_PROXY_COMPRESSED_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_BODY_BYTES', 'CLOUDCLI_CODEX_PROXY_INCOMING_BODY_BYTES', 'NO_PROXY', 'no_proxy', 'HTTP_PROXY', 'http_proxy'];
   const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
   process.env.DATABASE_PATH = path.join(directory, 'auth.db');
   process.env.CLOUDCLI_IMAGE_WEBP_CACHE_DIR = path.join(directory, 'webp');
+  // Legacy-retention cases below explicitly exercise the opt-in archive mode.
+  process.env.CLOUDCLI_CODEX_HISTORY_IMAGES = '3';
   process.env.NO_PROXY = [process.env.NO_PROXY, '127.0.0.1', 'localhost'].filter(Boolean).join(',');
   const logs: unknown[] = [];
   t.mock.method(console, 'info', (...values: unknown[]) => logs.push(values));
@@ -135,7 +137,64 @@ test('Codex final HTTP body encoding, streaming, cancellation and accounting', {
       assert.match(expected.input[0].content[1].image_url, /^data:image\/webp/);
       const response = await send(url, canonical(body)); assert.equal(response.status, 200);
       assert.deepEqual(calls.at(-1)!.decoded, canonical(expected)); assert.equal(calls.at(-1)!.body.input[1].encrypted_content, 'OPAQUE-DO-NOT-LOG');
-      assert.deepEqual(await readFile(images.snapshot(sessionId).images[0].path), original); route.close();
+      assert.deepEqual(await readFile(images.snapshot(sessionId).images[0].path), original);
+      const archived = images.snapshot(sessionId).images[0];
+      images.update(sessionId, { recentImages: 0, pinnedImageIds: [archived.id] });
+      process.env.CLOUDCLI_CODEX_IMAGE_CACHE_BYTES = '0';
+      try {
+        const comparison = example();
+        await images.filter(sessionId, comparison, { policy: images.snapshot(sessionId).policy,
+          initialized: false, knownIds: new Set(), protectedIds: new Set() });
+        assert.match(comparison.input[0].content.at(-1).image_url, /^data:image\/webp/);
+        assert.doesNotMatch(JSON.stringify(comparison), /CloudCLI image archive/);
+        const catalogue = JSON.parse(await readFile(path.join(directory, 'codex-context-images', 'catalogs',
+          createHash('sha256').update(sessionId).digest('hex') + '.json'), 'utf8'));
+        assert.deepEqual(catalogue.images.map((image: AnyRecord) => image.id), [archived.id]);
+        assert.deepEqual(await readFile(archived.path), original);
+      } finally { delete process.env.CLOUDCLI_CODEX_IMAGE_CACHE_BYTES; route.close(); }
+    });
+    await t.test('turn-only screenshots bypass a full archive and expire on the next turn without a catalogue', async () => {
+      delete process.env.CLOUDCLI_CODEX_HISTORY_IMAGES;
+      process.env.CLOUDCLI_CODEX_IMAGE_CACHE_BYTES = '0';
+      const { route, url, sessionId } = await open('zstd', true);
+      try {
+        assert.equal(images.snapshot(sessionId).policy.recentImages, 0);
+        const original = await sharp({ create: { width: 128, height: 128, channels: 3, background: '#917bae' } }).png({ compressionLevel: 0 }).toBuffer();
+        const body = example();
+        body.input[0].content.push({ type: 'input_image', image_url: 'data:image/png;base64,' + original.toString('base64') });
+        const response = await send(url, canonical(body));
+        assert.equal(response.status, 200);
+        assert.match(calls.at(-1)!.body.input[0].content[1].image_url, /^data:image\/webp/);
+        assert.equal(images.snapshot(sessionId).images.length, 0);
+        assert.doesNotMatch(calls.at(-1)!.decoded.toString(), /CloudCLI image archive/);
+        const next = structuredClone(body);
+        next.input.push({ type: 'message', role: 'user', content: [{ type: 'input_text', text: 'Continue' }] });
+        await images.filter(sessionId, next, { policy: images.snapshot(sessionId).policy, initialized: false, knownIds: new Set(), protectedIds: new Set() });
+        assert.match(next.input[0].content[1].text, /Earlier image omitted/);
+        assert.equal(next.input[0].content[1].image_url, undefined);
+        assert.doesNotMatch(JSON.stringify(next), /CloudCLI image archive|codex-context-images/);
+        assert.equal(images.snapshot(sessionId).images.length, 0);
+        // Opening settings indexes metadata only; explicit comparison can read
+        // the original native record even when there is no archive capacity.
+        const file = path.join(directory, 'native-turn-only.jsonl');
+        const native = JSON.stringify({ timestamp: '2026-11-02T00:00:00Z', type: 'response_item',
+          payload: body.input[0] }) + '\n';
+        await writeFile(file, native);
+        sessionsDb.repointSessionToProviderSession(sessionId, { providerSessionId: sessionId, jsonlPath: file });
+        const indexed = await images.describe(sessionId);
+        assert.equal(indexed.images.length, 1);
+        await assert.rejects(stat(indexed.images[0].path), { code: 'ENOENT' });
+        images.update(sessionId, { pinnedImageIds: [indexed.images[0].id] });
+        const comparison = example();
+        await images.filter(sessionId, comparison, { policy: images.snapshot(sessionId).policy,
+          initialized: false, knownIds: new Set(), protectedIds: new Set() });
+        assert.match(comparison.input[0].content.at(-1).image_url, /^data:image\/webp/);
+        assert.doesNotMatch(JSON.stringify(comparison), /CloudCLI image archive/);
+        assert.equal(await readFile(file, 'utf8'), native);
+        await assert.rejects(stat(indexed.images[0].path), { code: 'ENOENT' });
+      } finally {
+        route.close(); process.env.CLOUDCLI_CODEX_HISTORY_IMAGES = '3'; delete process.env.CLOUDCLI_CODEX_IMAGE_CACHE_BYTES;
+      }
     });
     await t.test('oversized native history is filtered before the final JSON limit, including encoded intake', async () => {
       process.env.CLOUDCLI_CODEX_PROXY_BODY_BYTES = String(1048576);
@@ -159,13 +218,13 @@ test('Codex final HTTP body encoding, streaming, cancellation and accounting', {
             const response = await send(url, bytes, encoding);
             assert.equal(response.status, 200);
             const call = calls.at(-1)!;
-            assert.match(call.body.input[0].content[0].text, /Archived image/);
+            assert.match(call.body.input[0].content[0].text, /Earlier image omitted/);
             assert.ok(call.decoded.length < 1048576);
             assert.equal(call.headers['content-encoding'], 'zstd');
             assert.ok(call.raw.length < call.decoded.length);
             assert.equal(images.snapshot(sessionId).metrics.jsonBytesBefore, input.length);
           }
-          assert.deepEqual(await readFile(images.snapshot(sessionId).images[0].path), original);
+          assert.equal(images.snapshot(sessionId).images.length, 0);
           const before = calls.length;
           // Filtering cannot excuse excessive non-image content.
           const excessive = canonical({ ...example(), padding: 'x'.repeat(2 * 1048576) });

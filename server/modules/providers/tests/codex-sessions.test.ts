@@ -709,3 +709,36 @@ test('native compacted history restores a result without exposing replacement hi
     await rm(tempRoot, { recursive: true, force: true });
   }
 });
+
+
+test('native failed turn survives reload without leaking its private proxy URL', { concurrency: false }, async () => {
+  const tempRoot = await mkdtemp(path.join(os.tmpdir(), 'codex-failed-history-'));
+  const workspacePath = path.join(tempRoot, 'workspace');
+  await mkdir(workspacePath, { recursive: true });
+  const restoreHomeDir = patchHomeDir(tempRoot);
+  try {
+    const transcriptPath = await writeCodexTranscript(tempRoot, 'native-failed', workspacePath);
+    const timestamp = '2026-11-02T05:10:35.769Z';
+    await writeFile(transcriptPath, [
+      { type: 'session_meta', payload: { id: 'native-failed', cwd: workspacePath } },
+      { type: 'event_msg', timestamp, payload: { type: 'task_complete', turn_id: 'failed-turn', error: {
+        message: 'Local image archive is full., url: http://127.0.0.1:12345/PRIVATE-ROUTE/responses',
+      } } },
+      { type: 'event_msg', timestamp, payload: { type: 'task_complete', turn_id: 'successful-turn', error: null } },
+    ].map(row => JSON.stringify(row)).join('\n') + '\n');
+    await withIsolatedDatabase(async () => {
+      sessionsDb.createAppSession('app-failed', 'codex', workspacePath);
+      sessionsDb.assignProviderSessionId('app-failed', 'native-failed');
+      await new CodexSessionSynchronizer().synchronize();
+      const history = await createSdkSessionsProvider().fetchHistory('app-failed');
+      const errors = history.messages.filter(message => message.kind === 'error');
+      assert.equal(errors.length, 1);
+      assert.equal(errors[0].id, 'codex-turn-error:failed-turn');
+      assert.match(String(errors[0].content), /图片归档已满/);
+      assert.doesNotMatch(JSON.stringify(history.messages), /PRIVATE-ROUTE|127\.0\.0\.1/);
+    });
+  } finally {
+    restoreHomeDir();
+    await rm(tempRoot, { recursive: true, force: true });
+  }
+});

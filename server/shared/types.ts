@@ -1909,7 +1909,7 @@ export type CodexImageFilterLease = {
   knownIds: Set<string>;
   protectedIds: Set<string>;
 };
-/** Metadata for an immutable archived image. No Base64 or prompt is stored in this record. */
+/** Image identity and optional archive location. In turn-only mode bytes remain in native history and are recovered by hash for explicit comparison; path need not exist. No Base64 or prompt is stored here. */
 export type CodexContextImage = {
   id: string;
   path: string;

@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`07f91432a809fffb4f29001e58c193eab65e0925`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`ddcbdfa3b781d469b0ec9c54102fdafd77c65d97`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,9 +10,14 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
+| M | [.env.example](../../.env.example) | — |
+| M | [README.md](../../README.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
-| M | [src/modules/codex-agents/context/CodexAgentsContext.tsx](../../src/modules/codex-agents/context/CodexAgentsContext.tsx) | — |
+| M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
+| M | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
+| M | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
+| M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
+| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
 
 ## NAS 主线提交
 
@@ -1173,6 +1178,17 @@
   - `docs/nas/commit-log.md`
   - `docs/nas/file-index.md`
   - `public/sw.js`
+
+### ddcbdfa3 · 2026-10-31 · fix(plugins): refresh subagent list when opening panel
+
+- 完整提交：`ddcbdfa3b781d469b0ec9c54102fdafd77c65d97`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `local-plugins/cloudcli-codex-agents/README.md`
+  - `src/modules/codex-agents/context/CodexAgentsContext.tsx`
 
 ## 从 PR / 其他分支合入的提交
 

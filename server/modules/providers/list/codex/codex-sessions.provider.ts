@@ -1374,6 +1374,19 @@ async function getCodexSessionMessages(sessionId: string, transcriptPath?: strin
     }
 
     if (entry.type === 'event_msg') {
+      // Native terminal failures are durable even when the tab missed the live
+      // error frame. Never mistake task_complete with an error for success.
+      if (payload.type === 'task_complete' && payload.error) {
+        const error = readObjectRecord(payload.error);
+        const message = readNonEmptyString(error?.message) ?? 'Codex turn failed';
+        messages.push({
+          type: 'error', uuid: `codex-turn-error:${readNonEmptyString(payload.turn_id) ?? timestamp}`, timestamp,
+          content: message.includes('Local image archive is full')
+            ? '图片归档已满，当前轮次未能完成。聊天原图仍保留；可将历史图片数量设为 0，仅保留本轮图片。'
+            : message.replace(/, url:.*$/s, '').slice(0, 2000),
+        });
+        continue;
+      }
       if (payload.type === 'token_count' && payload.info) {
         const info = payload.info as AnyRecord;
         if (info.last_token_usage || info.total_token_usage) {
@@ -2064,6 +2077,11 @@ export class CodexSessionsProvider implements IProviderSessions {
   private normalizeHistoryEntry(raw: AnyRecord, sessionId: string | null): NormalizedMessage[] {
     const ts = raw.timestamp || new Date().toISOString();
     const baseId = raw.uuid || generateMessageId('codex');
+
+    if (raw.type === 'error' && typeof raw.content === 'string') {
+      return [createNormalizedMessage({ id: baseId, sessionId, timestamp: ts,
+        provider: PROVIDER, kind: 'error', content: raw.content })];
+    }
 
     if (raw.type === 'status_note' && typeof raw.content === 'string') {
       return [createNormalizedMessage({
