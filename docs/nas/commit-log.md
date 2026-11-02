@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`0ee0855e2493ad454b0851facebbbd85d3a1d3b2`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`ec1f44744ad10e013d285c30e2442e40785bc89f`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,24 +11,10 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [.env.example](../../.env.example) | — |
-| M | [README.md](../../README.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
 | M | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
-| M | [local-plugins/cloudcli-codex-agents/src/reader.ts](../../local-plugins/cloudcli-codex-agents/src/reader.ts) | — |
-| M | [server/modules/database/repositories/codex-context.db.ts](../../server/modules/database/repositories/codex-context.db.ts) | — |
-| M | [server/modules/plugins/plugin-process.service.ts](../../server/modules/plugins/plugin-process.service.ts) | — |
-| M | [server/modules/projects/services/project-delete.service.ts](../../server/modules/projects/services/project-delete.service.ts) | — |
-| M | [server/modules/providers/index.ts](../../server/modules/providers/index.ts) | — |
-| M | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
 | M | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
-| M | [server/modules/providers/services/sessions.service.ts](../../server/modules/providers/services/sessions.service.ts) | — |
-| A | [server/modules/providers/tests/codex-image-cleanup.test.ts](../../server/modules/providers/tests/codex-image-cleanup.test.ts) | — |
 | M | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
-| M | [src/modules/chat/transcript/BackgroundTasksStrip.tsx](../../src/modules/chat/transcript/BackgroundTasksStrip.tsx) | — |
-| M | [src/modules/chat/transcript/ChatMessagesPane.tsx](../../src/modules/chat/transcript/ChatMessagesPane.tsx) | — |
-| M | [src/modules/codex-agents/CodexAgentsActivity.tsx](../../src/modules/codex-agents/CodexAgentsActivity.tsx) | — |
-| M | [src/modules/codex-agents/CodexAgentsPanel.tsx](../../src/modules/codex-agents/CodexAgentsPanel.tsx) | — |
-| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 
 ## NAS 主线提交
 
@@ -1216,6 +1202,33 @@
   - `server/modules/providers/tests/codex-request-compression.test.ts`
   - `server/modules/providers/tests/codex-sessions.test.ts`
   - `server/shared/types.ts`
+
+### ec1f4474 · 2026-11-02 · fix(codex): clean image archives and show accurate subagent tasks
+
+- 完整提交：`ec1f44744ad10e013d285c30e2442e40785bc89f`
+- 相对第一父提交涉及文件：
+
+  - `.env.example`
+  - `README.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `local-plugins/cloudcli-codex-agents/README.md`
+  - `local-plugins/cloudcli-codex-agents/src/reader.ts`
+  - `server/modules/database/repositories/codex-context.db.ts`
+  - `server/modules/plugins/plugin-process.service.ts`
+  - `server/modules/projects/services/project-delete.service.ts`
+  - `server/modules/providers/index.ts`
+  - `server/modules/providers/services/codex-image-context.service.ts`
+  - `server/modules/providers/services/codex-image-proxy.service.ts`
+  - `server/modules/providers/services/sessions.service.ts`
+  - `server/modules/providers/tests/codex-image-cleanup.test.ts`
+  - `server/modules/providers/tests/codex-request-compression.test.ts`
+  - `src/modules/chat/transcript/BackgroundTasksStrip.tsx`
+  - `src/modules/chat/transcript/ChatMessagesPane.tsx`
+  - `src/modules/codex-agents/CodexAgentsActivity.tsx`
+  - `src/modules/codex-agents/CodexAgentsPanel.tsx`
+  - `src/shared/types.ts`
 
 ## 从 PR / 其他分支合入的提交
 

@@ -42,4 +42,4 @@ C137 前端内置同一 UI 的动态入口，由 Vite 随主程序发布到 Clou
 
 父会话名称读取宿主本机应用索引中的自定义标题，不使用原生线程继承的首条提问。任务正文仅接受归属于该子线程的 NEW_TASK 指令，不把父提问、线程名称或最近执行命令当成任务。
 
-新版 CloudCLI 后端默认请求可读的原生 collaboration 任务参数，插件支持普通 input_text 和原生处理器误用 encrypted_content 包装的明文。机器本地设置 `CLOUDCLI_CODEX_READABLE_AGENT_TASKS=false` 并重启 CloudCLI，可恢复原生加密声明。已存在的 Fernet 密文无法靠该开关解密；仍明确提示不可读。该功能只作用于 CloudCLI 的本机 Codex 代理，不改变单独启动的 Codex 客户端或 CPA 全局设置。
+CloudCLI 保留 Codex 原生 collaboration 工具 schema 和消息内容，不通过移除 encrypted 声明获取明文。旧的 `CLOUDCLI_CODEX_READABLE_AGENT_TASKS` 开关已废弃，设置为 true 也不会改写请求。插件只显示原生记录中已有的可读任务指令；对于密文明确标注不可读，不拿父会话内容或推测摘要代替。已经安装旧版后端的电脑需要更新、重新构建并重启，单独刷新网页不足以修复服务端请求改写。

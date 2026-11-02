@@ -626,13 +626,12 @@
 - 交互：Codex Agent 状态保留工作区顶部入口，使用状态 badge；移除聊天正文上方重复的 Agent 状态项，命令和工作流后台任务入口保留。
 - 发布依赖：前端与本机 subAgent 插件 worker 共同更新；仅重载插件，不中断原生任务。回滚需恢复这两处产物；原生历史、任务执行和面板清除标记不改写。
 
-### 2026-11-02 后续 subAgent 派发任务使用可读指令
+### 2026-11-02 移除不兼容的 subAgent 明文请求改写
 
-- 根因：原生 collaboration 工具的 `parameters.properties.message.encrypted=true` 要求上游将派发/追发正文作为密文返回，本机执行与保存会话不意味着持有解密密钥。已核对原生日志、state/history 数据库和只读 app-server 接口；现有两个历史任务没有找到明文。
-- 修复：仅 CloudCLI 的 Codex 回环代理在发送前删除 `collaboration` / `collaboration-optimize` 下 `spawn_agent`、`send_message`、`followup_task` 的该声明，覆盖顶层工具及 `input[].additional_tools`。其他工具、参数约束、工具命名、模型目录、历史密文、推理数据、TLS、鉴权与压缩配置均保持。原生处理器仍可能把明文放进 `encrypted_content` 分支，发送前仅将非 Fernet 明文改为 `input_text`；旧 `gAAAAA` 密文保持不变，插件同样识别该明文包装。由插件读取后续原生 NEW_TASK 明文；不凭空还原旧密文。
-- 来源：C137 需求；参照本机 CPA 已有 multi-agent-v2 优化中的只读源码证据，未启用其全局选项、未修改或重启 CPA。
-- 路径：`server/modules/providers/services/codex-image-proxy.service.ts`、`server/modules/plugins/plugin-process.service.ts`（仅向内置 codex-agents 插件透传非敏感 DATABASE_PATH，兼容本机自定义数据库位置）、现有定向测试 `codex-request-compression.test.ts`、`.env.example`；依赖此前插件任务说明读取修复。
-- 回滚：机器本地设置 `CLOUDCLI_CODEX_READABLE_AGENT_TASKS=false` 并在空闲后重启 CloudCLI，恢复原生工具声明；已写入本机原生历史的明文指令仍按原生会话保留规则存在。旧密文任务需继续明确标注不可读，不拿推测内容替代。
-- 部署与验证：后端定向 53 项（52 通过、1 项既有跳过）、类型检查、lint、后端构建及插件构建通过；插件读取端已更新。后端与图片归档清理共 7 个精确编译文件，已交由 `cloudcli-image-cleanup-release-20261102.service` 等待全部活动会话为空后安装并重启；收据 `/vol1/1000/appdata/cloudcli/operations/image-cleanup-20261102/restart-result.json` 尚为 waiting_for_idle。未调用收费模型，真实新派发是否返回明文仍待重启后的实际运行确认。
-
-- 本次提交前架构关系审查：未新增或迁移服务、RPC、外部接收方及部署依赖；仍为浏览器 → CloudCLI → 本机 Codex/原配置上游，插件仍为宿主启动的本机只读子进程。任务参数可读声明与本机数据库路径透传不改变现有服务拓扑，不调整 NAS 架构基线。
+- 用户确认原因与处理：gpt-6.1-sol 对原生保留函数 schema 做一致性校验；删除 collaboration 的 message.encrypted 声明会触发 reserved function schema 错误。此前 ec1f4474 的强制明文方案不可用，立即撤销该请求改写，优先恢复会话正常执行。任务正文仍以原生可读记录为准；密文说明明确提示不可读。
+- 路径：`server/modules/providers/services/codex-image-proxy.service.ts` 恢复原生请求透传，删除 schema 及 agent_message 内容改写；`.env.example` 移除可读任务开关。`CLOUDCLI_CODEX_READABLE_AGENT_TASKS` 已不再被生产代码使用，即使旧机器残留 true，也不会启用改写。
+- 保留：父会话正确标题、去除重复状态条、顶部 badge、插件读取既有明文、永久删除会话时图片归档清理。未修改 CPA 或原生 Codex，不升级官方 CloudCLI。
+- 验证：14 项定向测试全部通过，类型检查、lint、后端构建通过；覆盖 native 工具 schema（含 encrypted:true）、原始 agent_message 内容、推理密文、鉴权、压缩、SSE 与取消行为。使用模拟凭据和本地上游，不调用收费模型。
+- 发布边界：NAS 已由用户报告使用 systemd 本机 drop-in 设置 false 并重启恢复；保留该机器本地保护，不把 NAS 配置或路径带入共享默认值。Mac/Windows 更新源码后须重新构建并重启后端，单独刷新页面不能更新已加载服务端代码。
+- 回退依赖：不得单独回退到 ec1f4474 的代理实现，否则会重新引入 schema 改写。需要旧功能时保留本次透传修复；没有数据结构迁移。
+- 架构关系审查：仍使用现有 CloudCLI → Codex → 已配置上游链路，无新增服务、接口协议或部署依赖，不调整 NAS 拓扑。

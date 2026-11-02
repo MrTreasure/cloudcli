@@ -10,7 +10,7 @@ import { codexImageContextService } from '@/modules/providers/services/codex-ima
 import type { AnyRecord, CodexHttpMeasurement, CodexImageFilterLease, CodexRequestCompressionSettings, ProviderRuntimeContext } from '@/shared/types.js';
 import { AppError } from '@/shared/utils.js';
 
-type Route = { sessionId: string; upstream: URL; threadId: string | null; lease: CodexImageFilterLease | null; filterImages: boolean; readableAgentTasks: boolean; settings: CodexRequestCompressionSettings };
+type Route = { sessionId: string; upstream: URL; threadId: string | null; lease: CodexImageFilterLease | null; filterImages: boolean; settings: CodexRequestCompressionSettings };
 const routes = new Map<string, Route>();
 const sessionRoutes = new Map<string, { token: string; route: Route }>();
 const agent = new ProxyAgent();
@@ -32,45 +32,6 @@ function filteredHeaders(headers: http.IncomingHttpHeaders) {
   for (const name of [...hop, 'host', 'connection', 'content-length', 'transfer-encoding', 'keep-alive', 'te', 'trailer', 'upgrade', 'proxy-authorization', 'proxy-authenticate']) delete result[name];
   return result;
 }
-// Request readable delegation arguments before inference, rather than trying to
-// decrypt past outputs. Only native collaboration schemas are changed: history,
-// reasoning, tool names, auth and all other parameter constraints stay intact.
-function requestReadableAgentTasks(body: AnyRecord): boolean {
-  let changed = false;
-  const visit = (tools: unknown, namespace = '') => {
-    if (!Array.isArray(tools)) return;
-    for (const tool of tools) {
-      if (!tool || typeof tool !== 'object') continue;
-      if (tool.type === 'namespace') {
-        visit(tool.tools, typeof tool.name === 'string' ? tool.name : '');
-        continue;
-      }
-      if (tool.type !== 'function' || !['spawn_agent', 'send_message', 'followup_task'].includes(tool.name)) continue;
-      if (!['collaboration', 'collaboration-optimize'].includes(namespace || tool.namespace)) continue;
-      const message = tool.parameters?.properties?.message;
-      if (message && typeof message === 'object' && message.encrypted === true) {
-        delete message.encrypted;
-        changed = true;
-      }
-    }
-  };
-  visit(body.tools);
-  if (Array.isArray(body.input)) for (const item of body.input) {
-    if (item?.type === 'additional_tools') visit(item.tools);
-    // The native collaboration handler still wraps readable arguments in its
-    // encrypted_content variant. Send these plaintext strings as input_text;
-    // existing Fernet ciphertext must remain available for upstream replay.
-    if (item?.type === 'agent_message' && Array.isArray(item.content)) for (const part of item.content) {
-      if (part?.type !== 'encrypted_content' || typeof part.encrypted_content !== 'string'
-        || !part.encrypted_content || part.encrypted_content.startsWith('gAAAAA')) continue;
-      part.type = 'input_text';
-      part.text = part.encrypted_content;
-      delete part.encrypted_content;
-      changed = true;
-    }
-  }
-  return changed;
-}
 async function forward(req: http.IncomingMessage, res: http.ServerResponse, requestId: string) {
   const address = new URL(req.url ?? '/', 'http://127.0.0.1');
   const match = /^\/([a-f0-9]{48})(\/responses(?:\/compact)?|\/models)$/.exec(address.pathname);
@@ -78,7 +39,7 @@ async function forward(req: http.IncomingMessage, res: http.ServerResponse, requ
   if (!match || !route || !['POST','GET'].includes(req.method ?? '') || (req.method === 'GET') !== (match[2] === '/models')) {
     res.writeHead(404).end(); return;
   }
-  const { lease, settings, filterImages, readableAgentTasks, threadId } = route;
+  const { lease, settings, filterImages, threadId } = route;
   const controller = new AbortController();
   let measurement: CodexHttpMeasurement | null = null;
   controller.signal.addEventListener('abort', () => {
@@ -104,7 +65,7 @@ async function forward(req: http.IncomingMessage, res: http.ServerResponse, requ
   const original = Buffer.concat(chunks);
   let outgoing: Buffer = original;
   let outgoingEncoding: string | null = null;
-  if (req.method === 'POST' && (lease || settings.mode !== 'preserve' || readableAgentTasks)) {
+  if (req.method === 'POST' && (lease || settings.mode !== 'preserve')) {
     const encoding = String(req.headers['content-encoding'] ?? '').trim().toLowerCase();
     const encodingHeaders = req.rawHeaders.filter((_, index) => index % 2 === 0 && req.rawHeaders[index].toLowerCase() === 'content-encoding');
     if (encodingHeaders.length > 1) throw new AppError('Repeated request encoding headers are unsupported.', { code: 'CODEX_PROXY_ENCODING', statusCode: 415 });
@@ -118,11 +79,10 @@ async function forward(req: http.IncomingMessage, res: http.ServerResponse, requ
     // Child/mismatched threads never inherit parent image retention or metrics.
     // Explicit lossless transport encoding still applies before any proxy I/O.
     const matched = lease && thread === threadId;
-    const readableTasksChanged = readableAgentTasks && requestReadableAgentTasks(body);
-    if (matched || settings.mode !== 'preserve' || readableTasksChanged) {
+    if (matched || settings.mode !== 'preserve') {
       if (matched && filterImages) await codexImageContextService.filter(route.sessionId, body, lease, controller.signal);
       controller.signal.throwIfAborted();
-      const transformed = matched || readableTasksChanged ? Buffer.from(JSON.stringify(body)) : decoded;
+      const transformed = matched ? Buffer.from(JSON.stringify(body)) : decoded;
       if (transformed.length > bodyLimit()) throw new AppError('Final JSON exceeds the local request-body limit.', { code: 'CODEX_PROXY_BODY_LIMIT', statusCode: 413 });
       const encoded = await compression.encode(transformed, encoding, settings, route.upstream.origin, controller.signal);
       outgoing = encoded.bytes;
@@ -212,8 +172,7 @@ export const codexImageProxyService = {
   async open(input: Parameters<NonNullable<ProviderRuntimeContext['openImageContext']>>[0]) {
     const settings = compression.settings();
     const filterImages = process.env.CLOUDCLI_CODEX_IMAGE_CONTEXT_ENABLED !== 'false';
-    const readableAgentTasks = process.env.CLOUDCLI_CODEX_READABLE_AGENT_TASKS !== 'false';
-    if (!filterImages && settings.mode === 'preserve' && !readableAgentTasks) return null;
+    if (!filterImages && settings.mode === 'preserve') return null;
     const read = await input.request('config/read', { includeLayers: false, cwd: input.cwd }) as AnyRecord;
     const config = read?.config;
     const providerId = typeof config?.model_provider === 'string' ? config.model_provider : 'openai';
@@ -230,11 +189,11 @@ export const codexImageProxyService = {
     let saved = sessionRoutes.get(input.sessionId);
     if (!saved || saved.route.upstream.href !== upstream.href) {
       const token = randomBytes(24).toString('hex');
-      saved = { token, route: { sessionId: input.sessionId, upstream, threadId: null, lease: null, filterImages, readableAgentTasks, settings } };
+      saved = { token, route: { sessionId: input.sessionId, upstream, threadId: null, lease: null, filterImages, settings } };
       routes.set(token,saved.route); sessionRoutes.set(input.sessionId,saved);
     }
     const route = saved.route;
-    route.filterImages = filterImages; route.readableAgentTasks = readableAgentTasks; route.settings = settings;
+    route.filterImages = filterImages; route.settings = settings;
     const policy = codexImageContextService.snapshot(input.sessionId).policy;
     const lease: CodexImageFilterLease = { policy, initialized: false, knownIds: new Set(), protectedIds: new Set() };
     route.lease = lease;

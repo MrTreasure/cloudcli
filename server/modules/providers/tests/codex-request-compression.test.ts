@@ -91,8 +91,8 @@ test('Codex final HTTP body encoding, streaming, cancellation and accounting', {
     request.on('error', reject); if (chunked) request.write(bytes); request.end(chunked ? undefined : bytes);
   });
   try {
-    await t.test('delegation task schemas request plaintext without touching history, auth, model or other tools', async () => {
-      const { route, url } = await open('preserve');
+    await t.test('native collaboration schemas and opaque task content stay intact even with the retired readable-task flag enabled', async () => {
+      const { route, url } = await open('zstd', true);
       try {
         const body = example();
         const functionTool = (name: string) => ({ type: 'function', name,
@@ -111,9 +111,6 @@ test('Codex final HTTP body encoding, streaming, cancellation and accounting', {
           { type: 'encrypted_content', encrypted_content: 'Verify only the task evidence; do not modify files.' },
         ] });
         const expected = structuredClone(body);
-        for (const tool of expected.tools[2].tools.slice(0, 3)) delete tool.parameters.properties.message.encrypted;
-        delete expected.input.at(-3).tools[0].tools[0].parameters.properties.message.encrypted;
-        expected.input.at(-1).content[0] = { type: 'input_text', text: 'Verify only the task evidence; do not modify files.' };
         // A child inherits the route but must not inherit its parent's image policy.
         route.bindThread('different-parent');
         assert.equal((await send(url, canonical(body))).status, 200);
