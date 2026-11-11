@@ -10,10 +10,6 @@ import zlib from 'node:zlib';
 
 import sharp from 'sharp';
 
-import { initializeDatabase, closeConnection, sessionsDb, codexContextDb } from '@/modules/database/index.js';
-import { codexImageContextService as images } from '@/modules/providers/services/codex-image-context.service.js';
-import { codexImageProxyService as proxy } from '@/modules/providers/services/codex-image-proxy.service.js';
-import { codexRequestCompressionService as codec } from '@/modules/providers/services/codex-request-compression.service.js';
 import type { AnyRecord } from '@/shared/types.js';
 
 const signal = () => new AbortController().signal;
@@ -34,6 +30,14 @@ test('Codex final HTTP body encoding, streaming, cancellation and accounting', {
   const previous = Object.fromEntries(keys.map(key => [key, process.env[key]]));
   process.env.CLOUDCLI_CODEX_READABLE_AGENT_TASKS = 'true';
   process.env.DATABASE_PATH = path.join(directory, 'auth.db');
+  // Bootstrap isolation before importing any application module: auth imports
+  // eagerly open the shared DB. An empty file also prevents legacy-DB migration.
+  await writeFile(process.env.DATABASE_PATH, '');
+  const { initializeDatabase, closeConnection, sessionsDb, codexContextDb, getConnection } = await import('@/modules/database/index.js');
+  assert.equal((getConnection().pragma('database_list') as { file: string }[])[0].file, process.env.DATABASE_PATH);
+  const { codexImageContextService: images } = await import('@/modules/providers/services/codex-image-context.service.js');
+  const { codexImageProxyService: proxy } = await import('@/modules/providers/services/codex-image-proxy.service.js');
+  const { codexRequestCompressionService: codec } = await import('@/modules/providers/services/codex-request-compression.service.js');
   process.env.CLOUDCLI_IMAGE_WEBP_CACHE_DIR = path.join(directory, 'webp');
   // Legacy-retention cases below explicitly exercise the opt-in archive mode.
   process.env.CLOUDCLI_CODEX_HISTORY_IMAGES = '3';

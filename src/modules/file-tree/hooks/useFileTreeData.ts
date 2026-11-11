@@ -8,6 +8,8 @@ type UseFileTreeDataResult = {
   loading: boolean;
   error: string | null;
   refreshFiles: () => void;
+  branchError: string | null;
+  partial: boolean;
 };
 
 const DEFAULT_LOAD_ERROR = 'Unable to load the file tree for this project.';
@@ -27,11 +29,32 @@ function readResponseErrorMessage(responseBody: string): string | null {
   }
 }
 
-export function useFileTreeData(selectedProject: Project | null): UseFileTreeDataResult {
+function replaceChildren(nodes: FileTreeNode[], directoryPath: string, children: FileTreeNode[]): FileTreeNode[] {
+  return nodes.map((node) => node.path === directoryPath
+    ? { ...node, children }
+    : node.children ? { ...node, children: replaceChildren(node.children, directoryPath, children) } : node);
+}
+
+function deferredDirectories(nodes: FileTreeNode[]): FileTreeNode[] {
+  return nodes.flatMap((node) => node.type !== 'directory' || node.isSymlink ? []
+    : node.children === undefined ? [node] : deferredDirectories(node.children));
+}
+
+/** Used by FileTree to retain small trees and load large branches on expansion. */
+export function useFileTreeData(selectedProject: Project | null, expandedDirs: Set<string>): UseFileTreeDataResult {
+  // Loaded entries are retained while individual large directories are expanded.
   const [files, setFiles] = useState<FileTreeNode[]>([]);
+  // The initial root read controls the panel loading state.
   const [loading, setLoading] = useState(false);
+  // A root failure replaces the tree with its error message.
   const [error, setError] = useState<string | null>(null);
+  // Explicit refresh invalidates root and branch reads together.
   const [refreshKey, setRefreshKey] = useState(0);
+  // Branch failures leave the rest of the tree usable and offer explicit refresh.
+  const [branchError, setBranchError] = useState<string | null>(null);
+  const branchRequestsRef = useRef(new Map<string, AbortController>());
+  const failedBranchesRef = useRef(new Set<string>());
+  const loadedProjectRef = useRef<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const refreshFiles = useCallback(() => {
@@ -39,6 +62,12 @@ export function useFileTreeData(selectedProject: Project | null): UseFileTreeDat
   }, []);
 
   useEffect(() => {
+    for (const controller of branchRequestsRef.current.values()) controller.abort();
+    branchRequestsRef.current.clear();
+    failedBranchesRef.current.clear();
+    setBranchError(null);
+    loadedProjectRef.current = null;
+    setFiles([]);
     // File-tree requests use the DB projectId; the backend resolves it to the
     // project's absolute path through the projects table.
     const projectId = selectedProject?.projectId;
@@ -79,6 +108,7 @@ export function useFileTreeData(selectedProject: Project | null): UseFileTreeDat
 
         const data = (await response.json()) as FileTreeNode[];
         if (isActive) {
+          loadedProjectRef.current = projectId;
           setFiles(data);
         }
       } catch (error) {
@@ -103,10 +133,40 @@ export function useFileTreeData(selectedProject: Project | null): UseFileTreeDat
     return () => {
       isActive = false;
       abortControllerRef.current?.abort();
+      for (const controller of branchRequestsRef.current.values()) controller.abort();
     };
   }, [selectedProject?.projectId, refreshKey]);
 
+  useEffect(() => {
+    const projectId = selectedProject?.projectId;
+    if (!projectId || loading || loadedProjectRef.current !== projectId) return;
+    const pending = deferredDirectories(files).filter((node) => expandedDirs.has(node.path));
+    for (const node of pending) {
+      if (branchRequestsRef.current.size >= 3) break;
+      if (branchRequestsRef.current.has(node.path) || failedBranchesRef.current.has(node.path)) continue;
+      const controller = new AbortController();
+      branchRequestsRef.current.set(node.path, controller);
+      void (async () => {
+        try {
+          const response = await api.getFiles(projectId, { signal: controller.signal }, node.path);
+          if (!response.ok) throw new Error(readResponseErrorMessage(await response.text()) ?? DEFAULT_LOAD_ERROR);
+          const children = await response.json() as FileTreeNode[];
+          if (!controller.signal.aborted) setFiles((previous) => replaceChildren(previous, node.path, children));
+        } catch (error) {
+          if (!controller.signal.aborted) {
+            failedBranchesRef.current.add(node.path);
+            setBranchError(`${node.name}: ${error instanceof Error ? error.message : DEFAULT_LOAD_ERROR}`);
+          }
+        } finally {
+          if (branchRequestsRef.current.get(node.path) === controller) branchRequestsRef.current.delete(node.path);
+        }
+      })();
+    }
+  }, [files, expandedDirs, selectedProject?.projectId, loading, branchError]);
+
   return {
+    branchError,
+    partial: deferredDirectories(files).length > 0,
     files,
     loading,
     error,

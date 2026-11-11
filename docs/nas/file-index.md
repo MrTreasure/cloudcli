@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`ec1f44744ad10e013d285c30e2442e40785bc89f`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`64f325bcafbda09101c5a3cfc68fcaab898b2763`。
 
-记录基线与当前暂存树之间的全部净差异，共 358 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 360 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -113,6 +113,7 @@
 | A | [server/modules/database/repositories/codex-context.db.ts](../../server/modules/database/repositories/codex-context.db.ts) | — |
 | M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
 | M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
+| M | [server/modules/file-tree/file-tree.routes.ts](../../server/modules/file-tree/file-tree.routes.ts) | — |
 | M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
 | M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
 | M | [server/modules/notifications/index.ts](../../server/modules/notifications/index.ts) | — |
@@ -251,6 +252,7 @@
 | M | [src/modules/command-palette/CommandPalette.tsx](../../src/modules/command-palette/CommandPalette.tsx) | — |
 | M | [src/modules/file-tree/FileTree.tsx](../../src/modules/file-tree/FileTree.tsx) | — |
 | M | [src/modules/file-tree/FileTreeNode.tsx](../../src/modules/file-tree/FileTreeNode.tsx) | — |
+| M | [src/modules/file-tree/hooks/useFileTreeData.ts](../../src/modules/file-tree/hooks/useFileTreeData.ts) | — |
 | M | [src/modules/i18n/locales/cs/auth.json](../../src/modules/i18n/locales/cs/auth.json) | — |
 | M | [src/modules/i18n/locales/cs/common.json](../../src/modules/i18n/locales/cs/common.json) | — |
 | M | [src/modules/i18n/locales/cs/settings.json](../../src/modules/i18n/locales/cs/settings.json) | — |

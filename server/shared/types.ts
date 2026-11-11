@@ -1499,7 +1499,7 @@ export type FileTreeServices = {
   }>;
   listProjectFiles(
     projectId: string,
-    options?: { respectGitignore: boolean },
+    options?: { respectGitignore: boolean; directoryPath?: string | null; lazy?: boolean },
   ): Promise<FileTreeNode[]>;
   createEntry(input: {
     projectId: string;

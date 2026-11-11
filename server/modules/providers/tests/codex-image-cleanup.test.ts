@@ -6,11 +6,6 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { closeConnection, codexContextDb, initializeDatabase, projectsDb, sessionsDb } from '@/modules/database/index.js';
-import { deleteOrArchiveProject } from '@/modules/projects/index.js';
-import { codexImageContextService as images } from '@/modules/providers/services/codex-image-context.service.js';
-import { sessionsService } from '@/modules/providers/services/sessions.service.js';
-import { chatRunRegistry } from '@/modules/websocket/index.js';
 import type { CodexContextImage } from '@/shared/types.js';
 
 test('permanent Codex deletion cleans only owned image copies and keeps shared originals recoverable', { concurrency: false }, async t => {
@@ -18,6 +13,15 @@ test('permanent Codex deletion cleans only owned image copies and keeps shared o
   const previous = process.env.DATABASE_PATH;
   const previousLimit = process.env.CLOUDCLI_CODEX_IMAGE_CACHE_BYTES;
   process.env.DATABASE_PATH = path.join(directory, 'auth.db');
+  // All app imports must follow the isolated DB setting; module-load auth
+  // bootstrap can otherwise retain the real DB despite later env changes.
+  await writeFile(process.env.DATABASE_PATH, '');
+  const { closeConnection, codexContextDb, initializeDatabase, projectsDb, sessionsDb, getConnection } = await import('@/modules/database/index.js');
+  assert.equal((getConnection().pragma('database_list') as { file: string }[])[0].file, process.env.DATABASE_PATH);
+  const { deleteOrArchiveProject } = await import('@/modules/projects/index.js');
+  const { codexImageContextService: images } = await import('@/modules/providers/services/codex-image-context.service.js');
+  const { sessionsService } = await import('@/modules/providers/services/sessions.service.js');
+  const { chatRunRegistry } = await import('@/modules/websocket/index.js');
   await initializeDatabase();
   const root = path.join(directory, 'codex-context-images');
   await mkdir(path.join(root, 'catalogs'), { recursive: true });

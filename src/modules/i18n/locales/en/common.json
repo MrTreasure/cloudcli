@@ -102,6 +102,8 @@
     "renameSessionLabel": "Session title"
   },
   "fileTree": {
+    "lazyNotice": "Large directories load when expanded. Search covers loaded entries.",
+    "retryBranch": "Refresh the file tree to retry.",
     "loading": "Loading files...",
     "files": "Files",
     "simpleView": "Simple view",

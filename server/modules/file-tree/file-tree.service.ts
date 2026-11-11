@@ -560,7 +560,37 @@ export function createFileTreeService(dependencies: FileTreeServiceDependencies)
         }
       }
 
-      return buildFileTree(projectRoot, 10, 0, includeEntry);
+      let directoryPath = projectRoot;
+      if (options?.directoryPath) {
+        const candidate = resolvePathInsideProject(projectRoot, options.directoryPath);
+        const canonicalRoot = await fileSystem.realpath(projectRoot);
+        directoryPath = await fileSystem.realpath(candidate);
+        resolvePathInsideProject(canonicalRoot, directoryPath);
+        directoryPath = candidate;
+        // Branch reads obey the same exclusions as the original root traversal,
+        // including symlinks and forbidden system directories.
+        let ancestor = projectRoot;
+        for (const segment of path.relative(projectRoot, candidate).split(path.sep)) {
+          ancestor = path.join(ancestor, segment);
+          const stats = await fileSystem.lstat(ancestor);
+          if (stats.isSymbolicLink() || !(includeEntry ?? includeEntryByFallbackDirectoryNames)(ancestor, true)
+            || FORBIDDEN_WORKSPACE_PATHS.includes(normalizeProjectPath(ancestor))) {
+            throw createFileTreeError('Directory is excluded from the file tree', 403, 'PATH_OUTSIDE_PROJECT');
+          }
+        }
+        // An expanded branch needs just its immediate children, not another
+        // recursive walk over potentially tens of thousands of artifacts.
+        return buildFileTree(directoryPath, 0, 0, includeEntry);
+      }
+      // Preserve the bounded complete tree for ordinary projects. Large trees
+      // fall back to one level; the browser explicitly loads expanded branches.
+      // Never raise the heap guard or silently truncate a directory listing.
+      try {
+        return await buildFileTree(directoryPath, 10, 0, includeEntry);
+      } catch (error) {
+        if (!options?.lazy || !(error instanceof AppError) || error.code !== 'FILE_TREE_TOO_LARGE') throw error;
+        return buildFileTree(directoryPath, 0, 0, includeEntry);
+      }
     },
 
     async createEntry(input) {

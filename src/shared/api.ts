@@ -353,10 +353,10 @@ export const api = {
     get(fileContentPath(projectId, filePath), options),
   saveFile: (projectId: string, filePath: string, content: string) =>
     put(`/api/file-tree/projects/${projectId}/file`, { filePath, content }),
-  getFiles: (projectId: string, options: ApiRequestOptions = {}) =>
+  getFiles: (projectId: string, options: ApiRequestOptions = {}, directoryPath?: string) =>
     // Browsing includes ignored configuration/dotfiles; the backend still
     // excludes dependency, build/cache and version-control directories.
-    get(`/api/file-tree/projects/${projectId}/files`, options),
+    get(`/api/file-tree/projects/${projectId}/files${query({ lazy: true, directoryPath })}`, options),
 
   // File operations
   createFile: (

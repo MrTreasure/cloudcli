@@ -5,7 +5,7 @@ const CACHE_NAME = 'c137-ui-a6353f89';
 // Keep the resource-cache policy separate from the icon generator's brand key.
 // A no-cors response cached by an older worker cannot satisfy a later CORS
 // stylesheet/module request, even when the resource URL itself is unchanged.
-const RESOURCE_CACHE_NAME = `${CACHE_NAME}-readable-assets-v2`;
+const RESOURCE_CACHE_NAME = `${CACHE_NAME}-readable-assets-v3`;
 const urlsToCache = [
   '/manifest.json'
 ];
@@ -62,11 +62,12 @@ self.addEventListener('fetch', event => {
   // Navigation requests (HTML) — always go to network, no caching
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/manifest.json').then(() =>
+      fetch(event.request).catch(() =>
         new Response('<h1>Offline</h1><p>Please check your connection.</p>', {
-          headers: { 'Content-Type': 'text/html' }
+          status: 503,
+          headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' }
         })
-      ))
+      )
     );
     return;
   }
@@ -77,10 +78,8 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Everything else — network-first
-  event.respondWith(
-    fetch(event.request).catch(() => caches.match(event.request))
-  );
+  // Other requests use the browser's network handling. Business data and
+  // third-party calls must not fall back to an unrelated or missing cache entry.
 });
 
 // Activate event — purge old caches

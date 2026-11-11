@@ -100,6 +100,8 @@
     "projectFiles": "專案檔案"
   },
   "fileTree": {
+    "lazyNotice": "大目錄在展開時載入；搜尋範圍為已載入的檔案。",
+    "retryBranch": "請重新整理檔案樹重試。",
     "loading": "正在載入檔案...",
     "files": "檔案",
     "simpleView": "簡易檢視",

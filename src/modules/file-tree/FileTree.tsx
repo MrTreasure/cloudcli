@@ -52,9 +52,9 @@ export default function FileTree({ selectedProject, onFileOpen, revealDirectory 
     }
   }, [toast]);
 
-  const { files, loading, error, refreshFiles } = useFileTreeData(selectedProject);
   const { viewMode, changeViewMode } = useFileTreeViewMode();
   const { expandedDirs, toggleDirectory, expandDirectories, collapseAll } = useExpandedDirectories();
+  const { files, loading, error, refreshFiles, branchError, partial } = useFileTreeData(selectedProject, expandedDirs);
   const { searchQuery, setSearchQuery, filteredFiles } = useFileTreeSearch({
     files,
     expandDirectories,
@@ -76,7 +76,11 @@ export default function FileTree({ selectedProject, onFileOpen, revealDirectory 
     if (paths.length === 0) {
       return;
     }
-    revealedRef.current = revealDirectory;
+    // Defer completion until expanded ancestors have loaded the next level.
+    const deferred = (nodes: FileTreeNode[]): boolean => nodes.some((node) =>
+      paths.includes(node.path) && node.children === undefined && !node.isSymlink
+      || (node.children ? deferred(node.children) : false));
+    if (!deferred(files)) revealedRef.current = revealDirectory;
     expandDirectories(paths);
   }, [revealDirectory, selectedProject?.path, selectedProject?.fullPath, expandDirectories, files]);
 
@@ -226,6 +230,8 @@ export default function FileTree({ selectedProject, onFileOpen, revealDirectory 
       />
 
       <FileTreeUploadProgress upload={upload.uploadProgress} />
+      {partial && <p className="px-3 py-1 text-xs text-muted-foreground">{t('fileTree.lazyNotice')}</p>}
+      {branchError && <p role="alert" className="px-3 py-1 text-xs text-destructive">{branchError} {t('fileTree.retryBranch')}</p>}
 
       {viewMode === 'detailed' && filteredFiles.length > 0 && <FileTreeDetailedColumns />}
 
