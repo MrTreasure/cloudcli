@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`ec1f44744ad10e013d285c30e2442e40785bc89f`。
+官方基线：`v1.37.8` (`2053f3d7a086fd44f7fe373c913da487629b0a95`)。历史覆盖至生成时的 HEAD：`902c9b57e6af2e57e82815212e8bbdaf3f42862a`。
 
-记录基线与当前暂存树之间的全部净差异，共 358 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 366 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -113,6 +113,7 @@
 | A | [server/modules/database/repositories/codex-context.db.ts](../../server/modules/database/repositories/codex-context.db.ts) | — |
 | M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
 | M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
+| M | [server/modules/file-tree/file-tree.routes.ts](../../server/modules/file-tree/file-tree.routes.ts) | — |
 | M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
 | M | [server/modules/file-tree/tests/file-tree.service.test.ts](../../server/modules/file-tree/tests/file-tree.service.test.ts) | — |
 | M | [server/modules/notifications/index.ts](../../server/modules/notifications/index.ts) | — |
@@ -123,6 +124,7 @@
 | M | [server/modules/projects/project-clone.routes.ts](../../server/modules/projects/project-clone.routes.ts) | — |
 | M | [server/modules/projects/services/project-delete.service.ts](../../server/modules/projects/services/project-delete.service.ts) | — |
 | M | [server/modules/providers/index.ts](../../server/modules/providers/index.ts) | — |
+| M | [server/modules/providers/list/claude/claude-runtime.provider.ts](../../server/modules/providers/list/claude/claude-runtime.provider.ts) | — |
 | M | [server/modules/providers/list/claude/claude-session-synchronizer.provider.ts](../../server/modules/providers/list/claude/claude-session-synchronizer.provider.ts) | — |
 | M | [server/modules/providers/list/codex/codex-app-server.client.ts](../../server/modules/providers/list/codex/codex-app-server.client.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.config.ts](../../server/modules/providers/list/codex/codex-app-server.config.ts) | — |
@@ -161,7 +163,9 @@
 | A | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
 | M | [server/modules/providers/tests/codex-runtime.test.ts](../../server/modules/providers/tests/codex-runtime.test.ts) | — |
 | M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
+| M | [server/modules/providers/tests/codex-side-question.test.ts](../../server/modules/providers/tests/codex-side-question.test.ts) | — |
 | M | [server/modules/providers/tests/opencode-sessions.test.ts](../../server/modules/providers/tests/opencode-sessions.test.ts) | — |
+| M | [server/modules/providers/tests/provider-abort-notifications.test.ts](../../server/modules/providers/tests/provider-abort-notifications.test.ts) | — |
 | M | [server/modules/providers/tests/provider-cli.service.test.ts](../../server/modules/providers/tests/provider-cli.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider-models.service.test.ts](../../server/modules/providers/tests/provider-models.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider-runtime.service.test.ts](../../server/modules/providers/tests/provider-runtime.service.test.ts) | — |
@@ -178,6 +182,7 @@
 | M | [server/modules/websocket/services/chat-session-writer.service.ts](../../server/modules/websocket/services/chat-session-writer.service.ts) | — |
 | M | [server/modules/websocket/services/chat-websocket.service.ts](../../server/modules/websocket/services/chat-websocket.service.ts) | — |
 | M | [server/modules/websocket/tests/chat-run-registry.test.ts](../../server/modules/websocket/tests/chat-run-registry.test.ts) | — |
+| M | [server/modules/websocket/tests/chat-steer.test.ts](../../server/modules/websocket/tests/chat-steer.test.ts) | — |
 | M | [server/shared/image-attachments.ts](../../server/shared/image-attachments.ts) | — |
 | M | [server/shared/index.ts](../../server/shared/index.ts) | — |
 | M | [server/shared/interfaces.ts](../../server/shared/interfaces.ts) | — |
@@ -228,6 +233,7 @@
 | A | [src/modules/chat/tests/permissionRequestsBanner.test.tsx](../../src/modules/chat/tests/permissionRequestsBanner.test.tsx) | — |
 | M | [src/modules/chat/tests/sessionMessageReconciliation.test.ts](../../src/modules/chat/tests/sessionMessageReconciliation.test.ts) | — |
 | M | [src/modules/chat/tests/sessionStoreTruncate.test.tsx](../../src/modules/chat/tests/sessionStoreTruncate.test.tsx) | — |
+| M | [src/modules/chat/tests/tokenUsageSummaryFormat.test.tsx](../../src/modules/chat/tests/tokenUsageSummaryFormat.test.tsx) | — |
 | M | [src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx](../../src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx) | — |
 | A | [src/modules/chat/transcript/AsyncQuestionCard.tsx](../../src/modules/chat/transcript/AsyncQuestionCard.tsx) | — |
 | M | [src/modules/chat/transcript/BackgroundTasksStrip.tsx](../../src/modules/chat/transcript/BackgroundTasksStrip.tsx) | — |
@@ -251,6 +257,7 @@
 | M | [src/modules/command-palette/CommandPalette.tsx](../../src/modules/command-palette/CommandPalette.tsx) | — |
 | M | [src/modules/file-tree/FileTree.tsx](../../src/modules/file-tree/FileTree.tsx) | — |
 | M | [src/modules/file-tree/FileTreeNode.tsx](../../src/modules/file-tree/FileTreeNode.tsx) | — |
+| M | [src/modules/file-tree/hooks/useFileTreeData.ts](../../src/modules/file-tree/hooks/useFileTreeData.ts) | — |
 | M | [src/modules/i18n/locales/cs/auth.json](../../src/modules/i18n/locales/cs/auth.json) | — |
 | M | [src/modules/i18n/locales/cs/common.json](../../src/modules/i18n/locales/cs/common.json) | — |
 | M | [src/modules/i18n/locales/cs/settings.json](../../src/modules/i18n/locales/cs/settings.json) | — |
@@ -334,6 +341,7 @@
 | M | [src/modules/settings/tabs/AppearanceSettingsTab.tsx](../../src/modules/settings/tabs/AppearanceSettingsTab.tsx) | — |
 | A | [src/modules/settings/tests/codexPermissionsRuntime.test.tsx](../../src/modules/settings/tests/codexPermissionsRuntime.test.tsx) | — |
 | A | [src/modules/settings/tests/fontSizeControls.test.tsx](../../src/modules/settings/tests/fontSizeControls.test.tsx) | — |
+| M | [src/modules/settings/tests/notificationWebhookCard.test.tsx](../../src/modules/settings/tests/notificationWebhookCard.test.tsx) | — |
 | M | [src/modules/shell/utils/socket.ts](../../src/modules/shell/utils/socket.ts) | — |
 | M | [src/modules/sidebar/SidebarCollapsed.tsx](../../src/modules/sidebar/SidebarCollapsed.tsx) | — |
 | M | [src/modules/sidebar/SidebarFooter.tsx](../../src/modules/sidebar/SidebarFooter.tsx) | — |

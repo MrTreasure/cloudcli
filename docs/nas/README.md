@@ -659,7 +659,7 @@
 
 ## 2026-11-11 官方 v1.37.8 升级与 C137 兼容决策
 
-- 来源：官方 v1.37.8 / `c8ccd0e1111e77f70a194d0938f33f73d5d4bc89`，从 v1.37.6 / `c17c2f6d5f7e1e1d47fe37144ce0b2030002e331` 合并（包含 v1.37.7）。旧基线作为历史回退参考保留。
+- 来源：官方 v1.37.8 / `2053f3d7a086fd44f7fe373c913da487629b0a95`，从 v1.37.6 / `c17c2f6d5f7e1e1d47fe37144ce0b2030002e331` 合并（包含 v1.37.7）。旧基线作为历史回退参考保留。
 - 老大确认按预检建议升级：保留自定义同名模型优先、CUSTOM_MODELS_ONLY、本机模型/思考档位；合入官方 GPT-6.1 Sol/Terra 元数据，不把 NAS 目录写进公共默认值。归属 `server/modules/providers/{list/codex/codex-models.provider.ts,services/provider-models.service.ts}`。
 - 合入官方侧问题（Claude/Codex/OpenCode）、发送菜单、Claude Steer、MCP elicitation、OpenCode SDK/历史分页、归档/删除分离、二进制查看器下载、浏览器文件上传与通知 Webhook。Webhook 默认未配置不发送，通知中不带提示词、正文或错误全文；保留取消通知，Codex 原生 app-server 同样上报取消。
 - 发送与审批兼容：`useChatComposerState.ts` 保留 Enter 排队、队列卡片立即插入、GUI 问题直接进入 Codex 当前回合、草稿保护、会话切换保护、Ctrl+K/U 与输入法；新 Claude CLI steer 使用 `steerMessage`，与原生 Codex 的 turn-token `steer` 分开，避免两种签名相互覆盖。归属 provider-runtime.service、shared/interfaces、websocket gateway、ChatComposer 与现有测试。
