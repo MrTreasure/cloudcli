@@ -32,6 +32,24 @@ const isExternalHref = (href?: string): boolean =>
 // Strip a trailing `:line` / `:line:col` suffix (e.g. `src/foo.ts:130`).
 const stripLineSuffix = (value: string): string => value.replace(/:\d+(?::\d+)?$/, '');
 
+// Markdown hrefs are URLs, while the editor needs a filesystem path. Decode
+// once at this boundary; repeated decoding would rename literal `%20` files.
+const decodeFileHref = (value: string): string => {
+  // Match one UTF-8 character at a time so a literal percent or an invalid
+  // byte sequence cannot prevent valid escapes elsewhere from decoding.
+  return value.replace(
+    /%(?:[0-7][\da-f]|[cd][\da-f]%[89ab][\da-f]|e[\da-f](?:%[89ab][\da-f]){2}|f[0-4](?:%[89ab][\da-f]){3})/gi,
+    (encodedCharacter) => {
+      try {
+        return decodeURIComponent(encodedCharacter);
+      } catch {
+        // Preserve invalid UTF-8 (including overlong or surrogate encodings).
+        return encodedCharacter;
+      }
+    },
+  );
+};
+
 // A usable file path contains a separator or a filename with an extension.
 const looksLikeFilePath = (value?: string): value is string => {
   if (!value) {
@@ -283,11 +301,14 @@ function MarkdownBodyRenderer({ children, breaks = false }: Omit<MarkdownProps, 
         // Prefer the href when it is a real path; otherwise fall back to the
         // link text, since models often emit `[src/foo.ts]()` with an empty href.
         const linkText = childrenToText(linkChildren);
-        const fileRef = looksLikeFilePath(href) ? href : looksLikeFilePath(linkText) ? linkText : undefined;
+        // Classify a decoded copy, retaining the original for line metadata.
+        const fileRef = looksLikeFilePath(href && decodeFileHref(href))
+          ? href
+          : looksLikeFilePath(linkText) ? linkText : undefined;
 
         if (fileRef && !isExternalHref(href)) {
           return (
-            <WorkspaceFileLink reference={fileRef} href={href}>
+            <WorkspaceFileLink reference={fileRef} href={href} resolvedPath={href === fileRef ? decodeFileHref(stripLineSuffix(fileRef.trim())) : stripLineSuffix(fileRef.trim())}>
               {linkChildren}
             </WorkspaceFileLink>
           );

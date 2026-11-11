@@ -12,10 +12,11 @@ type WorkspaceFileLinkProps = {
   reference: string;
   href?: string;
   children: ReactNode;
+  resolvedPath?: string;
 };
 
 /** Chat Markdown uses this link to preview workspace files or download their original bytes. */
-export function WorkspaceFileLink({ reference, href, children }: WorkspaceFileLinkProps) {
+export function WorkspaceFileLink({ reference, href, children, resolvedPath }: WorkspaceFileLinkProps) {
   const { t } = useTranslation('chat');
   const projectId = useMarkdownWorkspaceProjectId();
   const { openFileInEditor, openDirectory } = usePaletteOps();
@@ -27,7 +28,7 @@ export function WorkspaceFileLink({ reference, href, children }: WorkspaceFileLi
   const line = trimmed.match(/:(\d+)(?::\d+)?$/);
   let filePath = trimmed.replace(/:\d+(?::\d+)?$/, '');
   try {
-    filePath = decodeURIComponent(filePath);
+    filePath = resolvedPath ?? decodeURIComponent(filePath);
   } catch {
     // A literal percent sign in a filename is valid even when it is not URI encoded.
   }

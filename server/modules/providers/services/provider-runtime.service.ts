@@ -1,5 +1,6 @@
 import { codexImageProxyService } from '@/modules/providers/services/codex-image-proxy.service.js';
 import { codexImageContextService } from '@/modules/providers/services/codex-image-context.service.js';
+import { errorMessage } from '@/shared/utils.js';
 import { providerRegistry } from '@/modules/providers/provider.registry.js';
 import { providerModelsService } from '@/modules/providers/services/provider-models.service.js';
 import { sessionsService } from '@/modules/providers/services/sessions.service.js';
@@ -12,6 +13,9 @@ import type {
   ProviderRuntimeContext,
   ProviderRuntimeWriter,
   ProviderSteerInput,
+  SideQuestionOutcome,
+  SideQuestionRequest,
+  SideQuestionSink,
 } from '@/shared/types.js';
 import { AppError } from '@/shared/utils.js';
 
@@ -25,6 +29,11 @@ type ProviderRuntimeServiceDependencies = {
     requestedModel?: string | null,
   ): Promise<string | undefined>;
   getProviderModels: typeof providerModelsService.getProviderModels;
+  /**
+   * Builds the SDK query for a side-question run. Production leaves this
+   * unset so the runtime uses the SDK's own; tests supply a scripted stream.
+   */
+  createQuery?: ProviderRuntimeContext['createQuery'];
 };
 
 const defaultDependencies: ProviderRuntimeServiceDependencies = {
@@ -79,6 +88,15 @@ export function createProviderRuntimeService(
 
   return {
     run,
+    async steer(providerName: LLMProvider, input: ProviderSteerInput): Promise<void> {
+      const runtime = dependencies.resolveProvider(providerName).runtime;
+      if (!runtime.steer) throw new AppError('This runtime does not support steering.', { code: 'STEER_UNSUPPORTED', statusCode: 409 });
+      await runtime.steer(input);
+    },
+    /** Chat gateway uses Claude's CLI admission separately from native Codex turns. */
+    async steerMessage(providerName: LLMProvider, sessionId: string, command: string, options: AnyRecord): Promise<boolean> {
+      return Boolean(await dependencies.resolveProvider(providerName).runtime.steerMessage?.(sessionId, command, options));
+    },
 
     hasRuntime(providerName: string): boolean {
       try {
@@ -94,14 +112,6 @@ export function createProviderRuntimeService(
 
     activeTurnToken(providerName: LLMProvider, sessionId: string): string | null {
       return dependencies.resolveProvider(providerName).runtime.activeTurnToken?.(sessionId) ?? null;
-    },
-
-    async steer(providerName: LLMProvider, input: ProviderSteerInput): Promise<void> {
-      const runtime = dependencies.resolveProvider(providerName).runtime;
-      if (!runtime.steer) throw new AppError('This runtime does not support steering.', {
-        code: 'STEER_UNSUPPORTED', statusCode: 409,
-      });
-      await runtime.steer(input);
     },
 
     /** Providers route uses this acknowledged insertion for native async answers, without touching durable queues. */
@@ -156,6 +166,29 @@ export function createProviderRuntimeService(
       return dependencies.listProviders().flatMap(
         (provider) => provider.runtime.permissions?.listPending(sessionId) ?? [],
       );
+    },
+
+    async askSideQuestion(
+      providerName: LLMProvider,
+      request: SideQuestionRequest,
+      sink: SideQuestionSink,
+    ): Promise<SideQuestionOutcome> {
+      try {
+        const provider = dependencies.resolveProvider(providerName);
+        const context: ProviderRuntimeContext = {
+          ...createRuntimeContext(provider),
+          createQuery: dependencies.createQuery,
+        };
+
+        if (provider.runtime.askSideQuestion) {
+          return await provider.runtime.askSideQuestion(request, sink, context);
+        }
+
+        // No runtime support: name it and stop, instead of guessing at an answer.
+        return { status: 'error', error: `Provider "${providerName}" has no side questions.`, answer: '' };
+      } catch (error) {
+        return { status: 'error', error: errorMessage(error), answer: '' };
+      }
     },
   };
 }

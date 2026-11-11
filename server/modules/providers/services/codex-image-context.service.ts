@@ -304,7 +304,7 @@ export const codexImageContextService = {
     codexContextDb.save(sessionId, state);
     return state;
   },
-  async filter(sessionId: string, body: AnyRecord, lease: CodexImageFilterLease, signal?: AbortSignal) {
+  async filter(sessionId: string, body: AnyRecord, lease: CodexImageFilterLease, signal?: AbortSignal, persist = true) {
     return withImageReferences(async references => {
       signal?.throwIfAborted();
       if (!Array.isArray(body.input)) return { prunedImageCount: 0 };
@@ -393,6 +393,7 @@ export const codexImageContextService = {
         }
       }
       retainedBytes = [...keep].reduce((sum, id) => sum + (wireBytes.get(id) ?? 0), 0);
+      if (!persist) return { prunedImageCount };
       const latest = sessionState(sessionId).state;
       latest.images = [...new Map([...latest.images, ...state.images].map(image => [image.id,image])).values()];
       latest.activeImageIds = [...seen];

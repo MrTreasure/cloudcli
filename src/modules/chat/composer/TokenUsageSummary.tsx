@@ -26,7 +26,7 @@ function TokenUsageSummary({ usage, onClick }: TokenUsageSummaryProps) {
       title={t('chat:misc.contextOccupancy', { percentage: label })}
       aria-label={t('chat:misc.contextOccupancy', { percentage: label })}
     >
-      <span className="grid h-5 w-5 place-items-center rounded-md bg-primary/10 text-primary">
+      <span className="hidden h-5 w-5 place-items-center rounded-md bg-primary/10 text-primary sm:grid">
         <ActivityIcon className="h-3.5 w-3.5" />
       </span>
       <span className="font-medium text-foreground">{label}</span>

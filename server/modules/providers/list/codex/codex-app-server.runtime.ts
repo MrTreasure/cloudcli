@@ -1260,9 +1260,8 @@ class CodexAppServerRuntime {
       aborted: status === 'interrupted' || run.abortRequested,
     }));
     run.resolveCompletion({ status, ...(error ? { error } : {}) });
-    if (!run.abortRequested || status === 'failed') {
-      this.notifyRunOutcome(status, run.writer, run.appSessionId ?? run.threadId, run.sessionSummary, error);
-    }
+    this.notifyRunOutcome(run.abortRequested && status !== 'failed' ? 'interrupted' : status,
+      run.writer, run.appSessionId ?? run.threadId, run.sessionSummary, error);
   }
 
   private notifyRunOutcome(
@@ -1281,8 +1280,8 @@ class CodexAppServerRuntime {
     try {
       if (status === 'failed') {
         notifyRunFailed({ ...notification, error });
-      } else if (status === 'completed') {
-        notifyRunStopped(notification);
+      } else if (status === 'completed' || status === 'interrupted') {
+        notifyRunStopped({ ...notification, stopReason: status === 'interrupted' ? 'aborted' : 'completed' });
       }
     } catch (notificationError) {
       console.warn('[Codex app-server] Run notification failed:', notificationError);

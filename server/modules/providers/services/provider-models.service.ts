@@ -97,6 +97,11 @@ const readCustomModelEffortLevels = (provider: LLMProvider): string[] => (
  * provider pointed at a gateway lists only what that gateway serves. The flag
  * only applies while at least one custom model exists: an empty catalog would
  * leave the composer and the runtimes with no model at all.
+ *
+ * A custom row whose id later became a built-in (a user added a new model by
+ * hand, then an update shipped it) is left out while the built-ins are listed:
+ * ids must stay unique in a picker, and lookups already found the built-in
+ * first. The row is kept, so it returns if the built-in is ever removed.
  */
 const mergeProviderModels = (
   provider: LLMProvider,
@@ -250,18 +255,15 @@ export const createProviderModelsService = (dependencies: ProviderModelsServiceD
     modelId: string,
     currentRecordId?: number,
   ): void => {
-    const duplicate = catalog.findCustomProviderModelByModelId(provider, modelId);
-    // Discovery may now include a model that was manually added earlier. That
-    // existing row must remain editable and retain its user-defined metadata.
-    if (predefined.OPTIONS.some((option) => option.value === modelId)
-      && !(currentRecordId !== undefined && duplicate?.recordId === currentRecordId)) {
-      throw new AppError(`A ${provider} model with this ID already exists.`, {
-        code: 'MODEL_ID_ALREADY_EXISTS',
-        statusCode: 409,
-      });
+    const customOwner = catalog.findCustomProviderModelByModelId(provider, modelId);
+    // A row keeping its own id stays editable even after a built-in took that
+    // id: with custom-models-only on it is still listed, and renaming it must
+    // not be refused because of an update the user had no part in.
+    if (customOwner && customOwner.recordId === currentRecordId) {
+      return;
     }
 
-    if (duplicate && duplicate.recordId !== currentRecordId) {
+    if (customOwner || predefined.OPTIONS.some((option) => option.value === modelId)) {
       throw new AppError(`A ${provider} model with this ID already exists.`, {
         code: 'MODEL_ID_ALREADY_EXISTS',
         statusCode: 409,

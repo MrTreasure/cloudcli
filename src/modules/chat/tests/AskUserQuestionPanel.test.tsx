@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, test, vi } from 'vitest';
 
+import '@/modules/i18n';
+
 import { AskUserQuestionPanel } from '@/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel';
 
 afterEach(cleanup);

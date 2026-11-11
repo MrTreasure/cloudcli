@@ -655,3 +655,17 @@
 - 发布依赖：前端与 Service Worker 需发布；后端构建需待活动任务安全结束后更新 runtime 并重启。Mac/Windows 需同步源码并自行构建运行。回退上述本次文件变更并按资源先于 HTML 发布；后端恢复原模块构建后安全重启，无数据库变更。GitHub 版本接口网络失败与 i18next 推广提示属于独立事项。
 - 本次交付状态：资源和前端发布输入已更新，公网 `/sw.js` 返回 200、与源码逐字节相同且有 Cloudflare 托管头；后端 4 个候选文件已准备，runtime 未改、未重启，因存在活动会话等待维护窗口。详细收据保存在本机 appdata 的 `operations/file-tree-lazy-20261106/`，未提交或推送 Git。
 - 老大确认等待其他任务结束后重启：一次性 transient unit `cloudcli-file-tree-idle-restart.service` 每约 60 秒仅检查活动数量，零活动后静默确认 15 秒并在切换前再查一次；接口异常不重启，runtime 文件变化则停止等待以防覆盖。完成后核对真实根目录与 artifacts 分支接口，失败恢复旧模块。该等待进程不设 timer 或开机自启，退出即结束；本机状态见同一 operations 目录的 `idle-restart-status.json`。
+
+
+## 2026-11-11 官方 v1.37.8 升级与 C137 兼容决策
+
+- 来源：官方 v1.37.8 / `c8ccd0e1111e77f70a194d0938f33f73d5d4bc89`，从 v1.37.6 / `c17c2f6d5f7e1e1d47fe37144ce0b2030002e331` 合并（包含 v1.37.7）。旧基线作为历史回退参考保留。
+- 老大确认按预检建议升级：保留自定义同名模型优先、CUSTOM_MODELS_ONLY、本机模型/思考档位；合入官方 GPT-6.1 Sol/Terra 元数据，不把 NAS 目录写进公共默认值。归属 `server/modules/providers/{list/codex/codex-models.provider.ts,services/provider-models.service.ts}`。
+- 合入官方侧问题（Claude/Codex/OpenCode）、发送菜单、Claude Steer、MCP elicitation、OpenCode SDK/历史分页、归档/删除分离、二进制查看器下载、浏览器文件上传与通知 Webhook。Webhook 默认未配置不发送，通知中不带提示词、正文或错误全文；保留取消通知，Codex 原生 app-server 同样上报取消。
+- 发送与审批兼容：`useChatComposerState.ts` 保留 Enter 排队、队列卡片立即插入、GUI 问题直接进入 Codex 当前回合、草稿保护、会话切换保护、Ctrl+K/U 与输入法；新 Claude CLI steer 使用 `steerMessage`，与原生 Codex 的 turn-token `steer` 分开，避免两种签名相互覆盖。归属 provider-runtime.service、shared/interfaces、websocket gateway、ChatComposer 与现有测试。
+- 统一 CLI：Codex SDK 0.166.0；Claude SDK 0.3.311、OpenCode SDK 1.19.5，保留 TypeScript 7.0.2 与 pnpm。继续排除项目内 @openai/codex 副本；分叉/侧问题/SDK 共用 CODEX_CLI_PATH 或 PATH resolver，JS 启动器经 Node，原生命令直接执行。模型元数据测试只运行隔离 CODEX_HOME 的 debug models --bundled，不发模型请求。
+- 图片与压缩：Codex 侧问题使用独立短期代理路由和 lease，沿用主会话图片保留策略及既有 CPA 压缩；结束释放短期路由，不接管主会话 lease、不覆盖主会话过滤/HTTP 指标。归属 codex-app-server.client、codex-runtime.provider、codex-image-{proxy,context}.service 与 shared/types。
+- 文件与界面：保留 WorkspaceFileLink 的鉴权下载、支持预览的类型不外露下载按钮及目录跳转；接入官方按 UTF-8 字符解码链接，合法片段不再被孤立 % 阻断，链接文字不二次解码。保留原生上下文百分比显示、详情 K 单位与 C137 品牌；合入官方软键盘/排版修复。
+- 升级前 13 处未提交工作完整带入：文件树超限按展开加载、SW v3 响应回退、图片/压缩测试数据库隔离及维护记录。源码原样快照在升级前检查点 `7134a9b6` 中可追溯；不回退此前已上线行为。
+- 验证：前端 166 文件 / 1,247 项通过；后端 1,187 项通过、1 项既有跳过、0 失败。后端测试采用临时数据库、隔离 CODEX_HOME、模拟 app-server/SDK；SDK 专用测试显式 sdk 模式，不误走 NAS 默认 app-server。类型检查、lint（警告）和前后端构建通过；不运行浏览器自动化或真实模型验收。
+- 运行实例与回退：本节记录源码升级，NAS 前后端运行实例尚未按本次升级发布。发布需部署前检查活动任务，并保留同源/分离部署与资源先于 HTML 的顺序。可回退到升级前检查点重新构建；不要自动恢复数据库覆盖升级后的新会话。新增侧问题是进程内状态，不新增周期任务；Webhook 使用已有 endpoint 表。Mac/Windows 需同步源码、pnpm install --frozen-lockfile、构建并按各机 CLI/凭据配置重启。

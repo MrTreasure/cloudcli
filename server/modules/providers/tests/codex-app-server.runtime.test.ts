@@ -991,6 +991,7 @@ for (const scenario of [
     testContext.mock.method(sessionsDb, 'getSessionByProviderSessionId', () => null);
     testContext.mock.method(notificationChannelEndpointsDb, 'upsertEndpoint', () => endpoint);
     testContext.mock.method(notificationChannelEndpointsDb, 'getEnabledEndpoints', () => [endpoint]);
+    testContext.mock.method(notificationChannelEndpointsDb, 'getEndpoint', () => null);
     testContext.mock.method(notificationChannelEndpointsDb, 'touchEndpoint', () => true);
     testContext.mock.method(notificationPreferencesDb, 'getPreferences', () => {
       if (scenario === 'notification-error') {
@@ -1039,7 +1040,7 @@ for (const scenario of [
       assert.deepEqual(await runPromise, { status, ...(failed ? { error: 'Model quota exceeded' } : {}) });
     }
 
-    const shouldNotify = ['completed', 'failed', 'pre-turn-failed'].includes(scenario);
+    const shouldNotify = ['completed', 'failed', 'interrupted', 'aborted', 'pre-turn-failed'].includes(scenario);
     assert.equal(notifications.length, shouldNotify ? 1 : 0);
     assert.equal(warnings.mock.calls.length, scenario === 'notification-error' ? 1 : 0);
     if (shouldNotify) {

@@ -10,7 +10,7 @@ import { codexImageContextService } from '@/modules/providers/services/codex-ima
 import type { AnyRecord, CodexHttpMeasurement, CodexImageFilterLease, CodexRequestCompressionSettings, ProviderRuntimeContext } from '@/shared/types.js';
 import { AppError } from '@/shared/utils.js';
 
-type Route = { sessionId: string; upstream: URL; threadId: string | null; lease: CodexImageFilterLease | null; filterImages: boolean; settings: CodexRequestCompressionSettings };
+type Route = { transient?: boolean; sessionId: string; upstream: URL; threadId: string | null; lease: CodexImageFilterLease | null; filterImages: boolean; settings: CodexRequestCompressionSettings };
 const routes = new Map<string, Route>();
 const sessionRoutes = new Map<string, { token: string; route: Route }>();
 const agent = new ProxyAgent();
@@ -80,14 +80,14 @@ async function forward(req: http.IncomingMessage, res: http.ServerResponse, requ
     // Explicit lossless transport encoding still applies before any proxy I/O.
     const matched = lease && thread === threadId;
     if (matched || settings.mode !== 'preserve') {
-      if (matched && filterImages) await codexImageContextService.filter(route.sessionId, body, lease, controller.signal);
+      if (matched && filterImages) await codexImageContextService.filter(route.sessionId, body, lease, controller.signal, !route.transient);
       controller.signal.throwIfAborted();
       const transformed = matched ? Buffer.from(JSON.stringify(body)) : decoded;
       if (transformed.length > bodyLimit()) throw new AppError('Final JSON exceeds the local request-body limit.', { code: 'CODEX_PROXY_BODY_LIMIT', statusCode: 413 });
       const encoded = await compression.encode(transformed, encoding, settings, route.upstream.origin, controller.signal);
       outgoing = encoded.bytes;
       outgoingEncoding = encoded.encoding;
-      if (matched) measurement = { requestId, encoding: encoded.encoding, compressionMs: encoded.compressionMs,
+      if (matched && !route.transient) measurement = { requestId, encoding: encoded.encoding, compressionMs: encoded.compressionMs,
         requestBytesBefore: original.length, requestBytesAfter: outgoing.length,
         jsonBytesBefore: decoded.length, jsonBytesAfter: transformed.length };
     }
@@ -186,11 +186,12 @@ export const codexImageProxyService = {
     if (typeof base !== 'string') throw new AppError('Codex provider has no resolvable upstream URL.', { code: 'CODEX_PROXY_PROVIDER', statusCode: 409 });
     const upstream = new URL(base);
     if (!['http:','https:'].includes(upstream.protocol) || upstream.username || upstream.password) throw new AppError('Invalid Codex upstream URL.', { code: 'CODEX_PROXY_PROVIDER', statusCode: 409 });
-    let saved = sessionRoutes.get(input.sessionId);
+    const routeKey = input.transient ? randomUUID() : input.sessionId;
+    let saved = sessionRoutes.get(routeKey);
     if (!saved || saved.route.upstream.href !== upstream.href) {
       const token = randomBytes(24).toString('hex');
-      saved = { token, route: { sessionId: input.sessionId, upstream, threadId: null, lease: null, filterImages, settings } };
-      routes.set(token,saved.route); sessionRoutes.set(input.sessionId,saved);
+      saved = { token, route: { transient: input.transient, sessionId: input.sessionId, upstream, threadId: null, lease: null, filterImages, settings } };
+      routes.set(token,saved.route); sessionRoutes.set(routeKey,saved);
     }
     const route = saved.route;
     route.filterImages = filterImages; route.settings = settings;
@@ -207,6 +208,9 @@ export const codexImageProxyService = {
     };
     return { config: overrides,
       bindThread: (threadId: string) => { route.threadId = threadId; },
-      close: () => { if (route.lease === lease) route.lease = null; } };
+      close: () => {
+        if (route.lease === lease) route.lease = null;
+        if (input.transient) { routes.delete(saved.token); sessionRoutes.delete(routeKey); }
+      } };
   },
 };

@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`64f325bcafbda09101c5a3cfc68fcaab898b2763`。
+官方基线：`v1.37.6` (`c17c2f6d5f7e1e1d47fe37144ce0b2030002e331`)。历史覆盖至生成时的 HEAD：`ec1f44744ad10e013d285c30e2442e40785bc89f`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,19 +10,11 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
+| M | [.env.example](../../.env.example) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [public/sw.js](../../public/sw.js) | — |
-| M | [server/modules/file-tree/file-tree.routes.ts](../../server/modules/file-tree/file-tree.routes.ts) | — |
-| M | [server/modules/file-tree/file-tree.service.ts](../../server/modules/file-tree/file-tree.service.ts) | — |
-| M | [server/modules/providers/tests/codex-image-cleanup.test.ts](../../server/modules/providers/tests/codex-image-cleanup.test.ts) | — |
+| M | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
+| M | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
 | M | [server/modules/providers/tests/codex-request-compression.test.ts](../../server/modules/providers/tests/codex-request-compression.test.ts) | — |
-| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
-| M | [src/modules/file-tree/FileTree.tsx](../../src/modules/file-tree/FileTree.tsx) | — |
-| M | [src/modules/file-tree/hooks/useFileTreeData.ts](../../src/modules/file-tree/hooks/useFileTreeData.ts) | — |
-| M | [src/modules/i18n/locales/en/common.json](../../src/modules/i18n/locales/en/common.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/common.json](../../src/modules/i18n/locales/zh-CN/common.json) | — |
-| M | [src/modules/i18n/locales/zh-TW/common.json](../../src/modules/i18n/locales/zh-TW/common.json) | — |
-| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
 
 ## NAS 主线提交
 
@@ -1237,19 +1229,6 @@
   - `src/modules/codex-agents/CodexAgentsActivity.tsx`
   - `src/modules/codex-agents/CodexAgentsPanel.tsx`
   - `src/shared/types.ts`
-
-### 64f325bc · 2026-11-02 · fix(codex): preserve reserved collaboration tool schemas
-
-- 完整提交：`64f325bcafbda09101c5a3cfc68fcaab898b2763`
-- 相对第一父提交涉及文件：
-
-  - `.env.example`
-  - `docs/nas/README.md`
-  - `docs/nas/commit-log.md`
-  - `docs/nas/file-index.md`
-  - `local-plugins/cloudcli-codex-agents/README.md`
-  - `server/modules/providers/services/codex-image-proxy.service.ts`
-  - `server/modules/providers/tests/codex-request-compression.test.ts`
 
 ## 从 PR / 其他分支合入的提交
 
