@@ -679,3 +679,39 @@
 - 来源：本地 NAS 部署修复，无上游合并或依赖升级。
 - 验证：本地 IPv4/IPv6 TLS 健康 200、匿名 API 401、合法 Origin 预检 204（max-age 600）、非法 Origin 403；IPv4 登录 200、鉴权状态查询 200、聊天 WebSocket 101，未发送模型消息。DNS 已读回双栈。首次公网探测超时，路由器已正确 DNAT，但 NAS 网卡普通抓包看不到 SYN；进一步确认 fnOS 原生 XDP 防火墙在网卡前置过滤，默认拒绝入站且没有 15433 规则。获老大单独 sudo 授权后只读核对主机过滤器，并经现有 fnos-api 原生 `appcgi.security.firewall.getting/setting` 接口新增一条 IPv4 入站 TCP15433 放行（memo=`CloudCLI IPv4 API`），完整保留原有 13 条规则、默认拒绝及其他设置；没有新增 iptables 绕过、重启安全服务或修改数据库端口。修复后独立公网 IPv4：健康 200、匿名 API 401、合法/非法预检 204/403，TLS 校验 0；公网首字节约 47–85 ms（单次探测，非性能承诺）。
 - 回退依赖：本次私有备份 `appdata/cloudcli/backups/ipv4-20261116-102933/`；按文件哈希核对后恢复本次 listener/CNAME 及持久化脚本，nginx -t 后 reload。防火墙回退通过原生接口仅移除本次 memo/端口完全匹配的规则，保留之后新增的规则；不要整体覆盖旧规则快照。不要覆盖之后其他 Agent 更新，不停其他服务，不通过改数据库端口回退。
+
+
+## 2026-11-16 官方 v1.37.9 升级与 C137 兼容
+
+- 来源：官方 v1.37.9 / `f86543fad81d5687bea98644b752fa08fa0da538`，从 v1.37.8 / `2053f3d7a086fd44f7fe373c913da487629b0a95` 正常合并，保留官方祖先关系。IPv4 修复先保存为 `2b9323f5`，回退标签 `c137-before-v1.37.9-20261116`；原 v1.37.8 基线仍为历史参考。
+- 官方变化：排队消息在运行结束事件后立即发送、按会话隔离的定时消息派发（#1697/#1763）；侧栏旧会话滚动加载与 fork 树（#1784/#1621）；后台停止结果确认、Escape 菜单/重命名保护、异步发送后只清理原会话（#1762/#1791/#1775）；问题面板保留用量入口、侧问思考过滤/分段（#1785/#1767）；Claude 固定模型版本、MCP attended API、OpenCode v2/JSONC 配置、Linux deb 和土耳其语。官方发布说明未声称修复通用内存增长。
+- 冲突适配：只按具体冲突块兼容，未删除已批准功能。`useChatComposerState.ts` 同时保留 preserveDraft/onAccepted、GUI 问题直达、原生队列插入和官方跨会话上传清理隔离；官方百分比按钮测试按 C137 的完整上下文预算和可访问名称调整，问题面板仍只有一个可点击百分比入口。`ChatInterface.tsx` 使用官方 Escape 所有权 hook，避免菜单/重命名误取消。
+- 服务端队列：`scheduled-message-dispatcher.service.ts` 合入 run-settled 事件、每会话 scheduled-send 占用及顺序 claim；保留原一秒后台队列兜底（仅数据库/内存扫描，不新增浏览器请求），保留 sendQueuedMessageNow 的 CAS、turn token、失败恢复和未知确认防重复。关闭时清理两个计时器和事件订阅，初始化不会重复挂载；不恢复多条 FIFO 交互。
+- 历史与上下文：`sessions.service.ts` 将 C137 的 Codex 本机上下文限制补充放入官方拆出的 readCurrentContextHistory，共享于当前段及清理上下文后的历史读取；图片历史/模型上下文分离、归档清理和 CPA zstd 路径保留。数据库只新增幂等的 superseded_provider_sessions.reason 列（旧记录默认 edit），不删除历史。
+- 依赖/规范：TypeScript `^7.0.2`、pnpm `12.3.4`、Codex SDK `0.166.0`、Claude SDK `0.3.311`、OpenCode SDK `1.19.5` 保留，pnpm 锁文件通过离线 frozen 校验；不更新已有 npm 参考锁文件。新增 Linux 工作流改用 pnpm 并固定 action SHA，未实际打包/发布 deb。OpenCode 新共享凭据引用类型归入 server/shared/types.ts，经 shared barrel 导出，解析器私有类型不额外暴露；只返回凭据引用/存在状态，不在日志或接口暴露密钥值。
+
+### 保留项逐项审查
+
+| 保留项 | v1.37.9 处理与归属 |
+| --- | --- |
+| TypeScript 7 / pnpm / 单一 CLI | 保留版本、overrides 和全局 CLI resolver；官方新增 Linux 命令沿用 pnpm |
+| Codex Fast | 保留每会话开关及 serviceTier 路径，模型目录不变 |
+| 实时 Todo | 保留原生 plan 事件与会话/轮次隔离 |
+| Enter 排队 / 队列立即插入 / GUI 回答 | 保留原生 steer、CAS 和草稿保护，兼容官方即时派发事件 |
+| Ctrl+K/U、换行及输入法 | 保留 composer 现有键盘处理；接入官方 Escape 所有权保护 |
+| 字号 | 保留 UiPreferencesContext 与界面/文件名字号持久化 |
+| 上下文百分比、K 详情、压缩进度 | 保留 TokenUsageSummary 和详情行为；提问时百分比按钮继续可用 |
+| 仪表盘与 subAgent 插件 | 原有实现未改，无需重建插件；当前升级不改变本机原生历史或生命周期 |
+| 隐藏文件 / 多语言依赖过滤 / 文件树按需加载 | 原实现与既有测试保留，不引入通用 gitignore 屏蔽 |
+| C137 名称、图标、头像与界面 | 保留现有品牌；新增 Linux 发行配置不改网页品牌或当前安装产物 |
+| 自定义模型优先与 CUSTOM_MODELS_ONLY | 保留现有 provider-models 路径；生产目录 4 条模型记录哈希未变，旧数据库副本迁移后同样保持 |
+| 图片上下文、归档删除与保留函数 schema | 保留原生 encrypted 声明透传，不恢复明文工具 schema 补丁，不重新带入历史截图 |
+| 同源 / NAS 分离 / IPv4 | 默认构建资源仍为 /assets/；NAS listener、DNS 持久脚本与运行中 XDP 单条规则保持，不硬编码到公共应用默认值 |
+
+### 验证、生效与回退
+
+- 最终前端 174 文件 / 1,296 项通过；后端 1,235 项通过、1 项既有跳过、0 失败；定向队列/后台停止/侧问 75 项通过。类型检查、lint（仍有既有警告）与前后端构建通过。首次 Node 26 并发测试报告出现一次子进程序列化错误，相关 agent route 13 项独立通过，随后串行全量通过；未为绕开该报告问题修改运行时代码。
+- 全部测试使用数据盘临时目录、隔离数据库与 CODEX_HOME，并移除实际模型凭据；无浏览器自动化或付费模型调用。本机 Codex 0.166 的生成协议确认 serviceTier、turn/steer.expectedTurnId 和原生 plan 通知字段；真实模型上的 Fast/Todo/steer 本轮未重测，不把协议/模拟校验当成真实模型验收。
+- 旧生产 SQLite 的一致性副本实际运行新迁移后 quick_check=ok；provider_models、user_preferences、users、projects、sessions 的原记录哈希保持。原数据库未迁移/恢复，源目录与生产 runtime 分离；私有检查与备份位于 `appdata/cloudcli/upgrades/v1.37.9-20261116-191747/`。
+- 本节记录源码升级及构建验证；NAS 运行实例仍为 v1.37.8，按已确认策略部署/重启另行指示，不因 Git 快进自动发布。前端需用 NAS publisher 注入 API/CDN 参数重新构建并按资源先于 HTML 发布；后端只在安全窗口更新 runtime 和重启，不能中断其他活动任务。Mac/Windows 拉取 c137 后需 pnpm install --frozen-lockfile、本机构建并重启；模型/CLI/凭据继续各机独立。
+- 回退到 `2b9323f5` 重新构建可保留本次 IPv4 修复。源回退不自动覆盖数据库；reason 新列向后兼容，若新版已产生清理上下文的历史分段，应先评估旧版显示语义并保留新增数据。无新增内部服务、协议或独立周期任务；本轮未发布，NAS 当前运行拓扑不变。

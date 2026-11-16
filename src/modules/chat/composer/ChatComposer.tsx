@@ -10,7 +10,7 @@ import type {
   RefObject,
   TouchEvent,
 } from 'react';
-import { PaperclipIcon, MessageSquareIcon, XIcon, Loader2, PencilIcon } from 'lucide-react';
+import { EraserIcon, PaperclipIcon, MessageSquareIcon, XIcon, Loader2, PencilIcon } from 'lucide-react';
 
 import { useVoiceInput } from '@/modules/chat/hooks/useVoiceInput';
 import { useVoiceAvailable } from '@/modules/chat/hooks/useVoiceAvailable';
@@ -80,6 +80,8 @@ type ChatComposerProps = {
   onSelectCodexFast?: (enabled: boolean) => void;
   tokenBudget: Record<string, unknown> | null;
   onShowTokenUsage: () => void;
+  /** Clears the session's context; absent when the session cannot be cleared. */
+  onClearContext?: () => void;
   slashCommandsCount: number;
   onToggleCommandMenu: () => void;
   hasInput: boolean;
@@ -173,6 +175,7 @@ export default function ChatComposer({
   codexFastError,
   onSelectCodexFast,
   tokenBudget,
+  onClearContext,
   onShowTokenUsage,
   slashCommandsCount,
   onToggleCommandMenu,
@@ -377,6 +380,14 @@ export default function ChatComposer({
         />
       )}
 
+      {/* The question panel replaces the input, but how to answer often depends on
+          how much context is left, so the token usage stays reachable below it. */}
+      {hasQuestionPanel && (
+        <div className="mx-auto flex max-w-[54.25rem] justify-end">
+          <TokenUsageSummary usage={tokenBudget} onClick={onShowTokenUsage} />
+        </div>
+      )}
+
       {!hasQuestionPanel && <div className="relative mx-auto max-w-[54.25rem]">
         {showFileDropdown && filteredFiles.length > 0 && (
           <div
@@ -501,6 +512,18 @@ export default function ChatComposer({
             )}
 
             <TokenUsageSummary usage={tokenBudget} onClick={onShowTokenUsage} />
+
+            {onClearContext && (
+              <PromptInputButton
+                tooltip={{ content: t('misc.clearContext') }}
+                onClick={onClearContext}
+                // A running turn is still writing to the context being cleared.
+                disabled={isLoading}
+                aria-label={t('misc.clearContext')}
+              >
+                <EraserIcon />
+              </PromptInputButton>
+            )}
 
             <PromptInputButton
               tooltip={{ content: t('input.showAllCommands') }}

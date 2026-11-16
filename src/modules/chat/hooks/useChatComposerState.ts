@@ -73,6 +73,8 @@ type UseChatComposerStateArgs = {
   onSessionEstablished?: (sessionId: string, context: SessionEstablishedContext) => void;
   onFileOpen?: (filePath: string, diffInfo?: unknown) => void;
   onShowSettings?: () => void;
+  /** Runs the `/clear` command: clears the open session's context. */
+  onClearContext?: () => void;
   scrollToBottom: () => void;
   addMessage: (msg: ChatMessage) => void;
   setIsUserScrolledUp: (isScrolledUp: boolean) => void;
@@ -289,6 +291,7 @@ export function useChatComposerState({
   onSessionEstablished,
   onFileOpen,
   onShowSettings,
+  onClearContext,
   scrollToBottom,
   addMessage,
   setIsUserScrolledUp,
@@ -490,11 +493,15 @@ export function useChatComposerState({
           onShowSettings?.();
           break;
 
+        case 'clear':
+          onClearContext?.();
+          break;
+
         default:
           console.warn('Unknown built-in command action:', action);
       }
     },
-    [onFileOpen, onShowSettings, addMessage],
+    [onClearContext, onFileOpen, onShowSettings, addMessage],
   );
 
   const closeCommandModal = useCallback(() => {
@@ -836,7 +843,20 @@ export function useChatComposerState({
   // while editing a sent message must not leave `editingAnchorId` set over
   // the now-empty composer, which previously turned the next plain send into
   // a `chat.edit-send` that replaced the edited turn and everything after it.
-  const clearComposerAfterSideQuestion = useCallback(() => {
+  //
+  // `scope` is the chat the question was typed in: a send that waited for an
+  // upload can be answered from the background-work dialog after a chat
+  // switch, and the chat open by then keeps its text. The chat left keeps text edited since, too.
+  const clearComposerAfterSideQuestion = useCallback((text: string, scope: string | null = draftScopeRef.current) => {
+    if (scope !== draftScopeRef.current) {
+      if (scope && readDraftText(scope) === text) {
+        writeDraftText(scope, '');
+      }
+      return;
+    }
+    if (scope) {
+      writeDraftText(scope, '');
+    }
     setInput('');
     inputValueRef.current = '';
     setEditingAnchorId(null);
@@ -844,9 +864,6 @@ export function useChatComposerState({
     setIsTextareaExpanded(false);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-    }
-    if (draftScopeRef.current) {
-      writeDraftText(draftScopeRef.current, '');
     }
   }, [resetCommandMenuState, setInput]);
 
@@ -861,7 +878,7 @@ export function useChatComposerState({
   // here, means every caller gets the same `noSession` message instead of
   // each needing its own copy of the check.
   const askSideQuestionAndClear = useCallback(
-    (sessionId: string | null, text: string) => {
+    (sessionId: string | null, text: string, scope?: string | null) => {
       if (!supportsSideQuestions) {
         addMessage({
           type: 'error',
@@ -879,7 +896,7 @@ export function useChatComposerState({
         return;
       }
       if (askSideQuestion(sessionId, text, { model: currentProviderModel }, isConnected)) {
-        clearComposerAfterSideQuestion();
+        clearComposerAfterSideQuestion(text, scope);
       }
     },
     [addMessage, askSideQuestion, clearComposerAfterSideQuestion, currentProviderModel, isConnected, supportsSideQuestions, t],
@@ -910,10 +927,13 @@ export function useChatComposerState({
       const preserveDraft = typeof behavior === 'boolean' && behavior;
       const fromComposer = typeof behavior === 'boolean' ? !behavior : behavior.fromComposer !== false;
       const queuedFromOpenComposer = fromComposer && (!queuedSessionKey || sessionKeyRef.current === queuedSessionKey);
+      // Only this message's files leave; explicit question answers preserve the typed draft.
+      if (fromComposer && !preserveDraft) {
+        setAttachedFiles((files) => files.filter((file) => !durableDraft.attachments.includes(file)));
+      }
       if (queuedFromOpenComposer && !preserveDraft) {
         setInput('');
         inputValueRef.current = '';
-        setAttachedFiles([]);
         setFileErrors(new Map());
         resetCommandMenuState();
         setIsTextareaExpanded(false);
@@ -966,11 +986,9 @@ export function useChatComposerState({
             const restored = withTypedSince(inputValueRef.current);
             setInput(restored);
             inputValueRef.current = restored;
-            // A message that already left this composer (a refused steer)
-            // brings its files back too: they were taken from this composer.
-            if (queuedFromOpenComposer || !fromComposer) {
-              setAttachedFiles((current) => [...durableDraft.attachments, ...current]);
-            }
+            // The message's files come back with it, also after a switch away and back
+            // and for a refused steer: all were taken from this composer.
+            setAttachedFiles((current) => [...durableDraft.attachments, ...current]);
             if (draftScopeRef.current) {
               writeDraftText(draftScopeRef.current, restored);
             }
@@ -1041,11 +1059,12 @@ export function useChatComposerState({
         options: { attachments: message.uploadedAttachments },
       });
       recordSentMessage(message.content, steerSessionKey);
+      // Attachments are not kept per chat: the steered ones leave even when another chat is open now.
+      setAttachedFiles((files) => files.filter((file) => !message.attachments.includes(file)));
 
       if (sessionKeyRef.current === steerSessionKey) {
         setInput('');
         inputValueRef.current = '';
-        setAttachedFiles([]);
         setFileErrors(new Map());
         resetCommandMenuState();
         setIsTextareaExpanded(false);
@@ -1164,6 +1183,9 @@ export function useChatComposerState({
       ) {
         return;
       }
+      // The chat this send belongs to: the upload and session allocation below can outlast a
+      // chat switch, and the cleanup at the end must not empty whichever chat is open by then.
+      const submittedScope = draftScopeRef.current;
 
       if (provider === 'codex' && !codexFastReady) return;
       // `/btw <question>` never becomes a turn: checked before the in-flight
@@ -1371,7 +1393,7 @@ export function useChatComposerState({
           return;
         }
         if (choice === 'sideQuestion') {
-          askSideQuestionAndClear(targetSessionId, currentInput);
+          askSideQuestionAndClear(targetSessionId, currentInput, submittedScope);
           return;
         }
         if (choice === 'queue') {
@@ -1433,7 +1455,10 @@ export function useChatComposerState({
           attachments: uploadedAttachments,
         },
       });
-      if (!submitOptions?.preserveDraft) setEditingAnchorId(null);
+      // Preserve unrelated drafts and edits begun in another chat while this send uploaded.
+      if (!submitOptions?.preserveDraft) {
+        setEditingAnchorId((current) => (current === editingAnchorId ? null : current));
+      }
 
       // Recorded under the (possibly just-allocated) session id, so the first
       // message of a new chat lands in the history of the session the user is
@@ -1441,21 +1466,28 @@ export function useChatComposerState({
       // consecutive-duplicate check keeps this second call a no-op.
       recordSentMessage(currentInput, targetSessionId);
       submitOptions?.onAccepted?.();
-      if (!submitOptions?.preserveDraft) {
-        setInput('');
-        inputValueRef.current = '';
-        resetCommandMenuState();
-        setAttachedFiles([]);
-        setFileErrors(new Map());
-        setIsTextareaExpanded(false);
-
-        if (textareaRef.current) {
-          textareaRef.current.style.height = 'auto';
+      if (submitOptions?.preserveDraft) {
+        return;
+      }
+      // Attachments are shared by the mounted composer; remove only the ones just sent.
+      setAttachedFiles((files) => files.filter((file) => !currentAttachments.includes(file)));
+      const stillOpen = draftScopeRef.current === submittedScope || draftScopeRef.current === targetSessionId;
+      if (!stillOpen) {
+        if (submittedScope && readDraftText(submittedScope) === currentInput) {
+          writeDraftText(submittedScope, '');
         }
-
-        if (draftScopeRef.current) {
-          writeDraftText(draftScopeRef.current, '');
-        }
+        return;
+      }
+      if (submittedScope) {
+        writeDraftText(submittedScope, '');
+      }
+      setInput('');
+      inputValueRef.current = '';
+      resetCommandMenuState();
+      setFileErrors(new Map());
+      setIsTextareaExpanded(false);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = 'auto';
       }
     },
     [

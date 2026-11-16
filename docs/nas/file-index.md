@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.8` (`2053f3d7a086fd44f7fe373c913da487629b0a95`)。历史覆盖至生成时的 HEAD：`079658f6c656000d8eeb266ee71bc7e0bad010f7`。
+官方基线：`v1.37.8` (`2053f3d7a086fd44f7fe373c913da487629b0a95`)。历史覆盖至生成时的 HEAD：`2b9323f5050eca73410c75c1900678d384dd7e86`。
 
-记录基线与当前暂存树之间的全部净差异，共 366 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 429 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -11,10 +11,13 @@
 | A | [.dockerignore](../../.dockerignore) | — |
 | M | [.env.example](../../.env.example) | — |
 | A | [.finesse/log.json](../../.finesse/log.json) | — |
+| A | [.github/workflows/desktop-linux-branch-build.yml](../../.github/workflows/desktop-linux-branch-build.yml) | — |
+| M | [.github/workflows/desktop-release.yml](../../.github/workflows/desktop-release.yml) | — |
 | M | [.gitignore](../../.gitignore) | — |
 | M | [.husky/pre-commit](../../.husky/pre-commit) | — |
 | M | [.oxlintrc.json](../../.oxlintrc.json) | — |
 | M | [AGENTS.md](../../AGENTS.md) | — |
+| M | [CHANGELOG.md](../../CHANGELOG.md) | — |
 | A | [deploy/agent-api.conf](../../deploy/agent-api.conf) | — |
 | A | [deploy/bootstrap-user.py](../../deploy/bootstrap-user.py) | — |
 | A | [deploy/cache-frontend.py](../../deploy/cache-frontend.py) | — |
@@ -30,6 +33,7 @@
 | A | [deploy/static-cdn.json](../../deploy/static-cdn.json) | — |
 | A | [deploy/summarize-cloudcli-traffic.py](../../deploy/summarize-cloudcli-traffic.py) | — |
 | A | [deploy/verify-services.py](../../deploy/verify-services.py) | — |
+| M | [docs/architecture/01-websocket-transport.md](../../docs/architecture/01-websocket-transport.md) | — |
 | A | [docs/codex-app-server-rollout.md](../../docs/codex-app-server-rollout.md) | — |
 | A | [docs/nas/browser-backend-traffic.md](../../docs/nas/browser-backend-traffic.md) | — |
 | A | [docs/nas/codex-agent-monitor-plan.md](../../docs/nas/codex-agent-monitor-plan.md) | — |
@@ -40,6 +44,16 @@
 | A | [docs/nas/upstream-1376-memory.md](../../docs/nas/upstream-1376-memory.md) | — |
 | A | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
 | A | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
+| A | [electron/assets/icons/128x128.png](../../electron/assets/icons/128x128.png) | — |
+| A | [electron/assets/icons/16x16.png](../../electron/assets/icons/16x16.png) | — |
+| A | [electron/assets/icons/256x256.png](../../electron/assets/icons/256x256.png) | — |
+| A | [electron/assets/icons/32x32.png](../../electron/assets/icons/32x32.png) | — |
+| A | [electron/assets/icons/48x48.png](../../electron/assets/icons/48x48.png) | — |
+| A | [electron/assets/icons/512x512.png](../../electron/assets/icons/512x512.png) | — |
+| A | [electron/assets/icons/64x64.png](../../electron/assets/icons/64x64.png) | — |
+| A | [electron/scripts/generate-linux-icons.js](../../electron/scripts/generate-linux-icons.js) | — |
+| M | [electron/scripts/generate-macos-icon.js](../../electron/scripts/generate-macos-icon.js) | — |
+| A | [electron/scripts/logo-svg.js](../../electron/scripts/logo-svg.js) | — |
 | M | [index.html](../../index.html) | — |
 | A | [local-plugins/cloudcli-codex-agents/manifest.json](../../local-plugins/cloudcli-codex-agents/manifest.json) | — |
 | A | [local-plugins/cloudcli-codex-agents/package.json](../../local-plugins/cloudcli-codex-agents/package.json) | — |
@@ -66,6 +80,7 @@
 | M | [package.json](../../package.json) | — |
 | A | [pnpm-lock.yaml](../../pnpm-lock.yaml) | — |
 | A | [pnpm-workspace.yaml](../../pnpm-workspace.yaml) | — |
+| M | [public/api-docs.html](../../public/api-docs.html) | — |
 | A | [public/favicon-c137-a6353f89.ico](../../public/favicon-c137-a6353f89.ico) | — |
 | A | [public/favicon-c137-a6353f89.png](../../public/favicon-c137-a6353f89.png) | — |
 | A | [public/favicon.ico](../../public/favicon.ico) | — |
@@ -99,8 +114,10 @@
 | M | [README.md](../../README.md) | — |
 | A | [scripts/generate-brand-icons.mjs](../../scripts/generate-brand-icons.mjs) | — |
 | A | [scripts/record-nas-changes.mjs](../../scripts/record-nas-changes.mjs) | — |
+| M | [scripts/release/prepare-desktop-app.js](../../scripts/release/prepare-desktop-app.js) | — |
 | M | [server/index.ts](../../server/index.ts) | — |
 | M | [server/modules/agent/agent.routes.ts](../../server/modules/agent/agent.routes.ts) | — |
+| M | [server/modules/agent/tests/agent.routes.test.ts](../../server/modules/agent/tests/agent.routes.test.ts) | — |
 | M | [server/modules/assets/assets.routes.ts](../../server/modules/assets/assets.routes.ts) | — |
 | M | [server/modules/assets/services/image-assets.service.ts](../../server/modules/assets/services/image-assets.service.ts) | — |
 | A | [server/modules/auth/cors-policy.service.ts](../../server/modules/auth/cors-policy.service.ts) | — |
@@ -111,6 +128,8 @@
 | M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
 | M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
 | A | [server/modules/database/repositories/codex-context.db.ts](../../server/modules/database/repositories/codex-context.db.ts) | — |
+| M | [server/modules/database/repositories/scheduled-messages.db.ts](../../server/modules/database/repositories/scheduled-messages.db.ts) | — |
+| M | [server/modules/database/repositories/session-drafts.db.ts](../../server/modules/database/repositories/session-drafts.db.ts) | — |
 | M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
 | M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
 | M | [server/modules/file-tree/file-tree.routes.ts](../../server/modules/file-tree/file-tree.routes.ts) | — |
@@ -123,9 +142,14 @@
 | M | [server/modules/plugins/tests/plugins.service.test.ts](../../server/modules/plugins/tests/plugins.service.test.ts) | — |
 | M | [server/modules/projects/project-clone.routes.ts](../../server/modules/projects/project-clone.routes.ts) | — |
 | M | [server/modules/projects/services/project-delete.service.ts](../../server/modules/projects/services/project-delete.service.ts) | — |
+| M | [server/modules/projects/services/projects-with-sessions-fetch.service.ts](../../server/modules/projects/services/projects-with-sessions-fetch.service.ts) | — |
+| A | [server/modules/projects/tests/project-session-forks.test.ts](../../server/modules/projects/tests/project-session-forks.test.ts) | — |
 | M | [server/modules/providers/index.ts](../../server/modules/providers/index.ts) | — |
+| M | [server/modules/providers/list/claude/claude-models.provider.ts](../../server/modules/providers/list/claude/claude-models.provider.ts) | — |
 | M | [server/modules/providers/list/claude/claude-runtime.provider.ts](../../server/modules/providers/list/claude/claude-runtime.provider.ts) | — |
 | M | [server/modules/providers/list/claude/claude-session-synchronizer.provider.ts](../../server/modules/providers/list/claude/claude-session-synchronizer.provider.ts) | — |
+| M | [server/modules/providers/list/claude/claude-sessions.provider.ts](../../server/modules/providers/list/claude/claude-sessions.provider.ts) | — |
+| M | [server/modules/providers/list/claude/claude-side-question.provider.ts](../../server/modules/providers/list/claude/claude-side-question.provider.ts) | — |
 | M | [server/modules/providers/list/codex/codex-app-server.client.ts](../../server/modules/providers/list/codex/codex-app-server.client.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.config.ts](../../server/modules/providers/list/codex/codex-app-server.config.ts) | — |
 | A | [server/modules/providers/list/codex/codex-app-server.process.ts](../../server/modules/providers/list/codex/codex-app-server.process.ts) | — |
@@ -135,6 +159,10 @@
 | M | [server/modules/providers/list/codex/codex-models.provider.ts](../../server/modules/providers/list/codex/codex-models.provider.ts) | — |
 | M | [server/modules/providers/list/codex/codex-runtime.provider.ts](../../server/modules/providers/list/codex/codex-runtime.provider.ts) | — |
 | M | [server/modules/providers/list/codex/codex-sessions.provider.ts](../../server/modules/providers/list/codex/codex-sessions.provider.ts) | — |
+| M | [server/modules/providers/list/opencode/opencode-auth.provider.ts](../../server/modules/providers/list/opencode/opencode-auth.provider.ts) | — |
+| A | [server/modules/providers/list/opencode/opencode-config.ts](../../server/modules/providers/list/opencode/opencode-config.ts) | — |
+| M | [server/modules/providers/list/opencode/opencode-models.provider.ts](../../server/modules/providers/list/opencode/opencode-models.provider.ts) | — |
+| M | [server/modules/providers/list/opencode/opencode-runtime.provider.ts](../../server/modules/providers/list/opencode/opencode-runtime.provider.ts) | — |
 | M | [server/modules/providers/list/opencode/opencode-sessions.provider.ts](../../server/modules/providers/list/opencode/opencode-sessions.provider.ts) | — |
 | M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
 | M | [server/modules/providers/README.md](../../server/modules/providers/README.md) | — |
@@ -144,6 +172,7 @@
 | A | [server/modules/providers/services/codex-image-context.service.ts](../../server/modules/providers/services/codex-image-context.service.ts) | — |
 | A | [server/modules/providers/services/codex-image-proxy.service.ts](../../server/modules/providers/services/codex-image-proxy.service.ts) | — |
 | A | [server/modules/providers/services/codex-request-compression.service.ts](../../server/modules/providers/services/codex-request-compression.service.ts) | — |
+| M | [server/modules/providers/services/provider-capabilities.service.ts](../../server/modules/providers/services/provider-capabilities.service.ts) | — |
 | M | [server/modules/providers/services/provider-cli.service.ts](../../server/modules/providers/services/provider-cli.service.ts) | — |
 | M | [server/modules/providers/services/provider-models.service.ts](../../server/modules/providers/services/provider-models.service.ts) | — |
 | M | [server/modules/providers/services/provider-runtime.service.ts](../../server/modules/providers/services/provider-runtime.service.ts) | — |
@@ -152,6 +181,8 @@
 | M | [server/modules/providers/services/session-history-cache.service.ts](../../server/modules/providers/services/session-history-cache.service.ts) | — |
 | M | [server/modules/providers/services/sessions-watcher.service.ts](../../server/modules/providers/services/sessions-watcher.service.ts) | — |
 | M | [server/modules/providers/services/sessions.service.ts](../../server/modules/providers/services/sessions.service.ts) | — |
+| M | [server/modules/providers/tests/claude-elicitation.test.ts](../../server/modules/providers/tests/claude-elicitation.test.ts) | — |
+| M | [server/modules/providers/tests/claude-models.test.ts](../../server/modules/providers/tests/claude-models.test.ts) | — |
 | M | [server/modules/providers/tests/claude-runtime-hold.test.ts](../../server/modules/providers/tests/claude-runtime-hold.test.ts) | — |
 | A | [server/modules/providers/tests/codex-app-server.process.test.ts](../../server/modules/providers/tests/codex-app-server.process.test.ts) | — |
 | A | [server/modules/providers/tests/codex-app-server.runtime.test.ts](../../server/modules/providers/tests/codex-app-server.runtime.test.ts) | — |
@@ -164,25 +195,35 @@
 | M | [server/modules/providers/tests/codex-runtime.test.ts](../../server/modules/providers/tests/codex-runtime.test.ts) | — |
 | M | [server/modules/providers/tests/codex-sessions.test.ts](../../server/modules/providers/tests/codex-sessions.test.ts) | — |
 | M | [server/modules/providers/tests/codex-side-question.test.ts](../../server/modules/providers/tests/codex-side-question.test.ts) | — |
+| M | [server/modules/providers/tests/fixtures/fake-opencode-serve.ts](../../server/modules/providers/tests/fixtures/fake-opencode-serve.ts) | — |
+| A | [server/modules/providers/tests/opencode-auth-config.test.ts](../../server/modules/providers/tests/opencode-auth-config.test.ts) | — |
+| M | [server/modules/providers/tests/opencode-models.test.ts](../../server/modules/providers/tests/opencode-models.test.ts) | — |
 | M | [server/modules/providers/tests/opencode-sessions.test.ts](../../server/modules/providers/tests/opencode-sessions.test.ts) | — |
+| M | [server/modules/providers/tests/opencode-side-question.test.ts](../../server/modules/providers/tests/opencode-side-question.test.ts) | — |
 | M | [server/modules/providers/tests/provider-abort-notifications.test.ts](../../server/modules/providers/tests/provider-abort-notifications.test.ts) | — |
 | M | [server/modules/providers/tests/provider-cli.service.test.ts](../../server/modules/providers/tests/provider-cli.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider-models.service.test.ts](../../server/modules/providers/tests/provider-models.service.test.ts) | — |
+| M | [server/modules/providers/tests/provider-runtime-side-question.test.ts](../../server/modules/providers/tests/provider-runtime-side-question.test.ts) | — |
 | M | [server/modules/providers/tests/provider-runtime.service.test.ts](../../server/modules/providers/tests/provider-runtime.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider-token-usage.service.test.ts](../../server/modules/providers/tests/provider-token-usage.service.test.ts) | — |
 | M | [server/modules/providers/tests/provider.routes.test.ts](../../server/modules/providers/tests/provider.routes.test.ts) | — |
+| A | [server/modules/providers/tests/session-context-clear.test.ts](../../server/modules/providers/tests/session-context-clear.test.ts) | — |
 | M | [server/modules/providers/tests/session-history-cache.service.test.ts](../../server/modules/providers/tests/session-history-cache.service.test.ts) | — |
 | M | [server/modules/providers/tests/sessions-watcher.test.ts](../../server/modules/providers/tests/sessions-watcher.test.ts) | — |
 | M | [server/modules/scheduled-messages/scheduled-messages.routes.ts](../../server/modules/scheduled-messages/scheduled-messages.routes.ts) | — |
 | M | [server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts](../../server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts) | — |
 | M | [server/modules/scheduled-messages/tests/scheduled-messages.test.ts](../../server/modules/scheduled-messages/tests/scheduled-messages.test.ts) | — |
 | M | [server/modules/user/tests/user.service.test.ts](../../server/modules/user/tests/user.service.test.ts) | — |
+| M | [server/modules/websocket/index.ts](../../server/modules/websocket/index.ts) | — |
 | M | [server/modules/websocket/README.md](../../server/modules/websocket/README.md) | — |
 | M | [server/modules/websocket/services/chat-run-registry.service.ts](../../server/modules/websocket/services/chat-run-registry.service.ts) | — |
 | M | [server/modules/websocket/services/chat-session-writer.service.ts](../../server/modules/websocket/services/chat-session-writer.service.ts) | — |
 | M | [server/modules/websocket/services/chat-websocket.service.ts](../../server/modules/websocket/services/chat-websocket.service.ts) | — |
+| M | [server/modules/websocket/services/session-upsert-broadcast.service.ts](../../server/modules/websocket/services/session-upsert-broadcast.service.ts) | — |
 | M | [server/modules/websocket/tests/chat-run-registry.test.ts](../../server/modules/websocket/tests/chat-run-registry.test.ts) | — |
 | M | [server/modules/websocket/tests/chat-steer.test.ts](../../server/modules/websocket/tests/chat-steer.test.ts) | — |
+| M | [server/modules/websocket/tests/chat-stop-task.test.ts](../../server/modules/websocket/tests/chat-stop-task.test.ts) | — |
+| M | [server/modules/websocket/tests/session-upsert-broadcast.test.ts](../../server/modules/websocket/tests/session-upsert-broadcast.test.ts) | — |
 | M | [server/shared/image-attachments.ts](../../server/shared/image-attachments.ts) | — |
 | M | [server/shared/index.ts](../../server/shared/index.ts) | — |
 | M | [server/shared/interfaces.ts](../../server/shared/interfaces.ts) | — |
@@ -214,23 +255,30 @@
 | M | [src/modules/chat/hooks/useChatRealtimeHandlers.ts](../../src/modules/chat/hooks/useChatRealtimeHandlers.ts) | — |
 | M | [src/modules/chat/hooks/useChatSessionState.ts](../../src/modules/chat/hooks/useChatSessionState.ts) | — |
 | A | [src/modules/chat/hooks/useCodexFastState.ts](../../src/modules/chat/hooks/useCodexFastState.ts) | — |
+| A | [src/modules/chat/hooks/useEscapeToAbortSession.ts](../../src/modules/chat/hooks/useEscapeToAbortSession.ts) | — |
 | M | [src/modules/chat/hooks/useSessionStore.ts](../../src/modules/chat/hooks/useSessionStore.ts) | — |
 | A | [src/modules/chat/modals/CodexContextPanel.tsx](../../src/modules/chat/modals/CodexContextPanel.tsx) | — |
 | M | [src/modules/chat/modals/CommandResultModal.tsx](../../src/modules/chat/modals/CommandResultModal.tsx) | — |
 | M | [src/modules/chat/tests/activityIndicatorBackground.test.tsx](../../src/modules/chat/tests/activityIndicatorBackground.test.tsx) | — |
 | A | [src/modules/chat/tests/AskUserQuestionPanel.test.tsx](../../src/modules/chat/tests/AskUserQuestionPanel.test.tsx) | — |
 | A | [src/modules/chat/tests/AsyncQuestionCard.test.tsx](../../src/modules/chat/tests/AsyncQuestionCard.test.tsx) | — |
+| M | [src/modules/chat/tests/backgroundTasksStrip.test.tsx](../../src/modules/chat/tests/backgroundTasksStrip.test.tsx) | — |
+| M | [src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx](../../src/modules/chat/tests/backgroundWorkAfterComplete.test.tsx) | — |
 | M | [src/modules/chat/tests/chatProviderModels.test.ts](../../src/modules/chat/tests/chatProviderModels.test.ts) | — |
 | A | [src/modules/chat/tests/codexFastState.test.ts](../../src/modules/chat/tests/codexFastState.test.ts) | — |
 | M | [src/modules/chat/tests/composerQueuedFollowUps.test.ts](../../src/modules/chat/tests/composerQueuedFollowUps.test.ts) | — |
+| A | [src/modules/chat/tests/composerSendCleanupScope.test.ts](../../src/modules/chat/tests/composerSendCleanupScope.test.ts) | — |
 | M | [src/modules/chat/tests/composerSendOverBackgroundWork.test.ts](../../src/modules/chat/tests/composerSendOverBackgroundWork.test.ts) | — |
 | A | [src/modules/chat/tests/composerTextEditing.test.tsx](../../src/modules/chat/tests/composerTextEditing.test.tsx) | — |
 | M | [src/modules/chat/tests/composerToolsSettingsResolution.test.ts](../../src/modules/chat/tests/composerToolsSettingsResolution.test.ts) | — |
+| A | [src/modules/chat/tests/contextClearedRow.test.ts](../../src/modules/chat/tests/contextClearedRow.test.ts) | — |
 | A | [src/modules/chat/tests/contextUsageDisplay.test.tsx](../../src/modules/chat/tests/contextUsageDisplay.test.tsx) | — |
+| A | [src/modules/chat/tests/escapeToAbortSession.test.tsx](../../src/modules/chat/tests/escapeToAbortSession.test.tsx) | — |
 | M | [src/modules/chat/tests/fileReferenceLinks.test.tsx](../../src/modules/chat/tests/fileReferenceLinks.test.tsx) | — |
 | M | [src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx](../../src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx) | — |
 | M | [src/modules/chat/tests/markdownImage.test.tsx](../../src/modules/chat/tests/markdownImage.test.tsx) | — |
 | A | [src/modules/chat/tests/permissionRequestsBanner.test.tsx](../../src/modules/chat/tests/permissionRequestsBanner.test.tsx) | — |
+| A | [src/modules/chat/tests/questionPanelTokenUsage.test.tsx](../../src/modules/chat/tests/questionPanelTokenUsage.test.tsx) | — |
 | M | [src/modules/chat/tests/sessionMessageReconciliation.test.ts](../../src/modules/chat/tests/sessionMessageReconciliation.test.ts) | — |
 | M | [src/modules/chat/tests/sessionStoreTruncate.test.tsx](../../src/modules/chat/tests/sessionStoreTruncate.test.tsx) | — |
 | M | [src/modules/chat/tests/tokenUsageSummaryFormat.test.tsx](../../src/modules/chat/tests/tokenUsageSummaryFormat.test.tsx) | — |
@@ -246,6 +294,7 @@
 | M | [src/modules/code-editor/CodeEditorHeader.tsx](../../src/modules/code-editor/CodeEditorHeader.tsx) | — |
 | M | [src/modules/code-editor/CodeEditorMediaPreview.tsx](../../src/modules/code-editor/CodeEditorMediaPreview.tsx) | — |
 | M | [src/modules/code-editor/hooks/useCodeEditorDocument.ts](../../src/modules/code-editor/hooks/useCodeEditorDocument.ts) | — |
+| M | [src/modules/code-editor/hooks/useEditorKeyboardShortcuts.ts](../../src/modules/code-editor/hooks/useEditorKeyboardShortcuts.ts) | — |
 | D | [src/modules/code-editor/utils/binaryFile.ts](../../src/modules/code-editor/utils/binaryFile.ts) | — |
 | D | [src/modules/code-editor/utils/previewableFile.ts](../../src/modules/code-editor/utils/previewableFile.ts) | — |
 | A | [src/modules/codex-agents/CodexAgentsActivity.tsx](../../src/modules/codex-agents/CodexAgentsActivity.tsx) | — |
@@ -258,6 +307,7 @@
 | M | [src/modules/file-tree/FileTree.tsx](../../src/modules/file-tree/FileTree.tsx) | — |
 | M | [src/modules/file-tree/FileTreeNode.tsx](../../src/modules/file-tree/FileTreeNode.tsx) | — |
 | M | [src/modules/file-tree/hooks/useFileTreeData.ts](../../src/modules/file-tree/hooks/useFileTreeData.ts) | — |
+| M | [src/modules/i18n/config.ts](../../src/modules/i18n/config.ts) | — |
 | M | [src/modules/i18n/locales/cs/auth.json](../../src/modules/i18n/locales/cs/auth.json) | — |
 | M | [src/modules/i18n/locales/cs/common.json](../../src/modules/i18n/locales/cs/common.json) | — |
 | M | [src/modules/i18n/locales/cs/settings.json](../../src/modules/i18n/locales/cs/settings.json) | — |
@@ -308,9 +358,13 @@
 | M | [src/modules/i18n/locales/ru/settings.json](../../src/modules/i18n/locales/ru/settings.json) | — |
 | M | [src/modules/i18n/locales/ru/sidebar.json](../../src/modules/i18n/locales/ru/sidebar.json) | — |
 | M | [src/modules/i18n/locales/tr/auth.json](../../src/modules/i18n/locales/tr/auth.json) | — |
+| M | [src/modules/i18n/locales/tr/chat.json](../../src/modules/i18n/locales/tr/chat.json) | — |
+| M | [src/modules/i18n/locales/tr/codeEditor.json](../../src/modules/i18n/locales/tr/codeEditor.json) | — |
 | M | [src/modules/i18n/locales/tr/common.json](../../src/modules/i18n/locales/tr/common.json) | — |
+| A | [src/modules/i18n/locales/tr/git.json](../../src/modules/i18n/locales/tr/git.json) | — |
 | M | [src/modules/i18n/locales/tr/settings.json](../../src/modules/i18n/locales/tr/settings.json) | — |
 | M | [src/modules/i18n/locales/tr/sidebar.json](../../src/modules/i18n/locales/tr/sidebar.json) | — |
+| M | [src/modules/i18n/locales/tr/tasks.json](../../src/modules/i18n/locales/tr/tasks.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/auth.json](../../src/modules/i18n/locales/zh-CN/auth.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/common.json](../../src/modules/i18n/locales/zh-CN/common.json) | — |
@@ -327,7 +381,9 @@
 | M | [src/modules/plugins/tests/pluginGitErrors.test.tsx](../../src/modules/plugins/tests/pluginGitErrors.test.tsx) | — |
 | M | [src/modules/project-creation-wizard/FolderBrowserModal.tsx](../../src/modules/project-creation-wizard/FolderBrowserModal.tsx) | — |
 | M | [src/modules/project-creation-wizard/utils/workspaceApi.ts](../../src/modules/project-creation-wizard/utils/workspaceApi.ts) | — |
+| M | [src/modules/project-workspace/hooks/useProjectsState.ts](../../src/modules/project-workspace/hooks/useProjectsState.ts) | — |
 | M | [src/modules/project-workspace/ProjectWorkspaceRoute.tsx](../../src/modules/project-workspace/ProjectWorkspaceRoute.tsx) | — |
+| A | [src/modules/project-workspace/tests/projectForkAncestorState.test.ts](../../src/modules/project-workspace/tests/projectForkAncestorState.test.ts) | — |
 | M | [src/modules/project-workspace/WorkspaceHeader.tsx](../../src/modules/project-workspace/WorkspaceHeader.tsx) | — |
 | M | [src/modules/project-workspace/WorkspaceMain.tsx](../../src/modules/project-workspace/WorkspaceMain.tsx) | — |
 | M | [src/modules/quick-settings-panel/QuickSettingsPanelView.tsx](../../src/modules/quick-settings-panel/QuickSettingsPanelView.tsx) | — |
@@ -346,7 +402,14 @@
 | M | [src/modules/sidebar/SidebarCollapsed.tsx](../../src/modules/sidebar/SidebarCollapsed.tsx) | — |
 | M | [src/modules/sidebar/SidebarFooter.tsx](../../src/modules/sidebar/SidebarFooter.tsx) | — |
 | M | [src/modules/sidebar/SidebarHeader.tsx](../../src/modules/sidebar/SidebarHeader.tsx) | — |
+| M | [src/modules/sidebar/SidebarProjectSessions.tsx](../../src/modules/sidebar/SidebarProjectSessions.tsx) | — |
+| M | [src/modules/sidebar/SidebarRecentConversations.tsx](../../src/modules/sidebar/SidebarRecentConversations.tsx) | — |
+| M | [src/modules/sidebar/SidebarSessionItem.tsx](../../src/modules/sidebar/SidebarSessionItem.tsx) | — |
+| A | [src/modules/sidebar/tests/projectSessionTree.test.ts](../../src/modules/sidebar/tests/projectSessionTree.test.ts) | — |
+| A | [src/modules/sidebar/tests/projectSessionTreeView.test.tsx](../../src/modules/sidebar/tests/projectSessionTreeView.test.tsx) | — |
+| A | [src/modules/sidebar/tests/recentConversationsInfiniteScroll.test.tsx](../../src/modules/sidebar/tests/recentConversationsInfiniteScroll.test.tsx) | — |
 | M | [src/modules/sidebar/tests/recentConversationTitleSync.test.ts](../../src/modules/sidebar/tests/recentConversationTitleSync.test.ts) | — |
+| A | [src/modules/sidebar/utils/projectSessionTree.ts](../../src/modules/sidebar/utils/projectSessionTree.ts) | — |
 | M | [src/shared/api.ts](../../src/shared/api.ts) | — |
 | M | [src/shared/chatDrafts.ts](../../src/shared/chatDrafts.ts) | — |
 | M | [src/shared/constants.ts](../../src/shared/constants.ts) | — |

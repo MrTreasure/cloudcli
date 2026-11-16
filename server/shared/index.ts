@@ -10,3 +10,5 @@ export type {
 } from './types.js';
 
 export type { JsonRpcId, JsonRpcWireFormat, JsonRpcRequest, JsonRpcNotification, JsonRpcErrorObject, JsonRpcSuccessResponse, JsonRpcErrorResponse, JsonRpcDiagnostic, JsonRpcTransportOptions, CodexAppServerClientInfo, CodexAppServerInitializeParams, CodexAppServerInitializeResult, CodexAppServerProcessState, CodexAppServerHealth, CodexAppServerHandshake, CodexAppServerDiagnostic, CodexAppServerProcess, CodexAppServerSpawn, CodexAppServerProcessManagerOptions, CodexAppServerRuntimeOptions, CodexContextLimits } from './types.js';
+
+export type { OpenCodeCredential, OpenCodeFileCredential } from './types.js';
