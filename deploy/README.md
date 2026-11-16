@@ -3,7 +3,7 @@
 NAS 分支全部源码变更、官方升级及功能回退参考：[维护指南](../docs/nas/README.md)、[完整提交记录](../docs/nas/commit-log.md)、[文件索引](../docs/nas/file-index.md)。
 
 - 前端：`https://agent.mrtreasure.cc`，Cloudflare Workers Static Assets 提供已发布的 HTML、PWA 清单和 Service Worker；既有 `/v1/` R2 CDN 提供当前 JS/CSS 等资源，后续新发布使用 `/v2/` Workers Static Assets。原 CF Tunnel → Nginx `127.0.0.1:17843` 保留用于旧资源兼容和回滚。宿主机使用 pnpm 构建；前端不放入 Docker。
-- 后端：`https://agent-api-nas.mrtreasure.cc:15432`，DNS only → IPv6 HTTPS Nginx → NAS 原生后端 `127.0.0.1:18803`。聊天、终端、插件 WebSocket、API、SSE、上传均使用这个地址。
+- 后端：`https://agent-api-nas.mrtreasure.cc:15432`，DNS-only CNAME 指向双栈 `nas.mrtreasure.cc`。IPv6 使用 NAS `[::]:15432`；IPv4 使用路由器公网 TCP 15432 → NAS `192.168.31.110:15433` → 同一 HTTPS Nginx → 原生后端 `127.0.0.1:18803`。聊天、终端、插件 WebSocket、API、SSE、上传均使用同一个外部地址。IPv4 的 NAS 15432 仍由 PostgreSQL 使用，不能给 Nginx 抢占；主机防火墙和真实外网连通性需单独核实。
 - 后续新版本的静态 JS、CSS、字体、图标和图片发布到 Workers Static Assets `https://assets.mrtreasure.cc/cloudcli/v2/`；已发布的 `/v1/` R2 对象保留。哈希资源缓存一年，固定名称图片使用平台的默认重新验证策略；Google 在线字体已改为本地依赖打包到 CDN。
 - HTML 在浏览器要求重新验证，首页在 CF 边缘缓存 30 秒。发布后仅清理首页缓存，保留旧哈希资源，避免打开中的页面缺少资源。
 - PWA manifest 和 service worker 使用应用域名；manifest 图标来自 CDN，启动地址与安装范围仍为应用域名。
@@ -44,9 +44,18 @@ systemctl --user status cloudcli-backend.service
 
 CDN 配置在 `deploy/static-cdn.json`。`deploy/publish-static.mjs` 委托 NAS 旁侧项目 `../cloudflare-sites/scripts/assets.mjs`，仅发布 `/cloudcli/v2/` 到 `c137-assets-static`，保留历史哈希，校验不可变对象内容。保留上传前的凭据、尺寸和不可变对象检查，资源上传成功后再切换 HTML。按 2026-10-27 最新交付偏好，默认不运行批量公网字节/CORS 验收；只有用户另行要求时设置 `CLOUDCLI_VERIFY_PUBLIC_ASSETS=1`。凭据从密码本 `cloudflare.api_token_worker` 注入进程，不再访问或写入 R2。`deploy/frontend.conf` 安装到现有静态 Nginx 的 sites 目录。
 
-`deploy/agent-api.conf` 放在 HTTPS proxy 的 http 块内。使用现有证书与 IPv6 15432；访问日志不记录查询字符串，以免持久保存 WS/SSE 的 JWT。
+`deploy/agent-api.conf` 放在 HTTPS proxy 的 http 块内。使用现有证书、IPv6 15432 和 NAS LAN IPv4 15433；访问日志不记录查询字符串，以免持久保存 WS/SSE 的 JWT。
 
 首次发布先完成本地账号初始化。`python3 deploy/configure-cloudflare.py` 配置域名、Tunnel 和静态缓存，保留其他站点设置并备份到 appdata。先验证 Nginx 配置再 reload。
+
+## NAS IPv4 直连（2026-11-16）
+
+- API URL 保持 `https://agent-api-nas.mrtreasure.cc:15432`。DNS-only CNAME 指向已有双栈 `nas.mrtreasure.cc`，复用其原生 DDNS；部署脚本不再把 API 指回仅有 IPv6 的 CPA 域名，不新建周期更新任务。
+- Nginx 同一 CloudCLI server 同时监听 `[::]:15432` 与 `192.168.31.110:15433`，IPv4 沿用路由器 TCP WAN15432→NAS15433。NAS IPv4 15432 是 PostgreSQL 映射，不改它；未知域名继续由既有默认 server 拒绝。
+- fnOS 原生 XDP 防火墙先于 iptables 和普通网卡抓包生效。默认拒绝入站时，需在 fnOS 防火墙中添加仅针对入站 IPv4 TCP15433 的允许规则（本机 memo 为 `CloudCLI IPv4 API`），保留默认策略和其他规则。不能因 iptables INPUT 是 ACCEPT 就认定主机已经放行，也不要关闭整个防火墙。
+- 配置经现有 ingress 发布锁执行 nginx -t 后在同一容器内平滑 reload。前端 URL 不变，无需重建前端、重启 CloudCLI 或恢复已退役的 Muse 服务。
+- 本机 IPv4 登录、状态查询和聊天 WebSocket 握手通过；独立公网 IPv4 的 TLS、健康、匿名鉴权和合法/非法预检通过。浏览器操作由用户手动验收，不调用收费模型。
+- 回退仅恢复本次 listener、CNAME 和脚本修改，并经 fnOS 原生 API 移除本次完全匹配的单条规则；先比较并发修改，不用旧快照覆盖全部当前配置。私有备份路径见 NAS 修改记录。
 
 ## 插件及验证
 

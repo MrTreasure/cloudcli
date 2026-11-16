@@ -46,7 +46,7 @@ request('PUT', tunnel_path, {'config': config})
 
 for name, content, proxied in [
     ('agent.mrtreasure.cc', orbit['content'], True),
-    ('agent-api-nas.mrtreasure.cc', 'cpa.mrtreasure.cc', False),
+    ('agent-api-nas.mrtreasure.cc', 'nas.mrtreasure.cc', False),
 ]:
     body = {'type': 'CNAME', 'name': name, 'content': content, 'proxied': proxied, 'ttl': 1}
     existing = next((item for item in records if item['name'] == name), None)

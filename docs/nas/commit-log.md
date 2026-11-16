@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.8` (`2053f3d7a086fd44f7fe373c913da487629b0a95`)。历史覆盖至生成时的 HEAD：`902c9b57e6af2e57e82815212e8bbdaf3f42862a`。
+官方基线：`v1.37.8` (`2053f3d7a086fd44f7fe373c913da487629b0a95`)。历史覆盖至生成时的 HEAD：`079658f6c656000d8eeb266ee71bc7e0bad010f7`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,9 +10,10 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
+| M | [deploy/README.md](../../deploy/README.md) | — |
+| M | [deploy/agent-api.conf](../../deploy/agent-api.conf) | — |
+| M | [deploy/configure-cloudflare.py](../../deploy/configure-cloudflare.py) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
-| M | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
 
 ## NAS 主线提交
 
@@ -1766,6 +1767,17 @@
   - `tsconfig.json`
   - `vite.config.js`
   - `vitest.setup.ts`
+
+### 079658f6 · 2026-11-11 · docs: record verified v1.37.8 upgrade and rollback baseline
+
+- 完整提交：`079658f6c656000d8eeb266ee71bc7e0bad010f7`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-base.txt`
+  - `docs/nas/upstream-sync-policy.md`
 
 ## 从 PR / 其他分支合入的提交
 

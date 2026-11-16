@@ -669,3 +669,13 @@
 - 升级前 13 处未提交工作完整带入：文件树超限按展开加载、SW v3 响应回退、图片/压缩测试数据库隔离及维护记录。源码原样快照在升级前检查点 `7134a9b6` 中可追溯；不回退此前已上线行为。
 - 验证：前端 166 文件 / 1,247 项通过；后端 1,187 项通过、1 项既有跳过、0 失败。后端测试采用临时数据库、隔离 CODEX_HOME、模拟 app-server/SDK；SDK 专用测试显式 sdk 模式，不误走 NAS 默认 app-server。类型检查、lint（警告）和前后端构建通过；不运行浏览器自动化或真实模型验收。
 - 运行实例与回退：本节记录源码升级，NAS 前后端运行实例尚未按本次升级发布。发布需部署前检查活动任务，并保留同源/分离部署与资源先于 HTML 的顺序。可回退到升级前检查点重新构建；不要自动恢复数据库覆盖升级后的新会话。新增侧问题是进程内状态，不新增周期任务；Webhook 使用已有 endpoint 表。Mac/Windows 需同步源码、pnpm install --frozen-lockfile、构建并按各机 CLI/凭据配置重启。
+
+
+### 2026-11-16：CloudCLI API 双栈入口
+
+- 目的：API 域名原为指向仅有 IPv6 的 CPA CNAME，且 CloudCLI 的 Nginx server 只监听 IPv6，导致纯 IPv4 客户端没有可用入口。
+- 归属：`deploy/agent-api.conf` 增加 NAS LAN IPv4 `192.168.31.110:15433`，保留 IPv6 15432、证书、Origin 限制、鉴权、600 秒合法预检缓存和 SSE/WebSocket 无缓冲；仅 NAS 部署模板，默认同源开发不变。`deploy/configure-cloudflare.py` 将 API 的 DNS-only CNAME 改为 `nas.mrtreasure.cc`，复用现有 DDNS，不新增周期任务。`deploy/README.md` 记录 IPv4 的公网/内网端口区别。
+- 配置：同步现有 ai-edge-proxy 源配置、NAS edge 输入及实际合并配置，检查后在现有 static-server 容器内平滑 reload；容器未更换，CloudCLI 后端 PID 不变。PostgreSQL 的 IPv4 15432 映射不动；路由器既有 TCP WAN15432→NAS15433 和其他转发不动。
+- 来源：本地 NAS 部署修复，无上游合并或依赖升级。
+- 验证：本地 IPv4/IPv6 TLS 健康 200、匿名 API 401、合法 Origin 预检 204（max-age 600）、非法 Origin 403；IPv4 登录 200、鉴权状态查询 200、聊天 WebSocket 101，未发送模型消息。DNS 已读回双栈。首次公网探测超时，路由器已正确 DNAT，但 NAS 网卡普通抓包看不到 SYN；进一步确认 fnOS 原生 XDP 防火墙在网卡前置过滤，默认拒绝入站且没有 15433 规则。获老大单独 sudo 授权后只读核对主机过滤器，并经现有 fnos-api 原生 `appcgi.security.firewall.getting/setting` 接口新增一条 IPv4 入站 TCP15433 放行（memo=`CloudCLI IPv4 API`），完整保留原有 13 条规则、默认拒绝及其他设置；没有新增 iptables 绕过、重启安全服务或修改数据库端口。修复后独立公网 IPv4：健康 200、匿名 API 401、合法/非法预检 204/403，TLS 校验 0；公网首字节约 47–85 ms（单次探测，非性能承诺）。
+- 回退依赖：本次私有备份 `appdata/cloudcli/backups/ipv4-20261116-102933/`；按文件哈希核对后恢复本次 listener/CNAME 及持久化脚本，nginx -t 后 reload。防火墙回退通过原生接口仅移除本次 memo/端口完全匹配的规则，保留之后新增的规则；不要整体覆盖旧规则快照。不要覆盖之后其他 Agent 更新，不停其他服务，不通过改数据库端口回退。
