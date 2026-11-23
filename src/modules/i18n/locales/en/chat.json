@@ -1,4 +1,14 @@
 {
+  "subagent": {
+    "title": "Subagent",
+    "task": "Assigned task",
+    "result": "Result",
+    "running": "running",
+    "completed": "done",
+    "failed": "failed",
+    "stopped": "no result",
+    "stoppedHint": "The run ended before this agent reported back"
+  },
   "asyncQuestions": {
     "other": "Your own answer",
     "submit": "Send answer",

@@ -14,10 +14,10 @@ export function CodexAgentsActivity({ onOpen }: { onOpen: () => void }) {
   const running = rows.filter((row) => row.status === 'running');
   const unknown = rows.filter((row) => row.status === 'unknown');
   if (!running.length && !unknown.length && !state.error) return null;
-  return <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 border-t border-border/50 pt-2 text-xs" aria-label="当前项目 subAgent">
+  return <div className="mt-2 flex min-w-0 flex-wrap items-center gap-2 border-t border-border/50 pt-2 text-xs" aria-label="当前项目智能体">
     <button type="button" onClick={() => { state.setOnlyProject(true); onOpen(); }} className="flex min-h-9 shrink-0 items-center gap-2 rounded-md px-2 text-foreground hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
       <Activity className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-      <span>subAgent</span><span className="tabular-nums text-muted-foreground">{running.length} 活动{unknown.length ? ` · ${unknown.length} 待确认` : ''}</span><ArrowUpRight className="h-3 w-3" />
+      <span>智能体</span><span className="tabular-nums text-muted-foreground">{running.length} 活动{unknown.length ? ` · ${unknown.length} 待确认` : ''}</span><ArrowUpRight className="h-3 w-3" />
     </button>
     {running.slice(0, 3).map((row) => <button key={row.id} type="button" onClick={() => { if (state.onlyProject) state.choose(row.id); state.setOnlyProject(true); onOpen(); }}
       title={row.task || row.lastActivity} className="flex min-h-9 min-w-0 max-w-64 items-center gap-2 rounded-md border border-border/60 bg-muted/30 px-2 hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring">

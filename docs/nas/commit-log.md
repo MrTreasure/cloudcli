@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.9` (`f86543fad81d5687bea98644b752fa08fa0da538`)。历史覆盖至生成时的 HEAD：`8d37f5c30cfea3c36f7d030c2043548da676c8e3`。
+官方基线：`v1.37.9` (`f86543fad81d5687bea98644b752fa08fa0da538`)。历史覆盖至生成时的 HEAD：`c9901e9cb56f03a919b6059fc89bd070dc2f94a9`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,7 +10,18 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
+| M | [docs/nas/README.md](../../docs/nas/README.md) | — |
+| M | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
+| M | [local-plugins/cloudcli-codex-agents/manifest.json](../../local-plugins/cloudcli-codex-agents/manifest.json) | — |
+| M | [local-plugins/cloudcli-codex-agents/src/reader.ts](../../local-plugins/cloudcli-codex-agents/src/reader.ts) | — |
+| M | [src/modules/chat/tools/SubagentPanel.tsx](../../src/modules/chat/tools/SubagentPanel.tsx) | — |
+| M | [src/modules/codex-agents/CodexAgentsActivity.tsx](../../src/modules/codex-agents/CodexAgentsActivity.tsx) | — |
+| M | [src/modules/codex-agents/CodexAgentsPanel.tsx](../../src/modules/codex-agents/CodexAgentsPanel.tsx) | — |
+| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/common.json](../../src/modules/i18n/locales/zh-CN/common.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/git.json](../../src/modules/i18n/locales/zh-CN/git.json) | — |
+| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 
 ## NAS 主线提交
 
@@ -2222,6 +2233,15 @@
   - `tsconfig.json`
   - `vite.config.js`
   - `vitest.setup.ts`
+
+### c9901e9c · 2026-11-16 · docs: record verified v1.37.9 upstream baseline
+
+- 完整提交：`c9901e9cb56f03a919b6059fc89bd070dc2f94a9`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-base.txt`
 
 ## 从 PR / 其他分支合入的提交
 

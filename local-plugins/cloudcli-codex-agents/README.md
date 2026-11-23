@@ -20,7 +20,7 @@ pnpm install --frozen-lockfile
 pnpm run build
 ```
 
-将本目录的 `manifest.json` 与 `dist` 复制到 `~/.claude-code-ui/plugins/cloudcli-codex-agents/`，刷新插件列表，并在设置的插件页启用 `subAgent`。其服务只监听回环地址，通过现有 CloudCLI 鉴权 RPC 对外提供数据。NAS 发布时先发布主程序前端资源，再安装/启用插件；用启停插件重载 worker，无需中断模型任务。
+将本目录的 `manifest.json` 与 `dist` 复制到 `~/.claude-code-ui/plugins/cloudcli-codex-agents/`，刷新插件列表，并在设置的插件页启用「智能体」。其服务只监听回环地址，通过现有 CloudCLI 鉴权 RPC 对外提供数据。NAS 发布时先发布主程序前端资源，再安装/启用插件；用启停插件重载 worker，无需中断模型任务。
 
 C137 前端内置同一 UI 的动态入口，由 Vite 随主程序发布到 Cloudflare。普通外部插件仍保留原有加载机制；本插件也构建 standalone entry 供本地同源环境使用。所有机器使用自己的 Codex 数据，没有 NAS 域名、绝对路径或凭据写入默认值。
 
@@ -40,6 +40,6 @@ C137 前端内置同一 UI 的动态入口，由 Vite 随主程序发布到 Clou
 
 ### 父会话与实际派发任务
 
-父会话名称读取宿主本机应用索引中的自定义标题，不使用原生线程继承的首条提问。任务正文仅接受归属于该子线程的 NEW_TASK 指令，不把父提问、线程名称或最近执行命令当成任务。
+父会话名称读取宿主本机应用索引中的自定义标题，不使用原生线程继承的首条提问。任务正文优先读取主会话的原生 `CollabAgentToolCall` 派发事件，校验发送线程 ID 和接收子线程 ID；旧版归属于该子线程的 `NEW_TASK` 仍可回退使用。主会话查找只扫近期尾部，按文件追加量更新缓存，每个列表请求最多扫描四个主会话，已读到的任务保留在有界缓存中。早于扫描窗口且没有旧版任务记录的历史仍可能不可读。
 
 CloudCLI 保留 Codex 原生 collaboration 工具 schema 和消息内容，不通过移除 encrypted 声明获取明文。旧的 `CLOUDCLI_CODEX_READABLE_AGENT_TASKS` 开关已废弃，设置为 true 也不会改写请求。插件只显示原生记录中已有的可读任务指令；对于密文明确标注不可读，不拿父会话内容或推测摘要代替。已经安装旧版后端的电脑需要更新、重新构建并重启，单独刷新网页不足以修复服务端请求改写。

@@ -1,4 +1,14 @@
 {
+  "subagent": {
+    "title": "智能体",
+    "task": "下达的任务",
+    "result": "执行结果",
+    "running": "运行中",
+    "completed": "已完成",
+    "failed": "失败",
+    "stopped": "未返回结果",
+    "stoppedHint": "父任务结束时，子 Agent 尚未返回结果"
+  },
   "asyncQuestions": {
     "other": "其他回答",
     "submit": "发送回答",

@@ -5,7 +5,15 @@ import { useCodexAgents } from '@/modules/codex-agents/context/CodexAgentsContex
 import type { CodexAgentStatus, CodexAgentSummary } from '@/shared/types';
 
 const STATUS: Record<CodexAgentStatus, string> = { running: '运行中', completed: '已完成', stopped: '已停止', failed: '失败', unknown: '待确认' };
+const STATUS_TONE: Record<CodexAgentStatus, string> = {
+  running: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+  completed: 'bg-muted text-muted-foreground',
+  stopped: 'bg-muted text-muted-foreground',
+  failed: 'bg-destructive/10 text-destructive',
+  unknown: 'bg-amber-500/10 text-amber-800 dark:text-amber-400',
+};
 const taskDescription = (row: CodexAgentSummary) => row.task || (row.taskAvailability === 'encrypted' ? '任务指令已加密，原生接口未提供明文' : '未读取到下达的任务指令');
+const parentLabel = (row: CodexAgentSummary) => row.parentTitle || (row.parentId ? '未命名会话' : '未记录');
 const ended = (row: CodexAgentSummary) => ['completed', 'stopped', 'failed'].includes(row.status);
 const canHide = (row: CodexAgentSummary) => ['completed', 'stopped', 'failed', 'unknown'].includes(row.status);
 const BUTTON = 'inline-flex min-h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-border/70 px-3 text-xs hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50';
@@ -36,17 +44,17 @@ export function CodexAgentsPanel({ theme = 'dark' }: { theme?: 'light' | 'dark' 
   useEffect(() => {
     const needle = query.trim().toLowerCase();
     const valid = new Set((state?.snapshot?.items || []).filter((row) => canHide(row)
-      && `${row.name} ${row.task} ${row.model || ''} ${row.parentTitle || ''}`.toLowerCase().includes(needle)).map((row) => row.id));
+      && `${row.name} ${row.task} ${row.lastActivity} ${row.model || ''} ${row.parentTitle || ''}`.toLowerCase().includes(needle)).map((row) => row.id));
     setCheckedIds((previous) => {
       const next = new Set([...previous].filter((id) => valid.has(id)));
       return next.size === previous.size ? previous : next;
     });
   }, [state?.snapshot, query]);
   useEffect(() => { setClearing(null); }, [query]);
-  if (!state) return <p className="p-5 text-sm text-muted-foreground">正在连接 subAgent…</p>;
+  if (!state) return <p className="p-5 text-sm text-muted-foreground">正在读取智能体记录…</p>;
   const { snapshot, detail, selectedId, pending } = state;
   const needle = query.trim().toLowerCase();
-  const rows = (snapshot?.items || []).filter((row) => `${row.name} ${row.task} ${row.model || ''} ${row.parentTitle || ''}`.toLowerCase().includes(needle));
+  const rows = (snapshot?.items || []).filter((row) => `${row.name} ${row.task} ${row.lastActivity} ${row.model || ''} ${row.parentTitle || ''}`.toLowerCase().includes(needle));
   const active = rows.filter((row) => row.status === 'running');
   const uncertain = rows.filter((row) => row.status === 'unknown');
   const history = rows.filter(ended);
@@ -70,9 +78,10 @@ export function CodexAgentsPanel({ theme = 'dark' }: { theme?: 'light' | 'dark' 
       <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/70 ${row.status === 'running' ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' : 'text-muted-foreground'}`}>
         {row.status === 'running' ? <Activity size={15} /> : row.status === 'unknown' ? <CircleHelp size={15} /> : <Check size={15} />}
       </span>
-      <span className="min-w-0 flex-1"><span className="block truncate text-sm font-medium">{row.name}</span><span className="mt-1 block truncate text-xs text-muted-foreground">{taskDescription(row)}</span>
-        <span className="mt-1 block truncate text-[11px] text-muted-foreground">{row.model || '未记录模型'}{row.parentTitle ? ` · ${row.parentTitle}` : ''}</span></span>
-      <span className="shrink-0 text-right text-[11px] text-muted-foreground"><span className={row.status === 'running' ? 'text-emerald-700 dark:text-emerald-400' : ''}>{STATUS[row.status]}</span><time className="mt-1 block tabular-nums" dateTime={row.lastActivityAt || row.updatedAt}>{relative(row.lastActivityAt || row.updatedAt)}</time></span>
+      <span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium text-muted-foreground">{row.name}</span>
+        <span className={`mt-1 line-clamp-2 break-words text-sm leading-snug ${row.task ? 'text-foreground' : 'text-muted-foreground'}`}>{taskDescription(row)}</span>
+        <span className="mt-1.5 block truncate text-[11px] text-muted-foreground">父会话 · {parentLabel(row)}</span></span>
+      <span className="shrink-0 self-start text-right text-[11px] text-muted-foreground"><span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${STATUS_TONE[row.status]}`}>{STATUS[row.status]}</span><time className="mt-1.5 block tabular-nums" dateTime={row.lastActivityAt || row.updatedAt}>{relative(row.lastActivityAt || row.updatedAt)}</time></span>
       <ChevronRight size={13} className="shrink-0 text-muted-foreground" />
     </button>
   </li>;
@@ -90,11 +99,11 @@ export function CodexAgentsPanel({ theme = 'dark' }: { theme?: 'light' | 'dark' 
     </div>;
   };
 
-  return <section className={`h-full overflow-auto bg-background text-foreground ${theme === 'dark' ? 'dark' : ''}`} aria-label="subAgent">
+  return <section className={`h-full overflow-auto bg-background text-foreground ${theme === 'dark' ? 'dark' : ''}`} aria-label="智能体">
     {/* finesse: product/AI-console, existing neutral tokens, dense split inspector; feedback-only motion. */}
     <div className="mx-auto max-w-[1500px] p-4 sm:p-6">
       <header className="mb-5 flex flex-wrap items-start justify-between gap-3">
-        <div><h1 className="text-xl font-semibold tracking-tight">subAgent</h1><p className="mt-1 text-xs text-muted-foreground">{state.onlyProject ? state.projectPath.split(/[\\/]/).filter(Boolean).at(-1) || '当前项目' : '全部项目'} · 原生执行活动</p></div>
+        <div><h1 className="text-xl font-semibold tracking-tight">智能体</h1><p className="mt-1 text-xs text-muted-foreground">{state.onlyProject ? state.projectPath.split(/[\\/]/).filter(Boolean).at(-1) || '当前项目' : '全部项目'} · 原生执行活动</p></div>
         <button type="button" className={BUTTON} onClick={state.refresh} aria-label="刷新记录"><RefreshCw size={14} /><span>刷新</span></button>
       </header>
       <div className="mb-4 flex flex-wrap items-center gap-3 border-b border-border/60 pb-4">
@@ -116,8 +125,13 @@ export function CodexAgentsPanel({ theme = 'dark' }: { theme?: 'light' | 'dark' 
           <p className="mt-5 px-3 text-[11px] leading-relaxed text-muted-foreground">显示已加载记录。活动 5 秒更新，空闲 20 秒更新。长期无新活动标为待确认。<br />清除仅影响面板记录；执行资源由所属 Codex 管理。</p>
         </div>
         {selectedId && <aside className="min-w-0 rounded-xl border border-border/60 bg-muted/10" aria-label="子 Agent 执行详情">
-          <div className="flex min-w-0 items-center gap-3 border-b border-border/60 p-4"><button className={`${BUTTON} lg:hidden`} onClick={() => state.choose(null)} aria-label="返回任务列表"><ArrowLeft size={14} /></button><div className="min-w-0 flex-1"><h2 className="truncate text-base font-semibold">{chosen?.name || '执行详情'}</h2><p className="mt-1 text-xs text-muted-foreground">{chosen ? STATUS[chosen.status] : '读取中'}</p></div><button className={BUTTON} onClick={() => state.choose(null)} aria-label="关闭详情"><X size={14} /></button></div>
-          {chosen && <div className="space-y-3 border-b border-border/50 p-4"><p className="text-xs text-muted-foreground">下达的任务</p><p className="whitespace-pre-wrap break-words text-sm">{taskDescription(chosen)}</p><dl className="grid grid-cols-[4rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-xs"><dt className="text-muted-foreground">父会话</dt><dd className="break-words">{chosen.parentTitle || chosen.parentId || '未记录'}</dd><dt className="text-muted-foreground">最近活动</dt><dd className="break-words">{chosen.lastActivity || '暂无活动'}</dd><dt className="text-muted-foreground">模型</dt><dd>{chosen.model || '未记录'}</dd><dt className="text-muted-foreground">项目</dt><dd className="break-all">{chosen.projectPath}</dd></dl>{canHide(chosen) && <button className={BUTTON} disabled={pending} onClick={() => setClearing([chosen.id])}><Trash2 size={13} />清除记录</button>}</div>}
+          <div className="flex min-w-0 items-center gap-3 border-b border-border/60 p-4"><button className={`${BUTTON} lg:hidden`} onClick={() => state.choose(null)} aria-label="返回任务列表"><ArrowLeft size={14} /></button><div className="min-w-0 flex-1"><h2 className="truncate text-base font-semibold">{chosen?.name || '执行详情'}</h2></div><button className={BUTTON} onClick={() => state.choose(null)} aria-label="关闭详情"><X size={14} /></button></div>
+          {chosen && <div className="space-y-4 border-b border-border/50 p-4">
+            <div className="rounded-lg border border-border/60 bg-muted/30 p-3">
+              <h3 className="mb-2 text-xs font-medium text-muted-foreground">{chosen.taskSource === 'parent-dispatch' ? '主 Agent 下达的任务' : '下达的任务'}</h3>
+              <p className="whitespace-pre-wrap break-words text-sm leading-relaxed">{taskDescription(chosen)}</p>
+            </div>
+            <dl className="grid grid-cols-[4rem_minmax(0,1fr)] gap-x-3 gap-y-2 text-xs"><dt className="text-muted-foreground">父会话</dt><dd className="break-words">{parentLabel(chosen)}</dd><dt className="text-muted-foreground">最近活动</dt><dd className="break-words">{chosen.lastActivity || '暂无活动'}</dd><dt className="text-muted-foreground">模型</dt><dd>{chosen.model || '未记录'}</dd><dt className="text-muted-foreground">项目</dt><dd className="break-all">{chosen.projectPath}</dd></dl>{canHide(chosen) && <button className={BUTTON} disabled={pending} onClick={() => setClearing([chosen.id])}><Trash2 size={13} />清除记录</button>}</div>}
           {!detail ? <p className="p-4 text-xs text-muted-foreground">{state.error ? '暂时无法读取活动，请重试。' : '正在读取活动…'}</p> : <div className="p-4"><p className="mb-3 text-[11px] text-muted-foreground">最近 {detail.activities.length} 条活动{detail.truncated ? ' · 仅展示近期记录' : ''}</p>
             {!detail.activities.length && <p className="py-4 text-xs text-muted-foreground">{detail.agent.recordAvailable ? '暂无执行活动' : '原生执行文件不可用'}</p>}
             <ol className="ml-2 border-l border-border/70">{detail.activities.map((event) => {

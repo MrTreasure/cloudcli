@@ -1358,6 +1358,8 @@ export type CodexAgentSummary = {
   name: string; nickname: string | null; model: string | null; task: string;
   /** Explains why the native dispatch instruction cannot be displayed. */
   taskAvailability?: 'available' | 'encrypted' | 'unavailable';
+  /** The native record used for the readable task, separate from the displayed parent title. */
+  taskSource?: 'parent-dispatch' | 'child-dispatch';
   projectPath: string; createdAt: string; updatedAt: string;
   status: CodexAgentStatus; lastActivity: string; lastActivityAt: string | null;
   recordAvailable: boolean;

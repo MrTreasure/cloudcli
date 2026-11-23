@@ -1,6 +1,6 @@
 {
   "panel": {
-    "selectProject": "选择一个项目以查看源代码管理"
+    "selectProject": "选择一个项目以查看 git"
   },
   "tabs": {
     "changes": "更改",
@@ -8,7 +8,7 @@
     "history": "提交",
     "branches": "分支",
     "worktrees": "工作树",
-    "ariaLabel": "源代码管理视图"
+    "ariaLabel": "git 视图"
   },
   "status": {
     "modified": "已修改",

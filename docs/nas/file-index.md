@@ -1,8 +1,8 @@
 # NAS 相对官方版本的完整文件索引（自动生成）
 
-官方基线：`v1.37.9` (`f86543fad81d5687bea98644b752fa08fa0da538`)。历史覆盖至生成时的 HEAD：`8d37f5c30cfea3c36f7d030c2043548da676c8e3`。
+官方基线：`v1.37.9` (`f86543fad81d5687bea98644b752fa08fa0da538`)。历史覆盖至生成时的 HEAD：`c9901e9cb56f03a919b6059fc89bd070dc2f94a9`。
 
-记录基线与当前暂存树之间的全部净差异，共 368 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
+记录基线与当前暂存树之间的全部净差异，共 370 个文件；已提交后又完整回退的文件可在 [提交记录](commit-log.md) 查到。
 
 状态：A 新增、M 修改、D 删除、R 重命名、C 复制。源码之外的 NAS 本机数据库、CLI 配置和凭据由各机器自行维护，参见 [部署说明](../../deploy/README.md)。
 
@@ -238,6 +238,7 @@
 | M | [src/modules/chat/tests/sessionStoreTruncate.test.tsx](../../src/modules/chat/tests/sessionStoreTruncate.test.tsx) | — |
 | M | [src/modules/chat/tests/tokenUsageSummaryFormat.test.tsx](../../src/modules/chat/tests/tokenUsageSummaryFormat.test.tsx) | — |
 | M | [src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx](../../src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx) | — |
+| M | [src/modules/chat/tools/SubagentPanel.tsx](../../src/modules/chat/tools/SubagentPanel.tsx) | — |
 | A | [src/modules/chat/transcript/AsyncQuestionCard.tsx](../../src/modules/chat/transcript/AsyncQuestionCard.tsx) | — |
 | M | [src/modules/chat/transcript/BackgroundTasksStrip.tsx](../../src/modules/chat/transcript/BackgroundTasksStrip.tsx) | — |
 | M | [src/modules/chat/transcript/ChatMessagesPane.tsx](../../src/modules/chat/transcript/ChatMessagesPane.tsx) | — |
@@ -317,6 +318,7 @@
 | M | [src/modules/i18n/locales/zh-CN/auth.json](../../src/modules/i18n/locales/zh-CN/auth.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/common.json](../../src/modules/i18n/locales/zh-CN/common.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/git.json](../../src/modules/i18n/locales/zh-CN/git.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/settings.json](../../src/modules/i18n/locales/zh-CN/settings.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/sidebar.json](../../src/modules/i18n/locales/zh-CN/sidebar.json) | — |
 | M | [src/modules/i18n/locales/zh-TW/auth.json](../../src/modules/i18n/locales/zh-TW/auth.json) | — |

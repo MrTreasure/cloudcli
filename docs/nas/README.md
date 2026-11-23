@@ -715,3 +715,11 @@
 - 旧生产 SQLite 的一致性副本实际运行新迁移后 quick_check=ok；provider_models、user_preferences、users、projects、sessions 的原记录哈希保持。原数据库未迁移/恢复，源目录与生产 runtime 分离；私有检查与备份位于 `appdata/cloudcli/upgrades/v1.37.9-20261116-191747/`。
 - 本节记录源码升级及构建验证；NAS 运行实例仍为 v1.37.8，按已确认策略部署/重启另行指示，不因 Git 快进自动发布。前端需用 NAS publisher 注入 API/CDN 参数重新构建并按资源先于 HTML 发布；后端只在安全窗口更新 runtime 和重启，不能中断其他活动任务。Mac/Windows 拉取 c137 后需 pnpm install --frozen-lockfile、本机构建并重启；模型/CLI/凭据继续各机独立。
 - 回退到 `2b9323f5` 重新构建可保留本次 IPv4 修复。源回退不自动覆盖数据库；reason 新列向后兼容，若新版已产生清理上下文的历史分段，应先评估旧版显示语义并保留新增数据。无新增内部服务、协议或独立周期任务；本轮未发布，NAS 当前运行拓扑不变。
+
+## 2026-11-23 智能体任务原文与标签命名
+
+- 来源：老大反馈主会话聊天卡片已有派发原文，插件却没展示。现场记录的 `CollabAgentToolCall` 同时提供 `sender_thread_id`、`receiver_thread_ids` 和 `prompt`；该子线程没有旧版 `NEW_TASK` 消息和 `agent_path`。
+- `local-plugins/cloudcli-codex-agents/src/reader.ts` 从主会话已完成的原生派发事件按发送、接收线程 ID 查任务，保留旧式子线程 `NEW_TASK` 回退。主会话按文件追加量在有限窗口中扫描，旧任务超出窗口时仍可能不可读。详情 revision 改为 SHA-256，任务和父会话标题不再进入轮询 URL。原生 schema、密文、历史清除标记和运行过程不改。
+- `src/modules/codex-agents/` 列表以任务摘要为主、父会话标题单列，详情展示完整任务；状态只在列表用徽标展示。`src/modules/chat/tools/SubagentPanel.tsx` 去除重复的 Agent 标签，折叠显示任务摘要，展开显示任务原文和活动。插件清单及前端将「subAgent」改为「智能体」，中文工作区「源代码管理」入口改为「git」；内部标识未变。
+- 截图对应 Ramanujan 记录的列表与详情均核对到 258 字派发原文；本地模拟覆盖发送者与接收者隔离、密文、旧格式、追加缓存和详情版本号。11 项定向测试、类型检查、lint、前端和插件构建通过；未运行浏览器自动化或模型调用。
+- 生效需要发布网页、替换已安装插件的清单与产物并仅重载该插件。回退恢复上一版网页入口、插件清单和产物再重载插件，不影响原生任务和历史。发布后刷新网页即可使用，CloudCLI 后端无需重启。

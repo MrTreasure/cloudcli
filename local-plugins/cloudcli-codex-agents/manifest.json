@@ -1,8 +1,8 @@
 {
   "name": "codex-agents",
-  "displayName": "subAgent",
+  "displayName": "智能体",
   "version": "1.0.0",
-  "description": "查看 Codex 原生子 Agent 的任务、状态、工具活动与执行结果。",
+  "description": "查看 Codex 子智能体的任务、状态、工具活动与执行结果。",
   "author": "MrTreasure",
   "icon": "Bot",
   "type": "module",

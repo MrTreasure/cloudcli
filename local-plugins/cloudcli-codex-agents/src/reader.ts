@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 
 import type { CodexAgentActivity, CodexAgentDetail, CodexAgentStatus, CodexAgentSummary, CodexAgentsSnapshot } from '../../../src/shared/types';
@@ -12,6 +13,8 @@ type Row = {
 };
 type RecordValue = Record<string, unknown>;
 type Timeline = { activities: CodexAgentActivity[]; lifecycle: CodexAgentStatus; at: string | null; truncated: boolean; available: boolean; revision: string };
+type DispatchTask = Pick<CodexAgentSummary, 'task' | 'taskAvailability' | 'taskSource'>;
+const DISPATCH_SCAN_BYTES = 8 * 1024 * 1024;
 const object = (value: unknown): RecordValue => value !== null && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {};
 const string = (value: unknown): string => typeof value === 'string' ? value : '';
 const parse = (value: string): RecordValue => { try { return object(JSON.parse(value)); } catch { return {}; } };
@@ -26,12 +29,12 @@ const safeText = (value: string, max = 4000): string => value
 
 // Scan across large image/output lines without allocating or parsing them.
 // Typical polls stop after a few blocks; cold reads have a fixed 8 MiB I/O cap.
-function readRecentRecords(filename: string, size: number, limit: number): { records: RecordValue[]; truncated: boolean } {
+function readRecentRecords(filename: string, size: number, limit: number, start = 0): { records: RecordValue[]; truncated: boolean } {
   const records: RecordValue[] = [];
   const descriptor = fs.openSync(filename, 'r');
   const block = Buffer.alloc(64 * 1024);
   let position = size;
-  const lowerBound = Math.max(0, size - 8 * 1024 * 1024);
+  const lowerBound = Math.max(start, size - DISPATCH_SCAN_BYTES);
   let pieces: Buffer[] = [];
   let lineBytes = 0;
   let oversized = false;
@@ -96,11 +99,9 @@ export class CodexAgentReader {
   private readTimeline(row: Row, detail: boolean): Timeline {
     const fallback: Timeline = { activities: [], lifecycle: 'unknown', at: null, truncated: false, available: false, revision: 'missing' };
     try {
-      const filename = fs.realpathSync(row.rollout_path);
       // A native index may contain stale or malicious paths. Never expose arbitrary files.
-      if (!['sessions', 'archived_sessions'].some((folder) => {
-        try { return filename.startsWith(fs.realpathSync(path.join(this.home, folder)) + path.sep); } catch { return false; }
-      })) return fallback;
+      const filename = this.trustedRollout(row.rollout_path);
+      if (!filename) return fallback;
       const stat = fs.statSync(filename);
       if (!stat.isFile()) return fallback;
       const key = `${row.id}:${detail}`;
@@ -184,7 +185,58 @@ export class CodexAgentReader {
     } catch { return fallback; }
   }
 
-  private readonly tasks = new Map<string, { signature: string; task: string; availability: 'available' | 'encrypted' | 'unavailable' }>();
+  private readonly tasks = new Map<string, { signature: string; value: DispatchTask }>();
+  private readonly parentDispatches = new Map<string, { identity: string; signature: string; size: number; tasks: Map<string, DispatchTask> }>();
+
+  private trustedRollout(filename: string): string | null {
+    const resolved = fs.realpathSync(filename);
+    return ['sessions', 'archived_sessions'].some((folder) => {
+      try { return resolved.startsWith(fs.realpathSync(path.join(this.home, folder)) + path.sep); } catch { return false; }
+    }) ? resolved : null;
+  }
+
+  private readParentDispatches(db: DatabaseSync, parentId: string, budget: { remaining: number }): Map<string, DispatchTask> | undefined {
+    try {
+      const parent = db.prepare('SELECT rollout_path FROM threads WHERE id = ?').get(parentId);
+      const filename = parent && this.trustedRollout(string(parent.rollout_path));
+      if (!filename) return;
+      const stat = fs.statSync(filename);
+      if (!stat.isFile()) return;
+      const identity = `${stat.dev}:${stat.ino}`;
+      const signature = `${stat.mtimeMs}:${stat.size}`;
+      const cached = this.parentDispatches.get(parentId);
+      const known = cached?.identity === identity && (cached.signature === signature || stat.size > cached.size) ? cached : undefined;
+      if (known?.signature === signature || budget.remaining <= 0) return known?.tasks;
+      budget.remaining--;
+
+      // Match the native sender and recipient IDs, never the parent's chat text
+      // or the child's first user row (which can be inherited on a fork).
+      const tasks = new Map(known?.tasks);
+      // Keep one block before the old end in case it stopped mid-record.
+      const start = known ? Math.max(0, known.size - 64 * 1024) : 0;
+      for (const record of readRecentRecords(filename, stat.size, 4096, start).records) {
+        const event = object(record.payload);
+        if (record.type !== 'event_msg' || event.type !== 'item_completed') continue;
+        const item = object(event.item);
+        if (item.type !== 'CollabAgentToolCall' || item.tool !== 'spawn_agent' || item.status !== 'completed'
+          || item.sender_thread_id !== parentId || !Array.isArray(item.receiver_thread_ids)) continue;
+        const prompt = string(item.prompt).trim();
+        if (!prompt) continue;
+        const value: DispatchTask = /^gAAAAA/.test(prompt)
+          ? { task: '', taskAvailability: 'encrypted' }
+          : { task: safeText(prompt, 8000), taskAvailability: 'available', taskSource: 'parent-dispatch' };
+        for (const id of item.receiver_thread_ids) {
+          if (typeof id !== 'string') continue;
+          tasks.delete(id);
+          tasks.set(id, value);
+        }
+      }
+      while (tasks.size > 80) tasks.delete(tasks.keys().next().value!);
+      this.parentDispatches.set(parentId, { identity, signature, size: stat.size, tasks });
+      if (this.parentDispatches.size > 12) this.parentDispatches.delete(this.parentDispatches.keys().next().value!);
+      return tasks;
+    } catch { return undefined; }
+  }
 
   private parentTitles(): Map<string, string> {
     const titles = new Map<string, string>();
@@ -201,27 +253,26 @@ export class CodexAgentReader {
     return titles;
   }
 
-  private dispatchedTask(row: Row): { task: string; availability: 'available' | 'encrypted' | 'unavailable' } {
-    const unavailable = { task: '', availability: 'unavailable' as const };
+  private dispatchedTask(row: Row): DispatchTask {
+    const unavailable: DispatchTask = { task: '', taskAvailability: 'unavailable' };
+    if (!row.agent_path) return unavailable;
     try {
-      const filename = fs.realpathSync(row.rollout_path);
-      if (!['sessions', 'archived_sessions'].some((folder) => {
-        try { return filename.startsWith(fs.realpathSync(path.join(this.home, folder)) + path.sep); } catch { return false; }
-      })) return unavailable;
+      const filename = this.trustedRollout(row.rollout_path);
+      if (!filename) return unavailable;
       const stat = fs.statSync(filename);
       if (!stat.isFile()) return unavailable;
       const identity = `${stat.dev}:${stat.ino}:`;
-      const signature = `${identity}${Math.min(stat.size, 8 * 1024 * 1024)}`;
+      const signature = `${identity}${Math.min(stat.size, DISPATCH_SCAN_BYTES)}`;
       const cached = this.tasks.get(row.id);
-      if (cached && (cached.signature === signature || (cached.signature.startsWith(identity) && cached.availability !== 'unavailable'))) return cached;
+      if (cached && (cached.signature === signature || (cached.signature.startsWith(identity) && cached.value.taskAvailability !== 'unavailable'))) return cached.value;
       // Incoming NEW_TASK records are at the start of the child rollout. Never use
       // inherited user messages, native titles, or another child's dispatch.
-      const recent = readRecentRecords(filename, Math.min(stat.size, 8 * 1024 * 1024), 100_000);
-      let result = unavailable as { task: string; availability: 'available' | 'encrypted' | 'unavailable' };
+      const recent = readRecentRecords(filename, Math.min(stat.size, DISPATCH_SCAN_BYTES), 100_000);
+      let result = unavailable;
       for (const record of recent.records) {
         const payload = object(record.payload);
         if (record.type !== 'response_item' || payload.type !== 'agent_message'
-          || !row.agent_path || payload.recipient !== row.agent_path
+          || payload.recipient !== row.agent_path
           || Date.parse(string(record.timestamp)) < row.created_at * 1000 - 1000) continue;
         const content = Array.isArray(payload.content) ? payload.content : [];
         const plaintext = content.map((part) => {
@@ -233,20 +284,22 @@ export class CodexAgentReader {
         }).join('\n');
         if (!plaintext.startsWith('Message Type: NEW_TASK\n')) continue;
         const task = plaintext.split(/\nPayload:\s*\n/).slice(1).join('\nPayload:\n').trim();
-        if (task && !/^gAAAAA/.test(task)) result = { task: safeText(task, 8000), availability: 'available' };
-        else if (content.some((part) => object(part).type === 'encrypted_content')) result = { task: '', availability: 'encrypted' };
+        if (task && !/^gAAAAA/.test(task)) result = { task: safeText(task, 8000), taskAvailability: 'available', taskSource: 'child-dispatch' };
+        else if (content.some((part) => object(part).type === 'encrypted_content')) result = { task: '', taskAvailability: 'encrypted' };
         break;
       }
-      this.tasks.set(row.id, { signature, ...result });
+      this.tasks.set(row.id, { signature, value: result });
       if (this.tasks.size > 400) this.tasks.delete(this.tasks.keys().next().value!);
       return result;
     } catch { return unavailable; }
   }
 
-  private summary(row: Row, timeline: Timeline, titles: Map<string, string>): CodexAgentSummary {
+  private summary(row: Row, timeline: Timeline, titles: Map<string, string>, db: DatabaseSync, budget: { remaining: number }): CodexAgentSummary {
     const spawn = object(object(parse(row.source).subagent).thread_spawn);
     const parentId = string(spawn.parent_thread_id) || null;
-    const task = this.dispatchedTask(row);
+    const parentTask = parentId ? this.readParentDispatches(db, parentId, budget)?.get(row.id) : undefined;
+    const childTask = parentTask?.task ? undefined : this.dispatchedTask(row);
+    const task = childTask?.task ? childTask : parentTask ?? childTask;
     let status = timeline.lifecycle;
     // Lack of a completion marker alone is not proof of a live process after a restart.
     if (status === 'running' && (!timeline.at || Date.now() - Date.parse(timeline.at) > 120_000)) status = 'unknown';
@@ -255,7 +308,7 @@ export class CodexAgentReader {
     return {
       id: row.id, parentId, parentTitle: parentId ? titles.get(parentId) || null : null,
       name: safeText(name, 160), nickname: row.agent_nickname, model: row.model,
-      task: task.task, taskAvailability: task.availability, projectPath: row.cwd,
+      task: '', ...task, projectPath: row.cwd,
       createdAt: iso(row.created_at), updatedAt: iso(row.updated_at), status,
       lastActivity: latest ? safeText(latest.kind === 'message' ? latest.text : latest.label, 180) : '',
       lastActivityAt: timeline.at, recordAvailable: timeline.available,
@@ -274,7 +327,8 @@ export class CodexAgentReader {
       const rows = db.prepare(`${select} WHERE ${where}${projectWhere} ORDER BY updated_at DESC,id DESC LIMIT ? OFFSET ?`)
         .all(...(prefix ? [prefix, `${escaped}${path.sep}%`] : []), limit + 1, offset) as unknown as Row[];
       const titles = this.parentTitles();
-      return { available: true, items: rows.slice(0, limit).map((row) => this.summary(row, this.readTimeline(row, false), titles)), nextOffset: rows.length > limit ? offset + limit : null, observedAt: new Date().toISOString() };
+      const budget = { remaining: 4 };
+      return { available: true, items: rows.slice(0, limit).map((row) => this.summary(row, this.readTimeline(row, false), titles, db, budget)), nextOffset: rows.length > limit ? offset + limit : null, observedAt: new Date().toISOString() };
     } finally { db.close(); }
   }
 
@@ -287,8 +341,13 @@ export class CodexAgentReader {
       const row = db.prepare(`${select} WHERE ${where} AND id = ?`).get(id) as unknown as Row | undefined;
       if (!row) return null;
       const timeline = this.readTimeline(row, true);
-      const agent = this.summary(row, timeline, this.parentTitles());
-      return { agent, activities: timeline.activities, truncated: timeline.truncated, revision: JSON.stringify([agent.revision, agent.parentTitle, agent.task, agent.taskAvailability]) };
+      const agent = this.summary(row, timeline, this.parentTitles(), db, { remaining: 1 });
+      // The client puts this value in a query parameter when polling. Keep
+      // the task and parent title out of that URL, while detecting changes.
+      const revision = createHash('sha256').update(JSON.stringify([
+        agent.revision, agent.parentTitle, agent.task, agent.taskAvailability, agent.taskSource,
+      ])).digest('hex');
+      return { agent, activities: timeline.activities, truncated: timeline.truncated, revision };
     } finally { db.close(); }
   }
 }
