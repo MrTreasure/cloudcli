@@ -588,6 +588,8 @@ export type NormalizedMessage = {
    * when the cut was made, so this is where those rows begin.
    */
   replacesAfterRowCount?: number;
+  /** Server history tail time when a normal Codex send was shown locally. Used to exclude already visible turns when confirming its echo. */
+  codexHistoryTailTime?: number;
   sessionId: string;
   timestamp: string;
   provider: LLMProvider;

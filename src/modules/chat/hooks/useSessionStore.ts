@@ -761,10 +761,20 @@ export function useSessionStore() {
 
   const appendRealtime = useCallback((sessionId: string, msg: NormalizedMessage) => {
     const slot = getSlot(sessionId);
-    const normalizedMessage =
+    let normalizedMessage =
       msg.sessionId === sessionId
         ? msg
         : { ...msg, sessionId };
+    if (
+      msg.provider === 'codex' && msg.kind === 'text' && msg.role === 'user'
+      && msg.id.startsWith('local_') && !msg.id.startsWith('local_queue_') && !msg.replacesAnchorId
+    ) {
+      // This is the history the user could already see before this send, even
+      // when the last prompt itself is outside the loaded page.
+      const tail = slot.serverMessages.at(-1);
+      const tailTime = tail ? readMessageTime(tail) : null;
+      if (tailTime !== null) normalizedMessage = { ...normalizedMessage, codexHistoryTailTime: tailTime };
+    }
     const existingIndex = slot.realtimeMessages.findIndex((message) => message.id === normalizedMessage.id);
     let updated = [...slot.realtimeMessages];
     if (existingIndex >= 0) {

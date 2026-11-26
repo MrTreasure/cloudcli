@@ -2,6 +2,7 @@ import type { NormalizedMessage } from '@/shared/types';
 
 const LOCAL_USER_DEDUPE_WINDOW_MS = 5 * 60 * 1000;
 const LOCAL_USER_DEDUPE_CLOCK_SKEW_MS = 10_000;
+const NEW_CODEX_TURN_CLOCK_SKEW_MS = 30_000;
 const LOCAL_ATTACHMENT_ONLY_DEDUPE_WINDOW_MS = 30_000;
 
 type UserTurnFingerprint = {
@@ -69,6 +70,8 @@ function findServerEchoForLocalUser(
   // "continue", the typo being corrected — lands inside the window and would
   // retire the message the user just sent.
   const firstEligibleIndex = localMessage.replacesAfterRowCount ?? 0;
+  const codexHistoryTailTime = isCodexQueueEcho ? undefined : localMessage.codexHistoryTailTime;
+  let sawNewCodexTurn = false;
 
   const dedupeWindow = localFingerprint.text
     ? LOCAL_USER_DEDUPE_WINDOW_MS
@@ -78,6 +81,15 @@ function findServerEchoForLocalUser(
 
   for (let index = firstEligibleIndex; index < serverMessages.length; index++) {
     const serverMessage = serverMessages[index];
+    if (serverMessage.kind !== 'text' || serverMessage.role !== 'user') continue;
+    const serverTime = readMessageTime(serverMessage);
+    if (serverTime === null || (codexHistoryTailTime !== undefined && serverTime <= codexHistoryTailTime)) continue;
+
+    // Only the first new turn can use the wider clock allowance. A later
+    // matching prompt (or a steer within that turn) is not the send's echo.
+    const isFirstNewCodexTurn = codexHistoryTailTime !== undefined && !sawNewCodexTurn
+      && serverMessage.provider === 'codex' && Boolean(serverMessage.transcriptAnchorId);
+    if (isFirstNewCodexTurn) sawNewCodexTurn = true;
     if (claimedServerIds.has(serverMessage.id)) {
       continue;
     }
@@ -87,7 +99,6 @@ function findServerEchoForLocalUser(
       continue;
     }
 
-    const serverTime = readMessageTime(serverMessage);
     // Codex app-server stamps every item in a turn with the turn's start time.
     // A steered prompt can therefore appear minutes before its local queue echo.
     // Only an unanchored Codex prompt can be a steer: the first prompt of each
@@ -95,12 +106,13 @@ function findServerEchoForLocalUser(
     const isBackdatedCodexSteer = isCodexQueueEcho
       && serverMessage.provider === 'codex'
       && !serverMessage.transcriptAnchorId
-      && serverTime !== null
       && serverTime === latestCodexUserTime
       && serverTime <= localTime;
+    const clockSkew = isFirstNewCodexTurn && localFingerprint.text
+      ? NEW_CODEX_TURN_CLOCK_SKEW_MS
+      : LOCAL_USER_DEDUPE_CLOCK_SKEW_MS;
     if (
-      serverTime === null
-      || (!isBackdatedCodexSteer && serverTime < localTime - LOCAL_USER_DEDUPE_CLOCK_SKEW_MS)
+      (!isBackdatedCodexSteer && serverTime < localTime - clockSkew)
       || serverTime - localTime > dedupeWindow
     ) {
       continue;

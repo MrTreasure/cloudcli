@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.10` (`a2b485238f1dec58e82e339ce0b0f5eb2fbc169c`)。历史覆盖至生成时的 HEAD：`9d887bdcd2c4c6069a8f2307fde6971967bf2f17`。
+官方基线：`v1.37.10` (`a2b485238f1dec58e82e339ce0b0f5eb2fbc169c`)。历史覆盖至生成时的 HEAD：`e397c5fcd26bb6630fee70f65bd40a1265951e95`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,12 +10,10 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [.env.example](../../.env.example) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [server/modules/commands/commands.routes.ts](../../server/modules/commands/commands.routes.ts) | — |
-| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
-| M | [server/modules/providers/services/provider-models.service.ts](../../server/modules/providers/services/provider-models.service.ts) | — |
-| M | [server/modules/providers/tests/provider-models.service.test.ts](../../server/modules/providers/tests/provider-models.service.test.ts) | — |
+| M | [src/modules/chat/hooks/useSessionStore.ts](../../src/modules/chat/hooks/useSessionStore.ts) | — |
+| M | [src/modules/chat/utils/sessionMessageReconciliation.ts](../../src/modules/chat/utils/sessionMessageReconciliation.ts) | — |
+| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 
 ## NAS 主线提交
 
@@ -2683,6 +2681,20 @@
   - `docs/nas/commit-log.md`
   - `docs/nas/file-index.md`
   - `docs/nas/upstream-base.txt`
+
+### e397c5fc · 2026-11-26 · feat: configure hidden Codex model families
+
+- 完整提交：`e397c5fcd26bb6630fee70f65bd40a1265951e95`
+- 相对第一父提交涉及文件：
+
+  - `.env.example`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `server/modules/commands/commands.routes.ts`
+  - `server/modules/providers/provider.routes.ts`
+  - `server/modules/providers/services/provider-models.service.ts`
+  - `server/modules/providers/tests/provider-models.service.test.ts`
 
 ## 从 PR / 其他分支合入的提交
 

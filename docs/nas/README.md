@@ -728,6 +728,13 @@
 - 本节记录源码升级及构建验证；NAS 运行实例仍为 v1.37.8，按已确认策略部署/重启另行指示，不因 Git 快进自动发布。前端需用 NAS publisher 注入 API/CDN 参数重新构建并按资源先于 HTML 发布；后端只在安全窗口更新 runtime 和重启，不能中断其他活动任务。Mac/Windows 拉取 c137 后需 pnpm install --frozen-lockfile、本机构建并重启；模型/CLI/凭据继续各机独立。
 - 回退到 `2b9323f5` 重新构建可保留本次 IPv4 修复。源回退不自动覆盖数据库；reason 新列向后兼容，若新版已产生清理上下文的历史分段，应先评估旧版显示语义并保留新增数据。无新增内部服务、协议或独立周期任务；本轮未发布，NAS 当前运行拓扑不变。
 
+## 2026-11-22 网页 Codex 用户气泡重复
+
+- 来源：老大反馈同一段用户文字在网页「小程序」会话显示两次；Codex 原生记录和鉴权历史接口均只有一条。截图中历史气泡与本地气泡相差约 16 秒，超过原合并逻辑允许历史较早的 10 秒，模拟该时间差已复现。
+- 归属：`src/modules/chat/hooks/useSessionStore.ts` 在普通 Codex 发送的本地气泡上记录已有历史尾部；`src/modules/chat/utils/sessionMessageReconciliation.ts` 跳过此前已知的历史，只允许已知尾部之后的第一个带回合锚点的文本提示使用 30 秒容差，仍按文本和附件特征一对一核对。字段定义在 `src/shared/types.ts`。编辑替换、运行中插入及其他 provider 的匹配规则沿用原有逻辑。没有增加历史请求或修改持久化消息。
+- 79 项定向测试、16 秒回显与主动重复发送模拟、类型检查、lint 和前端构建通过。只需发布前端，保留正在执行的后端会话；回退时恢复本次前端源码并重建，或用私有目录 `appdata/cloudcli/operations/web-user-echo-20261122/publish-before/` 中的上一版首页和 PWA 文件，沿现有发布流程同步。旧资源保留在 CDN。
+- 老大要求直接发布，正式 Agent 网页已同步到 `index-DQZ6KO4V.js`，现有 Cloudflare 发布检查通过。后端进程和 Service Worker 未变更，未运行浏览器自动化；该修复随 v1.37.10 发布补录源码。
+
 ## 2026-11-23 智能体任务原文与标签命名
 
 - 来源：老大反馈主会话聊天卡片已有派发原文，插件却没展示。现场记录的 `CollabAgentToolCall` 同时提供 `sender_thread_id`、`receiver_thread_ids` 和 `prompt`；该子线程没有旧版 `NEW_TASK` 消息和 `agent_path`。
