@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.10` (`a2b485238f1dec58e82e339ce0b0f5eb2fbc169c`)。历史覆盖至生成时的 HEAD：`e397c5fcd26bb6630fee70f65bd40a1265951e95`。
+官方基线：`v1.37.10` (`a2b485238f1dec58e82e339ce0b0f5eb2fbc169c`)。历史覆盖至生成时的 HEAD：`8a8eb2fb220e009c9aa7af0c4cfbce69df56e4b5`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -11,9 +11,7 @@
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [src/modules/chat/hooks/useSessionStore.ts](../../src/modules/chat/hooks/useSessionStore.ts) | — |
-| M | [src/modules/chat/utils/sessionMessageReconciliation.ts](../../src/modules/chat/utils/sessionMessageReconciliation.ts) | — |
-| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
+| M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
 
 ## NAS 主线提交
 
@@ -2695,6 +2693,18 @@
   - `server/modules/providers/provider.routes.ts`
   - `server/modules/providers/services/provider-models.service.ts`
   - `server/modules/providers/tests/provider-models.service.test.ts`
+
+### 8a8eb2fb · 2026-11-26 · fix: reconcile Codex user echo with new native turns
+
+- 完整提交：`8a8eb2fb220e009c9aa7af0c4cfbce69df56e4b5`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `src/modules/chat/hooks/useSessionStore.ts`
+  - `src/modules/chat/utils/sessionMessageReconciliation.ts`
+  - `src/shared/types.ts`
 
 ## 从 PR / 其他分支合入的提交
 
