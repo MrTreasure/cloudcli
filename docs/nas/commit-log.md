@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.9` (`f86543fad81d5687bea98644b752fa08fa0da538`)。历史覆盖至生成时的 HEAD：`2a4b72cf75903afb908b247e9673109f7bca6719`。
+官方基线：`v1.37.10` (`a2b485238f1dec58e82e339ce0b0f5eb2fbc169c`)。历史覆盖至生成时的 HEAD：`76dd1fbde14ca7133283f54087add0de05f90e71`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,89 +10,7 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [CHANGELOG.md](../../CHANGELOG.md) | — |
-| M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
-| M | [index.html](../../index.html) | — |
-| M | [package.json](../../package.json) | — |
-| M | [pnpm-lock.yaml](../../pnpm-lock.yaml) | — |
-| M | [server/index.ts](../../server/index.ts) | — |
-| M | [server/modules/assets/assets.routes.ts](../../server/modules/assets/assets.routes.ts) | — |
-| A | [server/modules/assets/tests/upload.middleware.test.ts](../../server/modules/assets/tests/upload.middleware.test.ts) | — |
-| A | [server/modules/assets/upload.middleware.ts](../../server/modules/assets/upload.middleware.ts) | — |
-| M | [server/modules/auth/auth.middleware.ts](../../server/modules/auth/auth.middleware.ts) | — |
-| M | [server/modules/auth/cors-policy.service.ts](../../server/modules/auth/cors-policy.service.ts) | — |
-| M | [server/modules/browser-use/browser-use-mcp.routes.ts](../../server/modules/browser-use/browser-use-mcp.routes.ts) | — |
-| M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
-| M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
-| A | [server/modules/database/repositories/session-pins.db.ts](../../server/modules/database/repositories/session-pins.db.ts) | — |
-| M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
-| M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
-| A | [server/modules/database/tests/session-pins.db.integration.test.ts](../../server/modules/database/tests/session-pins.db.integration.test.ts) | — |
-| M | [server/modules/providers/index.ts](../../server/modules/providers/index.ts) | — |
-| M | [server/modules/providers/list/codex/codex-app-server.client.ts](../../server/modules/providers/list/codex/codex-app-server.client.ts) | — |
-| A | [server/modules/providers/list/codex/codex-cli.ts](../../server/modules/providers/list/codex/codex-cli.ts) | — |
-| M | [server/modules/providers/list/codex/codex-models.provider.ts](../../server/modules/providers/list/codex/codex-models.provider.ts) | — |
-| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
-| M | [server/modules/providers/services/provider-cli.service.ts](../../server/modules/providers/services/provider-cli.service.ts) | — |
-| M | [server/modules/providers/services/provider-models.service.ts](../../server/modules/providers/services/provider-models.service.ts) | — |
-| M | [server/modules/providers/services/sessions.service.ts](../../server/modules/providers/services/sessions.service.ts) | — |
-| A | [server/modules/providers/tests/codex-cli.test.ts](../../server/modules/providers/tests/codex-cli.test.ts) | — |
-| M | [server/modules/providers/tests/codex-side-question.test.ts](../../server/modules/providers/tests/codex-side-question.test.ts) | — |
-| M | [server/modules/providers/tests/provider-cli.service.test.ts](../../server/modules/providers/tests/provider-cli.service.test.ts) | — |
-| M | [server/modules/providers/tests/provider-models.service.test.ts](../../server/modules/providers/tests/provider-models.service.test.ts) | — |
-| M | [server/modules/providers/tests/provider.routes.test.ts](../../server/modules/providers/tests/provider.routes.test.ts) | — |
-| A | [server/modules/providers/tests/session-pins.test.ts](../../server/modules/providers/tests/session-pins.test.ts) | — |
-| M | [server/modules/websocket/services/shell-websocket.service.ts](../../server/modules/websocket/services/shell-websocket.service.ts) | — |
-| M | [server/modules/websocket/tests/shell-websocket.service.test.ts](../../server/modules/websocket/tests/shell-websocket.service.test.ts) | — |
-| M | [server/shared/index.ts](../../server/shared/index.ts) | — |
-| A | [server/shared/tests/secrets-match.test.ts](../../server/shared/tests/secrets-match.test.ts) | — |
-| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
-| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
-| M | [src/index.css](../../src/index.css) | — |
-| M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
-| A | [src/modules/chat/composer/AttachmentRejectionNotice.tsx](../../src/modules/chat/composer/AttachmentRejectionNotice.tsx) | — |
-| M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
-| M | [src/modules/chat/composer/ComposerAttachment.tsx](../../src/modules/chat/composer/ComposerAttachment.tsx) | — |
-| M | [src/modules/chat/composer/QueuedMessageCard.tsx](../../src/modules/chat/composer/QueuedMessageCard.tsx) | — |
-| M | [src/modules/chat/composer/ScheduledMessageList.tsx](../../src/modules/chat/composer/ScheduledMessageList.tsx) | — |
-| M | [src/modules/chat/composer/SteeredMessageCard.tsx](../../src/modules/chat/composer/SteeredMessageCard.tsx) | — |
-| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
-| A | [src/modules/chat/tests/attachmentRejections.test.tsx](../../src/modules/chat/tests/attachmentRejections.test.tsx) | — |
-| M | [src/modules/chat/tests/chatComposerSendMenu.test.tsx](../../src/modules/chat/tests/chatComposerSendMenu.test.tsx) | — |
-| A | [src/modules/chat/tests/markdownTable.test.tsx](../../src/modules/chat/tests/markdownTable.test.tsx) | — |
-| M | [src/modules/chat/tests/questionPanelTokenUsage.test.tsx](../../src/modules/chat/tests/questionPanelTokenUsage.test.tsx) | — |
-| A | [src/modules/chat/tests/uploadAttachmentFiles.test.ts](../../src/modules/chat/tests/uploadAttachmentFiles.test.ts) | — |
-| M | [src/modules/chat/transcript/ChatMessagesPane.tsx](../../src/modules/chat/transcript/ChatMessagesPane.tsx) | — |
-| M | [src/modules/chat/transcript/Markdown.tsx](../../src/modules/chat/transcript/Markdown.tsx) | — |
-| A | [src/modules/chat/utils/uploadAttachmentFiles.ts](../../src/modules/chat/utils/uploadAttachmentFiles.ts) | — |
-| M | [src/modules/code-editor/hooks/useEditorSidebar.ts](../../src/modules/code-editor/hooks/useEditorSidebar.ts) | — |
-| A | [src/modules/code-editor/tests/editorResizeStart.test.tsx](../../src/modules/code-editor/tests/editorResizeStart.test.tsx) | — |
-| M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
-| M | [src/modules/i18n/locales/en/sidebar.json](../../src/modules/i18n/locales/en/sidebar.json) | — |
-| M | [src/modules/i18n/locales/ko/sidebar.json](../../src/modules/i18n/locales/ko/sidebar.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/sidebar.json](../../src/modules/i18n/locales/zh-CN/sidebar.json) | — |
-| M | [src/modules/settings/tests/providerCliVersion.test.tsx](../../src/modules/settings/tests/providerCliVersion.test.tsx) | — |
-| M | [src/modules/sidebar/SessionOptions.tsx](../../src/modules/sidebar/SessionOptions.tsx) | — |
-| A | [src/modules/sidebar/SessionPinButton.tsx](../../src/modules/sidebar/SessionPinButton.tsx) | — |
-| A | [src/modules/sidebar/SessionPinsProvider.tsx](../../src/modules/sidebar/SessionPinsProvider.tsx) | — |
-| M | [src/modules/sidebar/Sidebar.tsx](../../src/modules/sidebar/Sidebar.tsx) | — |
-| M | [src/modules/sidebar/SidebarContent.tsx](../../src/modules/sidebar/SidebarContent.tsx) | — |
-| A | [src/modules/sidebar/SidebarPinnedSessions.tsx](../../src/modules/sidebar/SidebarPinnedSessions.tsx) | — |
-| M | [src/modules/sidebar/SidebarProjectItem.tsx](../../src/modules/sidebar/SidebarProjectItem.tsx) | — |
-| M | [src/modules/sidebar/SidebarProjectList.tsx](../../src/modules/sidebar/SidebarProjectList.tsx) | — |
-| M | [src/modules/sidebar/SidebarProjectSessions.tsx](../../src/modules/sidebar/SidebarProjectSessions.tsx) | — |
-| M | [src/modules/sidebar/SidebarRecentConversations.tsx](../../src/modules/sidebar/SidebarRecentConversations.tsx) | — |
-| M | [src/modules/sidebar/SidebarSessionItem.tsx](../../src/modules/sidebar/SidebarSessionItem.tsx) | — |
-| A | [src/modules/sidebar/context/SessionPinsContext.ts](../../src/modules/sidebar/context/SessionPinsContext.ts) | — |
-| A | [src/modules/sidebar/hooks/useSessionPins.ts](../../src/modules/sidebar/hooks/useSessionPins.ts) | — |
-| M | [src/modules/sidebar/tests/projectSessionTree.test.ts](../../src/modules/sidebar/tests/projectSessionTree.test.ts) | — |
-| A | [src/modules/sidebar/tests/sessionPins.test.tsx](../../src/modules/sidebar/tests/sessionPins.test.tsx) | — |
-| M | [src/modules/sidebar/utils/projectSessionTree.ts](../../src/modules/sidebar/utils/projectSessionTree.ts) | — |
-| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
-| M | [src/shared/constants.ts](../../src/shared/constants.ts) | — |
-| M | [src/shared/types.ts](../../src/shared/types.ts) | — |
+| M | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
 
 ## NAS 主线提交
 
@@ -2333,6 +2251,424 @@
   - `src/modules/i18n/locales/zh-CN/common.json`
   - `src/modules/i18n/locales/zh-CN/git.json`
   - `src/shared/types.ts`
+
+### 76dd1fbd · 2026-11-26 · chore: merge official CloudCLI v1.37.10 with C137 compatibility
+
+- 完整提交：`76dd1fbde14ca7133283f54087add0de05f90e71`（合并提交，整体回退应使用 `git revert -m 1`）
+- 相对第一父提交涉及文件：
+
+  - `CHANGELOG.md`
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-sync-policy.md`
+  - `index.html`
+  - `package.json`
+  - `pnpm-lock.yaml`
+  - `server/index.ts`
+  - `server/modules/assets/assets.routes.ts`
+  - `server/modules/assets/tests/upload.middleware.test.ts`
+  - `server/modules/assets/upload.middleware.ts`
+  - `server/modules/auth/auth.middleware.ts`
+  - `server/modules/auth/cors-policy.service.ts`
+  - `server/modules/browser-use/browser-use-mcp.routes.ts`
+  - `server/modules/database/index.ts`
+  - `server/modules/database/migrations.ts`
+  - `server/modules/database/repositories/session-pins.db.ts`
+  - `server/modules/database/repositories/sessions.db.ts`
+  - `server/modules/database/schema.ts`
+  - `server/modules/database/tests/session-pins.db.integration.test.ts`
+  - `server/modules/providers/index.ts`
+  - `server/modules/providers/list/codex/codex-app-server.client.ts`
+  - `server/modules/providers/list/codex/codex-cli.ts`
+  - `server/modules/providers/list/codex/codex-models.provider.ts`
+  - `server/modules/providers/provider.routes.ts`
+  - `server/modules/providers/services/provider-cli.service.ts`
+  - `server/modules/providers/services/provider-models.service.ts`
+  - `server/modules/providers/services/sessions.service.ts`
+  - `server/modules/providers/tests/codex-cli.test.ts`
+  - `server/modules/providers/tests/codex-side-question.test.ts`
+  - `server/modules/providers/tests/provider-cli.service.test.ts`
+  - `server/modules/providers/tests/provider-models.service.test.ts`
+  - `server/modules/providers/tests/provider.routes.test.ts`
+  - `server/modules/providers/tests/session-pins.test.ts`
+  - `server/modules/websocket/services/shell-websocket.service.ts`
+  - `server/modules/websocket/tests/shell-websocket.service.test.ts`
+  - `server/shared/index.ts`
+  - `server/shared/tests/secrets-match.test.ts`
+  - `server/shared/types.ts`
+  - `server/shared/utils.ts`
+  - `src/index.css`
+  - `src/modules/chat/ChatInterface.tsx`
+  - `src/modules/chat/composer/AttachmentRejectionNotice.tsx`
+  - `src/modules/chat/composer/ChatComposer.tsx`
+  - `src/modules/chat/composer/ComposerAttachment.tsx`
+  - `src/modules/chat/composer/QueuedMessageCard.tsx`
+  - `src/modules/chat/composer/ScheduledMessageList.tsx`
+  - `src/modules/chat/composer/SteeredMessageCard.tsx`
+  - `src/modules/chat/hooks/useChatComposerState.ts`
+  - `src/modules/chat/tests/attachmentRejections.test.tsx`
+  - `src/modules/chat/tests/chatComposerSendMenu.test.tsx`
+  - `src/modules/chat/tests/markdownTable.test.tsx`
+  - `src/modules/chat/tests/questionPanelTokenUsage.test.tsx`
+  - `src/modules/chat/tests/uploadAttachmentFiles.test.ts`
+  - `src/modules/chat/transcript/ChatMessagesPane.tsx`
+  - `src/modules/chat/transcript/Markdown.tsx`
+  - `src/modules/chat/utils/uploadAttachmentFiles.ts`
+  - `src/modules/code-editor/hooks/useEditorSidebar.ts`
+  - `src/modules/code-editor/tests/editorResizeStart.test.tsx`
+  - `src/modules/i18n/locales/en/chat.json`
+  - `src/modules/i18n/locales/en/sidebar.json`
+  - `src/modules/i18n/locales/ko/sidebar.json`
+  - `src/modules/i18n/locales/zh-CN/chat.json`
+  - `src/modules/i18n/locales/zh-CN/sidebar.json`
+  - `src/modules/settings/tests/providerCliVersion.test.tsx`
+  - `src/modules/sidebar/SessionOptions.tsx`
+  - `src/modules/sidebar/SessionPinButton.tsx`
+  - `src/modules/sidebar/SessionPinsProvider.tsx`
+  - `src/modules/sidebar/Sidebar.tsx`
+  - `src/modules/sidebar/SidebarContent.tsx`
+  - `src/modules/sidebar/SidebarPinnedSessions.tsx`
+  - `src/modules/sidebar/SidebarProjectItem.tsx`
+  - `src/modules/sidebar/SidebarProjectList.tsx`
+  - `src/modules/sidebar/SidebarProjectSessions.tsx`
+  - `src/modules/sidebar/SidebarRecentConversations.tsx`
+  - `src/modules/sidebar/SidebarSessionItem.tsx`
+  - `src/modules/sidebar/context/SessionPinsContext.ts`
+  - `src/modules/sidebar/hooks/useSessionPins.ts`
+  - `src/modules/sidebar/tests/projectSessionTree.test.ts`
+  - `src/modules/sidebar/tests/sessionPins.test.tsx`
+  - `src/modules/sidebar/utils/projectSessionTree.ts`
+  - `src/shared/api.ts`
+  - `src/shared/constants.ts`
+  - `src/shared/types.ts`
+  - `.dockerignore`
+  - `.env.example`
+  - `.finesse/log.json`
+  - `.github/workflows/desktop-linux-branch-build.yml`
+  - `.gitignore`
+  - `.husky/pre-commit`
+  - `.oxlintrc.json`
+  - `AGENTS.md`
+  - `README.md`
+  - `deploy/CHANGELOG.md`
+  - `deploy/README.md`
+  - `deploy/agent-api.conf`
+  - `deploy/bootstrap-user.py`
+  - `deploy/cache-frontend.py`
+  - `deploy/cloudcli-backend.service`
+  - `deploy/configure-cloudflare.py`
+  - `deploy/frontend.conf`
+  - `deploy/publish-frontend.py`
+  - `deploy/publish-plugins.py`
+  - `deploy/publish-static.mjs`
+  - `deploy/run-backend.py`
+  - `deploy/static-cdn.json`
+  - `deploy/summarize-cloudcli-traffic.py`
+  - `deploy/verify-services.py`
+  - `docs/codex-app-server-rollout.md`
+  - `docs/nas/browser-backend-traffic.md`
+  - `docs/nas/codex-agent-monitor-plan.md`
+  - `docs/nas/request-compression.md`
+  - `docs/nas/upstream-1376-memory.md`
+  - `docs/nas/upstream-base.txt`
+  - `local-plugins/cloudcli-codex-agents/README.md`
+  - `local-plugins/cloudcli-codex-agents/manifest.json`
+  - `local-plugins/cloudcli-codex-agents/package.json`
+  - `local-plugins/cloudcli-codex-agents/pnpm-lock.yaml`
+  - `local-plugins/cloudcli-codex-agents/pnpm-workspace.yaml`
+  - `local-plugins/cloudcli-codex-agents/src/history.ts`
+  - `local-plugins/cloudcli-codex-agents/src/index.ts`
+  - `local-plugins/cloudcli-codex-agents/src/reader.ts`
+  - `local-plugins/cloudcli-codex-agents/src/server.ts`
+  - `local-plugins/cloudcli-codex-agents/tsconfig.json`
+  - `local-plugins/cloudcli-host-dashboard/README.md`
+  - `local-plugins/cloudcli-host-dashboard/icon.svg`
+  - `local-plugins/cloudcli-host-dashboard/manifest.json`
+  - `local-plugins/cloudcli-host-dashboard/package.json`
+  - `local-plugins/cloudcli-host-dashboard/pnpm-lock.yaml`
+  - `local-plugins/cloudcli-host-dashboard/pnpm-workspace.yaml`
+  - `local-plugins/cloudcli-host-dashboard/src/index.ts`
+  - `local-plugins/cloudcli-host-dashboard/src/metrics.test.ts`
+  - `local-plugins/cloudcli-host-dashboard/src/metrics.ts`
+  - `local-plugins/cloudcli-host-dashboard/src/server.ts`
+  - `local-plugins/cloudcli-host-dashboard/tsconfig.json`
+  - `package-lock.json`
+  - `pnpm-workspace.yaml`
+  - `public/favicon-c137-a6353f89.ico`
+  - `public/favicon-c137-a6353f89.png`
+  - `public/favicon.ico`
+  - `public/favicon.png`
+  - `public/favicon.svg`
+  - `public/icons/c137-a6353f89-128.png`
+  - `public/icons/c137-a6353f89-144.png`
+  - `public/icons/c137-a6353f89-152.png`
+  - `public/icons/c137-a6353f89-180.png`
+  - `public/icons/c137-a6353f89-192.png`
+  - `public/icons/c137-a6353f89-384.png`
+  - `public/icons/c137-a6353f89-512.png`
+  - `public/icons/c137-a6353f89-72.png`
+  - `public/icons/c137-a6353f89-96.png`
+  - `public/icons/icon-128x128.png`
+  - `public/icons/icon-144x144.png`
+  - `public/icons/icon-152x152.png`
+  - `public/icons/icon-180x180.png`
+  - `public/icons/icon-192x192.png`
+  - `public/icons/icon-384x384.png`
+  - `public/icons/icon-512x512.png`
+  - `public/icons/icon-72x72.png`
+  - `public/icons/icon-96x96.png`
+  - `public/logo-128.png`
+  - `public/logo-256.png`
+  - `public/logo-32.png`
+  - `public/logo-512.png`
+  - `public/logo-64.png`
+  - `public/manifest.json`
+  - `public/sw.js`
+  - `scripts/generate-brand-icons.mjs`
+  - `scripts/record-nas-changes.mjs`
+  - `server/modules/agent/agent.routes.ts`
+  - `server/modules/assets/services/image-assets.service.ts`
+  - `server/modules/auth/index.ts`
+  - `server/modules/auth/response-cache.middleware.ts`
+  - `server/modules/auth/tests/cors-policy.test.ts`
+  - `server/modules/commands/commands.routes.ts`
+  - `server/modules/database/repositories/codex-context.db.ts`
+  - `server/modules/file-tree/file-tree.routes.ts`
+  - `server/modules/file-tree/file-tree.service.ts`
+  - `server/modules/file-tree/tests/file-tree.service.test.ts`
+  - `server/modules/notifications/index.ts`
+  - `server/modules/notifications/services/notification-orchestrator.service.js`
+  - `server/modules/plugins/plugin-process.service.ts`
+  - `server/modules/plugins/plugins.routes.ts`
+  - `server/modules/plugins/tests/plugins.service.test.ts`
+  - `server/modules/projects/project-clone.routes.ts`
+  - `server/modules/projects/services/project-delete.service.ts`
+  - `server/modules/providers/README.md`
+  - `server/modules/providers/list/claude/claude-runtime.provider.ts`
+  - `server/modules/providers/list/claude/claude-session-synchronizer.provider.ts`
+  - `server/modules/providers/list/codex/codex-app-server.config.ts`
+  - `server/modules/providers/list/codex/codex-app-server.process.ts`
+  - `server/modules/providers/list/codex/codex-app-server.runtime.ts`
+  - `server/modules/providers/list/codex/codex-app-server.transport.ts`
+  - `server/modules/providers/list/codex/codex-auth.provider.ts`
+  - `server/modules/providers/list/codex/codex-runtime.provider.ts`
+  - `server/modules/providers/list/codex/codex-sessions.provider.ts`
+  - `server/modules/providers/list/opencode/opencode-auth.provider.ts`
+  - `server/modules/providers/list/opencode/opencode-config.ts`
+  - `server/modules/providers/list/opencode/opencode-sessions.provider.ts`
+  - `server/modules/providers/services/codex-context-limits.service.ts`
+  - `server/modules/providers/services/codex-history-images.service.ts`
+  - `server/modules/providers/services/codex-history-reader.service.ts`
+  - `server/modules/providers/services/codex-image-context.service.ts`
+  - `server/modules/providers/services/codex-image-proxy.service.ts`
+  - `server/modules/providers/services/codex-request-compression.service.ts`
+  - `server/modules/providers/services/provider-runtime.service.ts`
+  - `server/modules/providers/services/provider-session-settings.service.ts`
+  - `server/modules/providers/services/provider-token-usage.service.ts`
+  - `server/modules/providers/services/session-history-cache.service.ts`
+  - `server/modules/providers/services/sessions-watcher.service.ts`
+  - `server/modules/providers/tests/codex-app-server.process.test.ts`
+  - `server/modules/providers/tests/codex-app-server.runtime.test.ts`
+  - `server/modules/providers/tests/codex-app-server.transport.test.ts`
+  - `server/modules/providers/tests/codex-context-limits.service.test.ts`
+  - `server/modules/providers/tests/codex-history-memory.test.ts`
+  - `server/modules/providers/tests/codex-image-cleanup.test.ts`
+  - `server/modules/providers/tests/codex-models.test.ts`
+  - `server/modules/providers/tests/codex-request-compression.test.ts`
+  - `server/modules/providers/tests/codex-runtime.test.ts`
+  - `server/modules/providers/tests/codex-sessions.test.ts`
+  - `server/modules/providers/tests/opencode-sessions.test.ts`
+  - `server/modules/providers/tests/provider-abort-notifications.test.ts`
+  - `server/modules/providers/tests/provider-runtime.service.test.ts`
+  - `server/modules/providers/tests/provider-token-usage.service.test.ts`
+  - `server/modules/providers/tests/session-history-cache.service.test.ts`
+  - `server/modules/providers/tests/sessions-watcher.test.ts`
+  - `server/modules/scheduled-messages/scheduled-messages.routes.ts`
+  - `server/modules/scheduled-messages/services/scheduled-message-dispatcher.service.ts`
+  - `server/modules/scheduled-messages/tests/scheduled-messages.test.ts`
+  - `server/modules/user/tests/user.service.test.ts`
+  - `server/modules/websocket/README.md`
+  - `server/modules/websocket/services/chat-run-registry.service.ts`
+  - `server/modules/websocket/services/chat-session-writer.service.ts`
+  - `server/modules/websocket/services/chat-websocket.service.ts`
+  - `server/modules/websocket/tests/chat-run-registry.test.ts`
+  - `server/modules/websocket/tests/chat-steer.test.ts`
+  - `server/shared/image-attachments.ts`
+  - `server/shared/interfaces.ts`
+  - `server/shared/tests/read-only-roots.test.ts`
+  - `server/shared/tests/workspace-path-map.test.ts`
+  - `server/tsconfig.json`
+  - `src/App.tsx`
+  - `src/assets/c137-logo.webp`
+  - `src/assets/user-avatar.jpg`
+  - `src/modules/auth/AuthLoadingScreen.tsx`
+  - `src/modules/auth/AuthScreenLayout.tsx`
+  - `src/modules/auth/context/AuthContext.tsx`
+  - `src/modules/auth/tests/authTokenRefreshRemount.test.tsx`
+  - `src/modules/chat/composer/ActivityIndicator.tsx`
+  - `src/modules/chat/composer/ComposerMenuPrimitives.tsx`
+  - `src/modules/chat/composer/ComposerModelMenu.tsx`
+  - `src/modules/chat/composer/ModelGroupList.tsx`
+  - `src/modules/chat/composer/PermissionRequestsBanner.tsx`
+  - `src/modules/chat/composer/TokenUsageSummary.tsx`
+  - `src/modules/chat/context/TranscriptSessionContext.ts`
+  - `src/modules/chat/hooks/useChatMessages.ts`
+  - `src/modules/chat/hooks/useChatProviderState.ts`
+  - `src/modules/chat/hooks/useChatRealtimeHandlers.ts`
+  - `src/modules/chat/hooks/useChatSessionState.ts`
+  - `src/modules/chat/hooks/useCodexFastState.ts`
+  - `src/modules/chat/hooks/useSessionStore.ts`
+  - `src/modules/chat/modals/CodexContextPanel.tsx`
+  - `src/modules/chat/modals/CommandResultModal.tsx`
+  - `src/modules/chat/tests/AskUserQuestionPanel.test.tsx`
+  - `src/modules/chat/tests/AsyncQuestionCard.test.tsx`
+  - `src/modules/chat/tests/activityIndicatorBackground.test.tsx`
+  - `src/modules/chat/tests/chatProviderModels.test.ts`
+  - `src/modules/chat/tests/codexFastState.test.ts`
+  - `src/modules/chat/tests/composerQueuedFollowUps.test.ts`
+  - `src/modules/chat/tests/composerSendOverBackgroundWork.test.ts`
+  - `src/modules/chat/tests/composerTextEditing.test.tsx`
+  - `src/modules/chat/tests/composerToolsSettingsResolution.test.ts`
+  - `src/modules/chat/tests/contextUsageDisplay.test.tsx`
+  - `src/modules/chat/tests/fileReferenceLinks.test.tsx`
+  - `src/modules/chat/tests/leaveSessionWithBackgroundWork.test.tsx`
+  - `src/modules/chat/tests/markdownImage.test.tsx`
+  - `src/modules/chat/tests/permissionRequestsBanner.test.tsx`
+  - `src/modules/chat/tests/sessionMessageReconciliation.test.ts`
+  - `src/modules/chat/tests/sessionStoreTruncate.test.tsx`
+  - `src/modules/chat/tests/tokenUsageSummaryFormat.test.tsx`
+  - `src/modules/chat/tools/InteractiveRenderers/AskUserQuestionPanel.tsx`
+  - `src/modules/chat/tools/SubagentPanel.tsx`
+  - `src/modules/chat/transcript/AsyncQuestionCard.tsx`
+  - `src/modules/chat/transcript/BackgroundTasksStrip.tsx`
+  - `src/modules/chat/transcript/MessageComponent.tsx`
+  - `src/modules/chat/transcript/WorkspaceFileLink.tsx`
+  - `src/modules/chat/utils/sessionMessageReconciliation.ts`
+  - `src/modules/code-editor/CodeEditorBinaryFile.tsx`
+  - `src/modules/code-editor/CodeEditorHeader.tsx`
+  - `src/modules/code-editor/CodeEditorMediaPreview.tsx`
+  - `src/modules/code-editor/hooks/useCodeEditorDocument.ts`
+  - `src/modules/code-editor/utils/binaryFile.ts`
+  - `src/modules/code-editor/utils/previewableFile.ts`
+  - `src/modules/codex-agents/CodexAgentsActivity.tsx`
+  - `src/modules/codex-agents/CodexAgentsPanel.tsx`
+  - `src/modules/codex-agents/CodexAgentsPlugin.tsx`
+  - `src/modules/codex-agents/context/CodexAgentsContext.tsx`
+  - `src/modules/codex-agents/index.ts`
+  - `src/modules/codex-agents/tests/codexAgentsState.test.tsx`
+  - `src/modules/command-palette/CommandPalette.tsx`
+  - `src/modules/file-tree/FileTree.tsx`
+  - `src/modules/file-tree/FileTreeNode.tsx`
+  - `src/modules/file-tree/hooks/useFileTreeData.ts`
+  - `src/modules/i18n/locales/cs/auth.json`
+  - `src/modules/i18n/locales/cs/common.json`
+  - `src/modules/i18n/locales/cs/settings.json`
+  - `src/modules/i18n/locales/cs/sidebar.json`
+  - `src/modules/i18n/locales/de/auth.json`
+  - `src/modules/i18n/locales/de/common.json`
+  - `src/modules/i18n/locales/de/settings.json`
+  - `src/modules/i18n/locales/de/sidebar.json`
+  - `src/modules/i18n/locales/en/auth.json`
+  - `src/modules/i18n/locales/en/common.json`
+  - `src/modules/i18n/locales/en/settings.json`
+  - `src/modules/i18n/locales/es/auth.json`
+  - `src/modules/i18n/locales/es/common.json`
+  - `src/modules/i18n/locales/es/settings.json`
+  - `src/modules/i18n/locales/es/sidebar.json`
+  - `src/modules/i18n/locales/fr/auth.json`
+  - `src/modules/i18n/locales/fr/common.json`
+  - `src/modules/i18n/locales/fr/settings.json`
+  - `src/modules/i18n/locales/fr/sidebar.json`
+  - `src/modules/i18n/locales/he/auth.json`
+  - `src/modules/i18n/locales/he/common.json`
+  - `src/modules/i18n/locales/he/settings.json`
+  - `src/modules/i18n/locales/he/sidebar.json`
+  - `src/modules/i18n/locales/id/auth.json`
+  - `src/modules/i18n/locales/id/common.json`
+  - `src/modules/i18n/locales/id/settings.json`
+  - `src/modules/i18n/locales/id/sidebar.json`
+  - `src/modules/i18n/locales/it/auth.json`
+  - `src/modules/i18n/locales/it/common.json`
+  - `src/modules/i18n/locales/it/settings.json`
+  - `src/modules/i18n/locales/it/sidebar.json`
+  - `src/modules/i18n/locales/ja/auth.json`
+  - `src/modules/i18n/locales/ja/common.json`
+  - `src/modules/i18n/locales/ja/settings.json`
+  - `src/modules/i18n/locales/ja/sidebar.json`
+  - `src/modules/i18n/locales/ko/auth.json`
+  - `src/modules/i18n/locales/ko/common.json`
+  - `src/modules/i18n/locales/ko/settings.json`
+  - `src/modules/i18n/locales/pt-BR/auth.json`
+  - `src/modules/i18n/locales/pt-BR/common.json`
+  - `src/modules/i18n/locales/pt-BR/settings.json`
+  - `src/modules/i18n/locales/pt-BR/sidebar.json`
+  - `src/modules/i18n/locales/ru/auth.json`
+  - `src/modules/i18n/locales/ru/common.json`
+  - `src/modules/i18n/locales/ru/settings.json`
+  - `src/modules/i18n/locales/ru/sidebar.json`
+  - `src/modules/i18n/locales/tr/auth.json`
+  - `src/modules/i18n/locales/tr/common.json`
+  - `src/modules/i18n/locales/tr/settings.json`
+  - `src/modules/i18n/locales/tr/sidebar.json`
+  - `src/modules/i18n/locales/zh-CN/auth.json`
+  - `src/modules/i18n/locales/zh-CN/common.json`
+  - `src/modules/i18n/locales/zh-CN/git.json`
+  - `src/modules/i18n/locales/zh-CN/settings.json`
+  - `src/modules/i18n/locales/zh-TW/auth.json`
+  - `src/modules/i18n/locales/zh-TW/chat.json`
+  - `src/modules/i18n/locales/zh-TW/common.json`
+  - `src/modules/i18n/locales/zh-TW/settings.json`
+  - `src/modules/i18n/locales/zh-TW/sidebar.json`
+  - `src/modules/plugins/PluginIcon.tsx`
+  - `src/modules/plugins/PluginTabContent.tsx`
+  - `src/modules/plugins/tests/hostDashboardPolling.test.ts`
+  - `src/modules/plugins/tests/pluginGitErrors.test.tsx`
+  - `src/modules/project-creation-wizard/FolderBrowserModal.tsx`
+  - `src/modules/project-creation-wizard/utils/workspaceApi.ts`
+  - `src/modules/project-workspace/ProjectWorkspaceRoute.tsx`
+  - `src/modules/project-workspace/WorkspaceHeader.tsx`
+  - `src/modules/project-workspace/WorkspaceMain.tsx`
+  - `src/modules/quick-settings-panel/QuickSettingsPanelView.tsx`
+  - `src/modules/settings/DefaultDirectorySetting.tsx`
+  - `src/modules/settings/Settings.tsx`
+  - `src/modules/settings/hooks/useSettingsController.ts`
+  - `src/modules/settings/tabs/AppearanceSettingsTab.tsx`
+  - `src/modules/settings/tabs/agents-settings/AgentsSettingsTab.tsx`
+  - `src/modules/settings/tabs/agents-settings/sections/AgentCategoryContentSection.tsx`
+  - `src/modules/settings/tabs/agents-settings/sections/content/PermissionsContent.tsx`
+  - `src/modules/settings/tabs/agents-settings/sections/content/ProviderCliVersion.tsx`
+  - `src/modules/settings/tests/codexPermissionsRuntime.test.tsx`
+  - `src/modules/settings/tests/fontSizeControls.test.tsx`
+  - `src/modules/settings/tests/notificationWebhookCard.test.tsx`
+  - `src/modules/shell/utils/socket.ts`
+  - `src/modules/sidebar/SidebarCollapsed.tsx`
+  - `src/modules/sidebar/SidebarFooter.tsx`
+  - `src/modules/sidebar/SidebarHeader.tsx`
+  - `src/shared/chatDrafts.ts`
+  - `src/shared/context/SessionProtectionContext.tsx`
+  - `src/shared/context/UiPreferencesContext.tsx`
+  - `src/shared/context/WebSocketContext.tsx`
+  - `src/shared/hooks/useAdaptivePolling.ts`
+  - `src/shared/hooks/useDefaultDirectory.ts`
+  - `src/shared/hooks/useFontSizes.ts`
+  - `src/shared/hooks/useSessionProtection.ts`
+  - `src/shared/hooks/useVersionCheck.ts`
+  - `src/shared/tests/adaptivePolling.test.tsx`
+  - `src/shared/tests/authenticatedFetch.test.ts`
+  - `src/shared/tests/backgroundSessionActivity.test.tsx`
+  - `src/shared/tests/chatDrafts.test.ts`
+  - `src/shared/tests/fontSizes.test.tsx`
+  - `src/shared/tests/pageTitle.test.ts`
+  - `src/shared/tests/readApiJson.test.ts`
+  - `src/shared/tests/snapshotRequests.test.ts`
+  - `src/shared/tests/useVersionCheck.test.tsx`
+  - `src/shared/tests/versionApi.test.ts`
+  - `src/shared/userSettings.ts`
+  - `src/shared/utils.ts`
+  - `tsconfig.json`
+  - `vite.config.js`
+  - `vitest.setup.ts`
 
 ## 从 PR / 其他分支合入的提交
 
