@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 
+import { createAssetUploadMiddleware, INVALID_IMAGE_TYPE } from '@/modules/assets/upload.middleware.js';
 import {
   prepareStoredAttachmentRecords,
   ensureImageAssetsDir,
@@ -9,6 +10,8 @@ import {
 } from '@/modules/assets/services/image-assets.service.js';
 
 const router = express.Router();
+const IMAGE_UPLOAD_LIMITS = { fileSize: 5 * 1024 * 1024, files: 5 };
+const FILE_UPLOAD_LIMITS = { fileSize: 10 * 1024 * 1024, files: 10 };
 
 // Multer writes uploads straight into the global assets folder; the service
 // owns the folder location and the response record shape.
@@ -31,42 +34,31 @@ const upload = multer({
     if (isAllowedImageMimeType(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, WebP, and SVG are allowed.'));
+      cb(new Error(INVALID_IMAGE_TYPE));
     }
   },
-  limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB
-    files: 5,
-  },
+  limits: IMAGE_UPLOAD_LIMITS,
 });
 
 const attachmentUpload = multer({
   storage,
-  limits: {
-    fileSize: 10 * 1024 * 1024,
-    files: 10,
-  },
+  limits: FILE_UPLOAD_LIMITS,
 });
 
 /**
  * Stores chat image attachments in the global `~/.cloudcli/assets` folder and
  * returns their absolute paths for use in provider prompts and chat history.
  */
-router.post('/images', (req, res) => {
-  upload.array('images', 5)(req, res, (err: unknown) => {
-    if (err) {
-      const message = err instanceof Error ? err.message : 'Upload failed';
-      return res.status(400).json({ error: message });
-    }
+router.post('/images', createAssetUploadMiddleware(upload.array('images', IMAGE_UPLOAD_LIMITS.files), {
+  kind: 'images', maxBytes: IMAGE_UPLOAD_LIMITS.fileSize, maxFiles: IMAGE_UPLOAD_LIMITS.files,
+}), (req, res) => {
+  const files = Array.isArray(req.files) ? req.files : [];
+  if (files.length === 0) {
+    return res.status(400).json({ error: 'No image files provided' });
+  }
 
-    const files = Array.isArray(req.files) ? req.files : [];
-    if (files.length === 0) {
-      return res.status(400).json({ error: 'No image files provided' });
-    }
-
-    void prepareStoredAttachmentRecords(files).then(images => res.json({ images })).catch(() => {
-      res.status(500).json({ error: 'Unable to prepare uploaded images' });
-    });
+  void prepareStoredAttachmentRecords(files).then(images => res.json({ images })).catch(() => {
+    res.status(500).json({ error: 'Unable to prepare uploaded images' });
   });
 });
 
@@ -75,21 +67,16 @@ router.post('/images', (req, res) => {
  * accepted because providers inspect them as data through their file-reading
  * tools; uploads are capped at 10 files and 10MB per file.
  */
-router.post('/files', (req, res) => {
-  attachmentUpload.array('files', 10)(req, res, (err: unknown) => {
-    if (err) {
-      const message = err instanceof Error ? err.message : 'Upload failed';
-      return res.status(400).json({ error: message });
-    }
+router.post('/files', createAssetUploadMiddleware(attachmentUpload.array('files', FILE_UPLOAD_LIMITS.files), {
+  kind: 'files', maxBytes: FILE_UPLOAD_LIMITS.fileSize, maxFiles: FILE_UPLOAD_LIMITS.files,
+}), (req, res) => {
+  const files = Array.isArray(req.files) ? req.files : [];
+  if (files.length === 0) {
+    return res.status(400).json({ error: 'No files provided' });
+  }
 
-    const files = Array.isArray(req.files) ? req.files : [];
-    if (files.length === 0) {
-      return res.status(400).json({ error: 'No files provided' });
-    }
-
-    void prepareStoredAttachmentRecords(files).then(attachments => res.json({ attachments })).catch(() => {
-      res.status(500).json({ error: 'Unable to prepare uploaded attachments' });
-    });
+  void prepareStoredAttachmentRecords(files).then(attachments => res.json({ attachments })).catch(() => {
+    res.status(500).json({ error: 'Unable to prepare uploaded attachments' });
   });
 });
 

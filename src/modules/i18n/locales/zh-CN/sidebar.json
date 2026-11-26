@@ -1,4 +1,10 @@
 {
+  "pinned": {
+    "title": "置顶对话",
+    "pin": "置顶对话",
+    "unpin": "取消置顶",
+    "error": "无法加载或保存置顶对话，请重试。"
+  },
   "projects": {
     "title": "项目",
     "newProject": "新建项目",

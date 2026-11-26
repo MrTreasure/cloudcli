@@ -5,6 +5,6 @@ export function createCorsPolicy(frontendOrigin: string | undefined): CorsOption
   return {
     origin: frontendOrigin ? (origin, callback) => callback(null, origin === frontendOrigin) : false,
     maxAge: 600,
-    exposedHeaders: ['X-Refreshed-Token', 'X-Auth-Error'],
+    exposedHeaders: ['X-Refreshed-Token', 'X-Auth-Error', 'X-Upload-Request-ID'],
   };
 }

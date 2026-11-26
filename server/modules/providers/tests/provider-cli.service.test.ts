@@ -48,7 +48,8 @@ if (command === '--version') {
   }
   process.exit(Number(read('version-exit', '0')));
 }
-if (command === 'update' || command === 'upgrade') {
+// 'install' stands in for npm, which Codex's fallback updater runs.
+if (command === 'update' || command === 'upgrade' || command === 'install') {
   fs.writeFileSync(path.join(dir, 'update-count'), String(Number(read('update-count', '0')) + 1));
   if (read('ignore-sigterm', '')) {
     process.on('SIGTERM', () => {});
@@ -465,6 +466,46 @@ test('Cursor has no npm release to compare with; Codex uses the machine CLI; pla
     assert.equal(platformClaude.installedVersion, '2.1.200');
     assert.equal(platformClaude.latestVersion, null);
     assert.equal(platformClaude.updateAvailable, false);
+
+    const platformCodex = await platformService.getCliStatus('codex');
+    assert.equal(platformCodex.updateCommand, null);
+    assert.equal(platformCodex.updateUnavailableReason, 'platform');
+  });
+});
+
+// ----------------- Codex ------------
+
+test('an absent host Codex is not installed by the web updater', async () => {
+  await withIsolatedCliEnv(async () => {
+    delete process.env.CODEX_CLI_PATH;
+    const registry = createFakeRegistry(async () => jsonResponse({ version: '9999.0.0' }));
+    const service = createService({ fetch: registry.fetch });
+    const status = await service.getCliStatus('codex');
+    assert.equal(status.installed, false);
+    assert.equal(status.updateCommand, null);
+    assert.equal(registry.calls.length, 0);
+    await rejectsWithAppError(service.updateCli('codex'), 'PROVIDER_CLI_NOT_INSTALLED', 409);
+  });
+});
+
+test('the host Codex on PATH updates itself through Settings', async () => {
+  await withIsolatedCliEnv(async (binDir) => {
+    delete process.env.CODEX_CLI_PATH;
+    const registry = createFakeRegistry(async () => jsonResponse({ version: '9999.0.0' }));
+    const service = createService({ fetch: registry.fetch });
+    const codex = await createFakeCli(binDir, 'codex');
+    await codex.set('version', 'codex-cli 0.163.0\n');
+    await codex.set('update-new-version', 'codex-cli 9999.0.0\n');
+    const status = await service.getCliStatus('codex');
+    assert.equal(status.installedVersion, '0.163.0');
+    assert.equal(status.updateCommand, 'codex update');
+    assert.equal(status.updateAvailable, true);
+    const result = await service.updateCli('codex');
+    assert.equal(result.command, 'codex update');
+    assert.equal(result.previousVersion, '0.163.0');
+    assert.equal(result.installedVersion, '9999.0.0');
+    assert.equal(result.failure, null);
+    assert.equal(await codex.read('update-count'), '1');
   });
 });
 

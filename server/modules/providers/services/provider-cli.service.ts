@@ -5,7 +5,7 @@ import { sessionsService } from '@/modules/providers/services/sessions.service.j
 import { resolveClaudeCodeExecutablePath } from '@/shared/claude-cli-path.js';
 import type { IProvider } from '@/shared/interfaces.js';
 import type { CliVersionProbe, LLMProvider } from '@/shared/types.js';
-import { AppError, IS_PLATFORM, stripAnsiSequences } from '@/shared/utils.js';
+import { AppError, IS_PLATFORM, isNewerVersion, isReleaseVersion, stripAnsiSequences } from '@/shared/utils.js';
 
 /** How long the registry's answer is reused before it is asked again. */
 const LATEST_VERSION_TTL_MS = 60 * 60 * 1000;
@@ -29,13 +29,18 @@ const UPDATE_RAW_OUTPUT_LIMIT = 256_000;
 // only passes on npm's exit code, which is 243 (errno -13, EACCES).
 const PERMISSION_DENIED_PATTERN = /\bEACCES\b|\bEPERM\b|permission denied|insufficient permissions|exit code 243\b/i;
 const FAILURE_PATTERN = /\bfailed\b/i;
-const RELEASE_VERSION_PATTERN = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
+
+/** One updater run: what is spawned, and how the settings page shows it. */
+type CliUpdateCommand = {
+  command: string;
+  args: string[];
+  /** Shown instead of `command` and `args` when those differ from what a user would type. */
+  displayCommand?: string;
+};
 
 type CliUpdater = {
-  /** The CLI chats run, or undefined when they run a binary that ships inside CloudCLI's dependencies. */
-  resolveCommand: () => string | undefined;
-  /** Arguments that make the CLI update itself. */
-  args: string[];
+  /** The updater, or undefined when chats run a binary that ships inside CloudCLI's dependencies. */
+  resolveUpdate: () => CliUpdateCommand | undefined;
   /** The npm package whose `latest` dist-tag is the newest release, or null when the CLI is not on npm. */
   npmPackage: string | null;
 };
@@ -43,24 +48,28 @@ type CliUpdater = {
 // Each CLI updates itself with its own updater. That updater knows how it was
 // installed (npm, a native installer, Homebrew, ...), which a blanket
 // `npm install -g` does not: on a native or Homebrew install it would add a
-// second copy that PATH may not even pick. Codex is absent on purpose: chats
-// use this machine’s Codex installation; upgrade it through its original installer.
+// second copy that PATH may not even pick.
 const CLI_UPDATERS: Partial<Record<LLMProvider, CliUpdater>> = {
   claude: {
     // undefined only on Windows when no CLI resolves: the SDK then runs its bundled binary.
-    resolveCommand: () => resolveClaudeCodeExecutablePath(process.env.CLAUDE_CLI_PATH),
-    args: ['update'],
+    resolveUpdate: () => {
+      const command = resolveClaudeCodeExecutablePath(process.env.CLAUDE_CLI_PATH);
+      return command ? { command, args: ['update'] } : undefined;
+    },
     npmPackage: '@anthropic-ai/claude-code',
+  },
+  codex: {
+    // A configured launcher is managed by the host (and may also back a daemon).
+    resolveUpdate: () => process.env.CODEX_CLI_PATH?.trim() ? undefined : { command: 'codex', args: ['update'] },
+    npmPackage: '@openai/codex',
   },
   cursor: {
     // cursor-agent is distributed by Cursor's installer only, so there is no registry to compare with.
-    resolveCommand: () => 'cursor-agent',
-    args: ['update'],
+    resolveUpdate: () => ({ command: 'cursor-agent', args: ['update'] }),
     npmPackage: null,
   },
   opencode: {
-    resolveCommand: () => 'opencode',
-    args: ['upgrade'],
+    resolveUpdate: () => ({ command: 'opencode', args: ['upgrade'] }),
     npmPackage: 'opencode-ai',
   },
 };
@@ -145,29 +154,6 @@ const defaultDependencies: ProviderCliServiceDependencies = {
   updateTimeoutMs: UPDATE_TIMEOUT_MS,
   updateKillGraceMs: UPDATE_KILL_GRACE_MS,
 };
-
-/**
- * Whether `candidate` is a later release than `current`. Both are
- * `major.minor.patch` with an optional prerelease; a release outranks its own
- * prereleases. Anything else (a date-based or unparsable version) compares as
- * not newer, so no update is ever advertised on a guess.
- */
-function isNewerVersion(candidate: string, current: string): boolean {
-  const next = RELEASE_VERSION_PATTERN.exec(candidate);
-  const installed = RELEASE_VERSION_PATTERN.exec(current);
-  if (!next || !installed) {
-    return false;
-  }
-
-  for (let index = 1; index <= 3; index += 1) {
-    const difference = Number(next[index]) - Number(installed[index]);
-    if (difference !== 0) {
-      return difference > 0;
-    }
-  }
-
-  return !next[4] && Boolean(installed[4]);
-}
 
 /** Renders the updater as a user would type it, for display only; it is spawned without a shell. */
 function formatCommand(command: string, args: string[]): string {
@@ -332,7 +318,7 @@ export function createProviderCliService(dependencyOverrides: Partial<ProviderCl
     }
     const manifest = (await response.json()) as { version?: unknown } | null;
     const version = typeof manifest?.version === 'string' ? manifest.version : null;
-    return version && RELEASE_VERSION_PATTERN.test(version) ? version : null;
+    return version && isReleaseVersion(version) ? version : null;
   };
 
   /** Never throws: an unreachable registry only means no "update available" hint. */
@@ -358,15 +344,17 @@ export function createProviderCliService(dependencyOverrides: Partial<ProviderCl
     return lookup;
   };
 
-  const resolveUpdateCommand = (provider: LLMProvider): { command: string; args: string[] } | null => {
-    const updater = CLI_UPDATERS[provider];
-    const command = updater?.resolveCommand();
-    return updater && command ? { command, args: updater.args } : null;
-  };
+  const resolveUpdateCommand = (provider: LLMProvider): CliUpdateCommand | null => (
+    CLI_UPDATERS[provider]?.resolveUpdate() ?? null
+  );
+
+  const displayUpdateCommand = (update: CliUpdateCommand): string => (
+    update.displayCommand ?? formatCommand(update.command, update.args)
+  );
 
   const runUpdate = async (
     provider: IProvider,
-    update: { command: string; args: string[] },
+    update: CliUpdateCommand,
     before: CliVersionProbe,
   ): Promise<ProviderCliUpdateResult> => {
     const run = await runUpdater(update.command, update.args, {
@@ -377,7 +365,7 @@ export function createProviderCliService(dependencyOverrides: Partial<ProviderCl
 
     return {
       provider: provider.id,
-      command: formatCommand(update.command, update.args),
+      command: displayUpdateCommand(update),
       exitCode: run.exitCode,
       output: run.output,
       previousVersion: before.version,
@@ -428,7 +416,8 @@ export function createProviderCliService(dependencyOverrides: Partial<ProviderCl
         installedVersion,
         latestVersion,
         updateAvailable: Boolean(installedVersion && latestVersion && isNewerVersion(latestVersion, installedVersion)),
-        updateCommand: update && updateUnavailableReason === null ? formatCommand(update.command, update.args) : null,
+        updateCommand: update && updateUnavailableReason === null && (provider.id !== 'codex' || installed)
+          ? displayUpdateCommand(update) : null,
         updateUnavailableReason,
         updateInProgress: Boolean(runAfterLookup),
         lastUpdate: lastUpdateResults.get(provider.id) ?? null,

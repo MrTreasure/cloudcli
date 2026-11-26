@@ -173,6 +173,13 @@
     "placeholderDefault": "输入您的消息...",
     "disabled": "输入已禁用",
     "attachFiles": "附加文件",
+    "attachmentRejected": {
+      "title_one": "无法添加 {{count}} 个文件",
+      "title_other": "无法添加 {{count}} 个文件",
+      "tooLarge": "超过 {{maxSize}} MB",
+      "tooMany": "超过 {{maxCount}} 个文件的上限",
+      "dismiss": "关闭提示"
+    },
     "attachImages": "附加图片",
     "send": "发送",
     "stop": "停止",

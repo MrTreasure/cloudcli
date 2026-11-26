@@ -772,6 +772,18 @@
     }
   }
 
+  /* Share one width across transcript and composer; phones keep the full chat pane. */
+  .chat-content-width {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .chat-content-width {
+      max-width: 80%;
+    }
+  }
+
   /* Text wrapping improvements */
   .chat-message {
     word-wrap: break-word;

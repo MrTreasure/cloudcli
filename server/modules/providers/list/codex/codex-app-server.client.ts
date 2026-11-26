@@ -3,9 +3,9 @@ import { spawn } from 'node:child_process';
 import { stat } from 'node:fs/promises';
 import readline from 'node:readline';
 
+import { resolveCodexCommandLine } from '@/modules/providers/list/codex/codex-cli.js';
 import {
   AppError,
-  resolveCodexExecutable,
   SIDE_CONVERSATION_BOUNDARY_PROMPT,
   SIDE_CONVERSATION_DEVELOPER_INSTRUCTIONS,
   SIDE_QUESTION_ANSWER_SEPARATOR,
@@ -94,10 +94,12 @@ async function withAppServer<T>(
   }) => Promise<T>,
   signal?: AbortSignal,
 ): Promise<T> {
-  const launcher = codexAppServer.resolveLauncher();
-  const isNodeScript = /\.[cm]?js$/i.test(launcher);
-  const child = spawn(isNodeScript ? process.execPath : launcher, isNodeScript ? [launcher, 'app-server'] : ['app-server'], {
-    env: process.env,
+  // Resolved through the exported object, not a module-local function, so
+  // tests can replace `codexAppServer.resolveCommand` with a fake app-server
+  // script the same way they already replace `forkThread`.
+  const launch = codexAppServer.resolveCommand();
+  const child = spawn(launch.command, [...launch.args, 'app-server'], {
+    env: launch.env,
     stdio: ['pipe', 'pipe', 'pipe'],
   });
 
@@ -259,18 +261,18 @@ async function withAppServer<T>(
   }
 }
 
+/** Used by the Codex fork, sessions and runtime providers for forks, edits and side questions, which the SDK cannot express. */
 export const codexAppServer = {
   /**
-   * Resolves the `codex` launcher shipped in node_modules.
-   *
-   * Deliberately not the `codex` on PATH: a machine can have a second, older
-   * install, and the protocol this speaks is only guaranteed against the
-   * version this package depends on. A property on the exported object
-   * rather than a module function so tests can swap in a fake app-server
-   * script, the same seam `forkThread` already uses.
+   * Resolves how to start the Codex that chats run, without its `app-server`
+   * argument. Uses the same host launcher as the SDK. A
+   * property on the exported object rather than a module function so tests
+   * can swap in a fake app-server script, the same seam `forkThread` already
+   * uses.
    */
-  resolveLauncher(): string {
-    return resolveCodexExecutable();
+  resolveCommand(): { command: string; args: string[]; env: NodeJS.ProcessEnv } {
+    const [command, ...args] = resolveCodexCommandLine();
+    return { command, args, env: process.env };
   },
 
   /**

@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.9` (`f86543fad81d5687bea98644b752fa08fa0da538`)。历史覆盖至生成时的 HEAD：`c9901e9cb56f03a919b6059fc89bd070dc2f94a9`。
+官方基线：`v1.37.9` (`f86543fad81d5687bea98644b752fa08fa0da538`)。历史覆盖至生成时的 HEAD：`2a4b72cf75903afb908b247e9673109f7bca6719`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,17 +10,88 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
+| M | [CHANGELOG.md](../../CHANGELOG.md) | — |
 | M | [docs/nas/README.md](../../docs/nas/README.md) | — |
-| M | [local-plugins/cloudcli-codex-agents/README.md](../../local-plugins/cloudcli-codex-agents/README.md) | — |
-| M | [local-plugins/cloudcli-codex-agents/manifest.json](../../local-plugins/cloudcli-codex-agents/manifest.json) | — |
-| M | [local-plugins/cloudcli-codex-agents/src/reader.ts](../../local-plugins/cloudcli-codex-agents/src/reader.ts) | — |
-| M | [src/modules/chat/tools/SubagentPanel.tsx](../../src/modules/chat/tools/SubagentPanel.tsx) | — |
-| M | [src/modules/codex-agents/CodexAgentsActivity.tsx](../../src/modules/codex-agents/CodexAgentsActivity.tsx) | — |
-| M | [src/modules/codex-agents/CodexAgentsPanel.tsx](../../src/modules/codex-agents/CodexAgentsPanel.tsx) | — |
+| M | [docs/nas/upstream-sync-policy.md](../../docs/nas/upstream-sync-policy.md) | — |
+| M | [index.html](../../index.html) | — |
+| M | [package.json](../../package.json) | — |
+| M | [pnpm-lock.yaml](../../pnpm-lock.yaml) | — |
+| M | [server/index.ts](../../server/index.ts) | — |
+| M | [server/modules/assets/assets.routes.ts](../../server/modules/assets/assets.routes.ts) | — |
+| A | [server/modules/assets/tests/upload.middleware.test.ts](../../server/modules/assets/tests/upload.middleware.test.ts) | — |
+| A | [server/modules/assets/upload.middleware.ts](../../server/modules/assets/upload.middleware.ts) | — |
+| M | [server/modules/auth/auth.middleware.ts](../../server/modules/auth/auth.middleware.ts) | — |
+| M | [server/modules/auth/cors-policy.service.ts](../../server/modules/auth/cors-policy.service.ts) | — |
+| M | [server/modules/browser-use/browser-use-mcp.routes.ts](../../server/modules/browser-use/browser-use-mcp.routes.ts) | — |
+| M | [server/modules/database/index.ts](../../server/modules/database/index.ts) | — |
+| M | [server/modules/database/migrations.ts](../../server/modules/database/migrations.ts) | — |
+| A | [server/modules/database/repositories/session-pins.db.ts](../../server/modules/database/repositories/session-pins.db.ts) | — |
+| M | [server/modules/database/repositories/sessions.db.ts](../../server/modules/database/repositories/sessions.db.ts) | — |
+| M | [server/modules/database/schema.ts](../../server/modules/database/schema.ts) | — |
+| A | [server/modules/database/tests/session-pins.db.integration.test.ts](../../server/modules/database/tests/session-pins.db.integration.test.ts) | — |
+| M | [server/modules/providers/index.ts](../../server/modules/providers/index.ts) | — |
+| M | [server/modules/providers/list/codex/codex-app-server.client.ts](../../server/modules/providers/list/codex/codex-app-server.client.ts) | — |
+| A | [server/modules/providers/list/codex/codex-cli.ts](../../server/modules/providers/list/codex/codex-cli.ts) | — |
+| M | [server/modules/providers/list/codex/codex-models.provider.ts](../../server/modules/providers/list/codex/codex-models.provider.ts) | — |
+| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
+| M | [server/modules/providers/services/provider-cli.service.ts](../../server/modules/providers/services/provider-cli.service.ts) | — |
+| M | [server/modules/providers/services/provider-models.service.ts](../../server/modules/providers/services/provider-models.service.ts) | — |
+| M | [server/modules/providers/services/sessions.service.ts](../../server/modules/providers/services/sessions.service.ts) | — |
+| A | [server/modules/providers/tests/codex-cli.test.ts](../../server/modules/providers/tests/codex-cli.test.ts) | — |
+| M | [server/modules/providers/tests/codex-side-question.test.ts](../../server/modules/providers/tests/codex-side-question.test.ts) | — |
+| M | [server/modules/providers/tests/provider-cli.service.test.ts](../../server/modules/providers/tests/provider-cli.service.test.ts) | — |
+| M | [server/modules/providers/tests/provider-models.service.test.ts](../../server/modules/providers/tests/provider-models.service.test.ts) | — |
+| M | [server/modules/providers/tests/provider.routes.test.ts](../../server/modules/providers/tests/provider.routes.test.ts) | — |
+| A | [server/modules/providers/tests/session-pins.test.ts](../../server/modules/providers/tests/session-pins.test.ts) | — |
+| M | [server/modules/websocket/services/shell-websocket.service.ts](../../server/modules/websocket/services/shell-websocket.service.ts) | — |
+| M | [server/modules/websocket/tests/shell-websocket.service.test.ts](../../server/modules/websocket/tests/shell-websocket.service.test.ts) | — |
+| M | [server/shared/index.ts](../../server/shared/index.ts) | — |
+| A | [server/shared/tests/secrets-match.test.ts](../../server/shared/tests/secrets-match.test.ts) | — |
+| M | [server/shared/types.ts](../../server/shared/types.ts) | — |
+| M | [server/shared/utils.ts](../../server/shared/utils.ts) | — |
+| M | [src/index.css](../../src/index.css) | — |
+| M | [src/modules/chat/ChatInterface.tsx](../../src/modules/chat/ChatInterface.tsx) | — |
+| A | [src/modules/chat/composer/AttachmentRejectionNotice.tsx](../../src/modules/chat/composer/AttachmentRejectionNotice.tsx) | — |
+| M | [src/modules/chat/composer/ChatComposer.tsx](../../src/modules/chat/composer/ChatComposer.tsx) | — |
+| M | [src/modules/chat/composer/ComposerAttachment.tsx](../../src/modules/chat/composer/ComposerAttachment.tsx) | — |
+| M | [src/modules/chat/composer/QueuedMessageCard.tsx](../../src/modules/chat/composer/QueuedMessageCard.tsx) | — |
+| M | [src/modules/chat/composer/ScheduledMessageList.tsx](../../src/modules/chat/composer/ScheduledMessageList.tsx) | — |
+| M | [src/modules/chat/composer/SteeredMessageCard.tsx](../../src/modules/chat/composer/SteeredMessageCard.tsx) | — |
+| M | [src/modules/chat/hooks/useChatComposerState.ts](../../src/modules/chat/hooks/useChatComposerState.ts) | — |
+| A | [src/modules/chat/tests/attachmentRejections.test.tsx](../../src/modules/chat/tests/attachmentRejections.test.tsx) | — |
+| M | [src/modules/chat/tests/chatComposerSendMenu.test.tsx](../../src/modules/chat/tests/chatComposerSendMenu.test.tsx) | — |
+| A | [src/modules/chat/tests/markdownTable.test.tsx](../../src/modules/chat/tests/markdownTable.test.tsx) | — |
+| M | [src/modules/chat/tests/questionPanelTokenUsage.test.tsx](../../src/modules/chat/tests/questionPanelTokenUsage.test.tsx) | — |
+| A | [src/modules/chat/tests/uploadAttachmentFiles.test.ts](../../src/modules/chat/tests/uploadAttachmentFiles.test.ts) | — |
+| M | [src/modules/chat/transcript/ChatMessagesPane.tsx](../../src/modules/chat/transcript/ChatMessagesPane.tsx) | — |
+| M | [src/modules/chat/transcript/Markdown.tsx](../../src/modules/chat/transcript/Markdown.tsx) | — |
+| A | [src/modules/chat/utils/uploadAttachmentFiles.ts](../../src/modules/chat/utils/uploadAttachmentFiles.ts) | — |
+| M | [src/modules/code-editor/hooks/useEditorSidebar.ts](../../src/modules/code-editor/hooks/useEditorSidebar.ts) | — |
+| A | [src/modules/code-editor/tests/editorResizeStart.test.tsx](../../src/modules/code-editor/tests/editorResizeStart.test.tsx) | — |
 | M | [src/modules/i18n/locales/en/chat.json](../../src/modules/i18n/locales/en/chat.json) | — |
+| M | [src/modules/i18n/locales/en/sidebar.json](../../src/modules/i18n/locales/en/sidebar.json) | — |
+| M | [src/modules/i18n/locales/ko/sidebar.json](../../src/modules/i18n/locales/ko/sidebar.json) | — |
 | M | [src/modules/i18n/locales/zh-CN/chat.json](../../src/modules/i18n/locales/zh-CN/chat.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/common.json](../../src/modules/i18n/locales/zh-CN/common.json) | — |
-| M | [src/modules/i18n/locales/zh-CN/git.json](../../src/modules/i18n/locales/zh-CN/git.json) | — |
+| M | [src/modules/i18n/locales/zh-CN/sidebar.json](../../src/modules/i18n/locales/zh-CN/sidebar.json) | — |
+| M | [src/modules/settings/tests/providerCliVersion.test.tsx](../../src/modules/settings/tests/providerCliVersion.test.tsx) | — |
+| M | [src/modules/sidebar/SessionOptions.tsx](../../src/modules/sidebar/SessionOptions.tsx) | — |
+| A | [src/modules/sidebar/SessionPinButton.tsx](../../src/modules/sidebar/SessionPinButton.tsx) | — |
+| A | [src/modules/sidebar/SessionPinsProvider.tsx](../../src/modules/sidebar/SessionPinsProvider.tsx) | — |
+| M | [src/modules/sidebar/Sidebar.tsx](../../src/modules/sidebar/Sidebar.tsx) | — |
+| M | [src/modules/sidebar/SidebarContent.tsx](../../src/modules/sidebar/SidebarContent.tsx) | — |
+| A | [src/modules/sidebar/SidebarPinnedSessions.tsx](../../src/modules/sidebar/SidebarPinnedSessions.tsx) | — |
+| M | [src/modules/sidebar/SidebarProjectItem.tsx](../../src/modules/sidebar/SidebarProjectItem.tsx) | — |
+| M | [src/modules/sidebar/SidebarProjectList.tsx](../../src/modules/sidebar/SidebarProjectList.tsx) | — |
+| M | [src/modules/sidebar/SidebarProjectSessions.tsx](../../src/modules/sidebar/SidebarProjectSessions.tsx) | — |
+| M | [src/modules/sidebar/SidebarRecentConversations.tsx](../../src/modules/sidebar/SidebarRecentConversations.tsx) | — |
+| M | [src/modules/sidebar/SidebarSessionItem.tsx](../../src/modules/sidebar/SidebarSessionItem.tsx) | — |
+| A | [src/modules/sidebar/context/SessionPinsContext.ts](../../src/modules/sidebar/context/SessionPinsContext.ts) | — |
+| A | [src/modules/sidebar/hooks/useSessionPins.ts](../../src/modules/sidebar/hooks/useSessionPins.ts) | — |
+| M | [src/modules/sidebar/tests/projectSessionTree.test.ts](../../src/modules/sidebar/tests/projectSessionTree.test.ts) | — |
+| A | [src/modules/sidebar/tests/sessionPins.test.tsx](../../src/modules/sidebar/tests/sessionPins.test.tsx) | — |
+| M | [src/modules/sidebar/utils/projectSessionTree.ts](../../src/modules/sidebar/utils/projectSessionTree.ts) | — |
+| M | [src/shared/api.ts](../../src/shared/api.ts) | — |
+| M | [src/shared/constants.ts](../../src/shared/constants.ts) | — |
 | M | [src/shared/types.ts](../../src/shared/types.ts) | — |
 
 ## NAS 主线提交
@@ -2242,6 +2313,26 @@
   - `docs/nas/commit-log.md`
   - `docs/nas/file-index.md`
   - `docs/nas/upstream-base.txt`
+
+### 2a4b72cf · 2026-11-23 · fix: show native Codex agent tasks and simplify tab names
+
+- 完整提交：`2a4b72cf75903afb908b247e9673109f7bca6719`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/README.md`
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `local-plugins/cloudcli-codex-agents/README.md`
+  - `local-plugins/cloudcli-codex-agents/manifest.json`
+  - `local-plugins/cloudcli-codex-agents/src/reader.ts`
+  - `src/modules/chat/tools/SubagentPanel.tsx`
+  - `src/modules/codex-agents/CodexAgentsActivity.tsx`
+  - `src/modules/codex-agents/CodexAgentsPanel.tsx`
+  - `src/modules/i18n/locales/en/chat.json`
+  - `src/modules/i18n/locales/zh-CN/chat.json`
+  - `src/modules/i18n/locales/zh-CN/common.json`
+  - `src/modules/i18n/locales/zh-CN/git.json`
+  - `src/shared/types.ts`
 
 ## 从 PR / 其他分支合入的提交
 
