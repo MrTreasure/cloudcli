@@ -169,6 +169,31 @@ test('provider catalogs merge source-controlled defaults with custom persistence
   assert.deepEqual(catalog.rows.get('codex'), undefined);
 });
 
+test('Codex family hiding changes selection without removing models from existing sessions', async (t) => {
+  const previous = process.env.CLOUDCLI_CODEX_HIDDEN_MODEL_FAMILIES;
+  process.env.CLOUDCLI_CODEX_HIDDEN_MODEL_FAMILIES = ' gpt-5.6 ';
+  t.after(() => {
+    if (previous === undefined) delete process.env.CLOUDCLI_CODEX_HIDDEN_MODEL_FAMILIES;
+    else process.env.CLOUDCLI_CODEX_HIDDEN_MODEL_FAMILIES = previous;
+  });
+  const options = ['gpt-5.6-sol', 'gpt-5.6', 'gpt-6.2-astra', 'gpt-5.60'].map((value) => ({ value, label: value }));
+  const { service, catalog } = createTestService({
+    predefined: { OPTIONS: options, DEFAULT: 'gpt-5.6-sol' },
+    sessions: createSessionStore({ existing: 'gpt-5.6-sol' }),
+  });
+  catalog.createCustomProviderModel('codex', { id: 'gpt-5.6-terra', model: 'Terra' });
+
+  const visible = await service.getProviderModels('codex', true);
+  assert.deepEqual(visible.OPTIONS.map(({ value }) => value), ['gpt-6.2-astra', 'gpt-5.60']);
+  assert.equal(visible.DEFAULT, 'gpt-6.2-astra');
+  assert.equal((await service.resolveSessionModel('codex')).model, 'gpt-6.2-astra');
+  assert.equal((await service.resolveSessionModel('codex', { sessionId: 'existing' })).model, 'gpt-5.6-sol');
+  assert.equal((await service.getProviderModels('codex')).OPTIONS.length, 5);
+  assert.equal((await service.getProviderModels('opencode', true)).OPTIONS.length, 4);
+  const customOnly = await service.setCustomModelsOnly('codex', true);
+  assert.deepEqual(customOnly.OPTIONS.map(({ value }) => value), ['gpt-5.6-terra']);
+});
+
 test('the custom-models-only flag is off by default and leaves the merged catalog unchanged', async () => {
   const { service } = createTestService();
   await service.createCustomModel('claude', { model: 'Gateway', id: 'gateway-model' });

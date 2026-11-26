@@ -1,6 +1,6 @@
 # NAS 分支完整提交记录（自动生成）
 
-官方基线：`v1.37.10` (`a2b485238f1dec58e82e339ce0b0f5eb2fbc169c`)。历史覆盖至生成时的 HEAD：`76dd1fbde14ca7133283f54087add0de05f90e71`。
+官方基线：`v1.37.10` (`a2b485238f1dec58e82e339ce0b0f5eb2fbc169c`)。历史覆盖至生成时的 HEAD：`9d887bdcd2c4c6069a8f2307fde6971967bf2f17`。
 
 功能说明和回退依赖见 [维护指南](README.md)，完整净差异见 [文件索引](file-index.md)。不要手动编辑本文件。
 
@@ -10,7 +10,12 @@
 
 | 状态 | 文件 | 原路径 |
 | --- | --- | --- |
-| M | [docs/nas/upstream-base.txt](../../docs/nas/upstream-base.txt) | — |
+| M | [.env.example](../../.env.example) | — |
+| M | [docs/nas/README.md](../../docs/nas/README.md) | — |
+| M | [server/modules/commands/commands.routes.ts](../../server/modules/commands/commands.routes.ts) | — |
+| M | [server/modules/providers/provider.routes.ts](../../server/modules/providers/provider.routes.ts) | — |
+| M | [server/modules/providers/services/provider-models.service.ts](../../server/modules/providers/services/provider-models.service.ts) | — |
+| M | [server/modules/providers/tests/provider-models.service.test.ts](../../server/modules/providers/tests/provider-models.service.test.ts) | — |
 
 ## NAS 主线提交
 
@@ -2669,6 +2674,15 @@
   - `tsconfig.json`
   - `vite.config.js`
   - `vitest.setup.ts`
+
+### 9d887bdc · 2026-11-26 · docs: record verified v1.37.10 upstream baseline
+
+- 完整提交：`9d887bdcd2c4c6069a8f2307fde6971967bf2f17`
+- 相对第一父提交涉及文件：
+
+  - `docs/nas/commit-log.md`
+  - `docs/nas/file-index.md`
+  - `docs/nas/upstream-base.txt`
 
 ## 从 PR / 其他分支合入的提交
 

@@ -289,6 +289,8 @@
 
 ## 恢复本机自定义模型目录（使用官方配置）
 
+- 2026-11-18 C137：`CLOUDCLI_CODEX_HIDDEN_MODEL_FAMILIES` 可在本机从 Codex 选择列表隐藏指定模型系列。`gpt-5.6` 匹配本身及 `gpt-5.6-` 开头的变体。Web、Android 和模型命令使用同一过滤结果；已有会话模型、推理能力、自定义记录、网关发现不变。默认项被隐藏时取首个可见项；若过滤会清空目录，则保留原列表。归属 `server/modules/providers/services/provider-models.service.ts`、`provider.routes.ts`、`server/modules/commands/commands.routes.ts`，无上游依赖。通过 NAS 用户服务环境启用；移除该变量并重启后端即可恢复列表，前端无需重新发布。
+
 根因：旧 NAS 将 GPT-6.1 Sol 和 DeepSeek 写在 provider 的源码默认模型目录中。精简为官方实现后，这些硬编码随之移除，而本机 `provider_models` 自定义模型表为空、`CUSTOM_MODELS_ONLY` 未设置，界面只显示官方内置模型。这次恢复用户已有模型选择需求，使用官方自定义模型 API，不修改共享源码默认目录或 CLI/认证配置。
 
 - Codex：新增自定义 `gpt-6.1-sol`，显示 GPT-6.1 Sol；推理档位 low/medium/high/xhigh/max，默认 medium。保留原有官方可选模型。

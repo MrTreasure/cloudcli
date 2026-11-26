@@ -143,6 +143,29 @@ const normalizeCustomModelInput = (input: CustomProviderModelInput): CustomProvi
   ...(input.effort === undefined ? {} : { effort: input.effort }),
 });
 
+const filterSelectableModels = (
+  provider: LLMProvider,
+  catalog: ProviderModelsDefinition,
+): ProviderModelsDefinition => {
+  if (provider !== 'codex') return catalog;
+
+  const families = process.env.CLOUDCLI_CODEX_HIDDEN_MODEL_FAMILIES
+    ?.split(',').map((family) => family.trim().toLowerCase()).filter(Boolean);
+  if (!families?.length) return catalog;
+
+  const options = catalog.OPTIONS.filter(({ value }) => {
+    const id = value.toLowerCase();
+    return !families.some((family) => id === family || id.startsWith(`${family}-`));
+  });
+  if (!options.length || options.length === catalog.OPTIONS.length) return catalog;
+
+  return {
+    ...catalog,
+    OPTIONS: options,
+    DEFAULT: options.some(({ value }) => value === catalog.DEFAULT) ? catalog.DEFAULT : options[0].value,
+  };
+};
+
 const assertEffortLevelsSupported = (
   provider: LLMProvider,
   input: CustomProviderModelInput,
@@ -210,9 +233,13 @@ export const createProviderModelsService = (dependencies: ProviderModelsServiceD
     isCustomModelsOnly(provider),
   );
 
-  const getProviderModels = async (provider: LLMProvider): Promise<ProviderModelsDefinition> => {
+  const getProviderModels = async (
+    provider: LLMProvider,
+    forSelection = false,
+  ): Promise<ProviderModelsDefinition> => {
     const predefined = await resolveProvider(provider).models.getSupportedModels();
-    return readMergedCatalog(provider, predefined);
+    const merged = readMergedCatalog(provider, predefined);
+    return forSelection ? filterSelectableModels(provider, merged) : merged;
   };
 
   /**
@@ -226,7 +253,7 @@ export const createProviderModelsService = (dependencies: ProviderModelsServiceD
   ): Promise<ProviderModelsDefinition> => {
     const predefined = await resolveProvider(provider).models.getSupportedModels();
     settings.set(customModelsOnlyConfigKey(provider), enabled ? 'true' : 'false');
-    return readMergedCatalog(provider, predefined);
+    return filterSelectableModels(provider, readMergedCatalog(provider, predefined));
   };
 
   const getCurrentActiveModel = async (
@@ -284,7 +311,7 @@ export const createProviderModelsService = (dependencies: ProviderModelsServiceD
       const created = catalog.createCustomProviderModel(provider, normalized);
       return {
         model: toCustomProviderModelOption(created),
-        models: readMergedCatalog(provider, predefined),
+        models: filterSelectableModels(provider, readMergedCatalog(provider, predefined)),
       };
     } catch (error) {
       if (isUniqueConstraintError(error)) {
@@ -319,7 +346,7 @@ export const createProviderModelsService = (dependencies: ProviderModelsServiceD
 
       return {
         model: toCustomProviderModelOption(updated),
-        models: readMergedCatalog(provider, predefined),
+        models: filterSelectableModels(provider, readMergedCatalog(provider, predefined)),
       };
     } catch (error) {
       if (isUniqueConstraintError(error)) {
@@ -357,7 +384,7 @@ export const createProviderModelsService = (dependencies: ProviderModelsServiceD
 
     return {
       model: toCustomProviderModelOption(removed),
-      models: readMergedCatalog(provider, predefined),
+      models: filterSelectableModels(provider, readMergedCatalog(provider, predefined)),
     };
   };
 
@@ -472,7 +499,7 @@ export const createProviderModelsService = (dependencies: ProviderModelsServiceD
       }
 
       const predefined = await resolveProvider(provider).models.getSupportedModels();
-      const providerCatalog = readMergedCatalog(provider, predefined);
+      const providerCatalog = filterSelectableModels(provider, readMergedCatalog(provider, predefined));
       const providerModel = await getCurrentActiveModel(provider, normalizedSessionId);
       const resolvedProviderModel = providerModel.model?.trim();
       // Adapters flag the built-in default they answer with when they know
@@ -507,7 +534,7 @@ export const createProviderModelsService = (dependencies: ProviderModelsServiceD
       };
     }
 
-    const providerCatalog = await getProviderModels(provider);
+    const providerCatalog = await getProviderModels(provider, true);
     return {
       provider,
       sessionId: null,
